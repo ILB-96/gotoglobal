@@ -40,11 +40,13 @@ class LateAlert:
 
         return {locator.text_content() for locator in web_access.query_locator_all("#billingReceipetSpan h3")}
     
+
+
     def show_toast(self, title, message, icon_path=None, sound_path=None):
         root = tk.Tk()
         root.overrideredirect(True)
         root.attributes("-topmost", True)
-        root.attributes("-alpha", 0.0)
+        root.attributes("-alpha", 0.0)  # Start transparent
 
         # Size and position
         width, height = 320, 120
@@ -59,48 +61,39 @@ class LateAlert:
         if sound_path and os.path.exists(sound_path):
             winsound.PlaySound(sound_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
 
-        # Load and blur background image
-
-
-
-        # Canvas setup
-        canvas = tk.Canvas(root, width=width, height=height, bd=0, highlightthickness=0)
+        # Canvas for rounded corners
+        canvas = tk.Canvas(root, width=width, height=height, bg='white', bd=0, highlightthickness=0)
         canvas.pack(fill="both", expand=True)
-        
-
-
-        # Simulate rounded corners with a white mask
-        radius = 8
+        radius = 20
+        canvas.create_rectangle(0, 0, width, height, outline="", fill="#fefefe")
         canvas.create_arc((0, 0, radius*2, radius*2), start=90, extent=90, fill="#fefefe", outline="#fefefe")
         canvas.create_arc((width - radius*2, 0, width, radius*2), start=0, extent=90, fill="#fefefe", outline="#fefefe")
         canvas.create_arc((0, height - radius*2, radius*2, height), start=180, extent=90, fill="#fefefe", outline="#fefefe")
         canvas.create_arc((width - radius*2, height - radius*2, width, height), start=270, extent=90, fill="#fefefe", outline="#fefefe")
-        canvas.create_rectangle(radius, 0, width - radius, height, fill="#fefefe", outline="#fefefe")
-        canvas.create_rectangle(0, radius, width, height - radius, fill="#fefefe", outline="#fefefe")
 
-        # Content frame (transparent)
+
+
+        # Frame inside canvas
         content = tk.Frame(canvas, bg="#fefefe")
-        canvas.create_window((20, 10), window=content, anchor='nw')
+        canvas.create_window((70, 10), window=content, anchor='nw')
 
-        # Title and message
         ttk.Label(content, text=title, font=("Segoe UI", 12, "bold"), background="#fefefe").pack(anchor="w")
-        ttk.Label(content, text=message, font=("Segoe UI", 10), background="#fefefe", wraplength=280, justify="left").pack(anchor="w", pady=(0, 10))
+        ttk.Label(content, text=message, font=("Segoe UI", 10), background="#fefefe", wraplength=220, justify="left").pack(anchor="w", pady=(0, 10))
 
-        # Copy button
         ttk.Button(
             content,
             text="Copy",
             command=lambda: (pyperclip.copy(message), root.destroy())
         ).pack(anchor="e")
 
-        # Animate slide + fade-in
+        # Animation: fade-in and slide-in
         def animate(alpha=0.0, y=start_y):
-            if alpha < 0.8 or y > final_y:
-                alpha = min(alpha + 0.05, 0.8)
+            if alpha < 0.95 or y > final_y:
+                alpha = min(alpha + 0.05, 0.95)
                 y = max(y - 5, final_y)
                 root.attributes("-alpha", alpha)
                 root.geometry(f"{width}x{height}+{final_x}+{y}")
-                root.after(15, lambda: animate(alpha, y))
+                root.after(25, lambda: animate(alpha, y))
 
         animate()
         root.after(8000, root.destroy)
