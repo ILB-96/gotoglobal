@@ -64,7 +64,7 @@ class LateAlert:
         # Canvas for rounded corners
         canvas = tk.Canvas(root, width=width, height=height, bg='white', bd=0, highlightthickness=0)
         canvas.pack(fill="both", expand=True)
-        radius = 20
+        radius = 8
         canvas.create_rectangle(0, 0, width, height, outline="", fill="#fefefe")
         canvas.create_arc((0, 0, radius*2, radius*2), start=90, extent=90, fill="#fefefe", outline="#fefefe")
         canvas.create_arc((width - radius*2, 0, width, radius*2), start=0, extent=90, fill="#fefefe", outline="#fefefe")
@@ -88,8 +88,8 @@ class LateAlert:
 
         # Animation: fade-in and slide-in
         def animate(alpha=0.0, y=start_y):
-            if alpha < 0.95 or y > final_y:
-                alpha = min(alpha + 0.05, 0.95)
+            if alpha < 0.9 or y > final_y:
+                alpha = min(alpha + 0.05, 0.9)
                 y = max(y - 5, final_y)
                 root.attributes("-alpha", alpha)
                 root.geometry(f"{width}x{height}+{final_x}+{y}")
