@@ -1,13 +1,17 @@
 
+from functools import partial
+import os
+from time import sleep
 import settings
 from services import WebAccess
 import pyperclip
-from utils import WindowsBalloonTip
+
+from win11toast import toast
 
 class LateAlert:
     def __init__(self, db):
         self.db = db
-        self.toaster = WindowsBalloonTip()
+        # self.toaster = WindowsBalloonTip()
 
     def start_requests(self, playwright):
         with WebAccess(playwright, settings.playwright_headless, str(settings.profile)) as web_access:
@@ -16,11 +20,17 @@ class LateAlert:
 
             late = self.get_late_reservations(web_access)
             if late:
-                
                 for reservation in late:
-                    self.toaster.ShowWindow("Goto ~ Late Alert!", reservation, callback=self.on_click)
+                    reservation_url = f'{settings.goto_url}/index.html#/orders/{reservation}/details'
+                    web_access.new_tab(reservation_url)
+                    toast(
+                        "Goto ~ Late Alert!",
+                        reservation,
+                        buttons=[{'activationType': 'protocol', 'arguments': str(reservation), 'content': 'Copy Reservation #'}, "Dismiss"],
+                        icon=os.path.abspath("c2gFav.ico"),
+                    )
             else:
-                self.toaster.ShowWindow("Goto ~ Late Alert!", "No late reservations found")
+                toast("Goto ~ Late Alert!", "No late reservations found")
 
     def get_late_reservations(self, web_access: WebAccess):
         """
@@ -37,5 +47,4 @@ class LateAlert:
         :param message: The message to be copied to clipboard
         """
         pyperclip.copy(message)
-        
-            
+    

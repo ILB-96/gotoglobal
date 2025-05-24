@@ -2,7 +2,7 @@
 
 from .decorators import execution_time, retry, repeat_until_done
 from .helpers import iterate_over, parse_dict_data, load_input_data, list_to_chunks
-from .notification import WindowsBalloonTip
+# from .notification import WindowsBalloonTip
 __all__ = [
     "retry",
     "execution_time",
@@ -10,6 +10,6 @@ __all__ = [
     "parse_dict_data",
     "iterate_over",
     "load_input_data",
-    "WindowsBalloonTip",
+    # "WindowsBalloonTip",
     "list_to_chunks",
 ]

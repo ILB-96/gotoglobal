@@ -1,5 +1,6 @@
 import sched
 import signal
+import threading
 import time
 from datetime import datetime, timedelta
 from typing import Callable
@@ -23,10 +24,11 @@ class Scheduler:
         raise KeyboardInterrupt("User Keyboard interrupt.")
 
     def _run_tasks(self):
-        Log.info("Running Tasks...")
         for func, mode in self.tasks:
-            func(mode)
-        Log.info(f"Tasks completed. Scheduling next run in {self.interval_minutes} minutes...")
+            thread = threading.Thread(target=func, args=(mode,))
+            thread.start()
+
+        Log.info(f"Tasks dispatched. Scheduling next run in {self.interval_minutes} minutes...")
 
 
         self.scheduler.enterabs(

@@ -65,6 +65,18 @@ class WebAccess:
             self.context.route(ignore, lambda route: route.abort())
         self.page.goto(url, timeout=timeout, wait_until="networkidle")
 
+    def new_tab(self, url: str, timeout=45000):
+        """Opens a new tab in the browser and navigates to the specified URL.
+
+        Args:
+            url (str): The URL to navigate to.
+            timeout (int, optional): The maximum time to wait for the page to load, in milliseconds. Defaults to 45000.
+
+        Returns:
+            None
+        """
+        self.page = self.context.new_page()
+        self.page.goto(url, timeout=timeout, wait_until="networkidle")
     
     @staticmethod
     def expect_text(locator: Locator, default=""):
@@ -107,7 +119,7 @@ class WebAccess:
         for toggle in dropdown_toggles:
             self.page.wait_for_timeout(timeout=100)
             self.expect_click(toggle, True)
-
+    
     def get_download(
         self,
         pdf_link: Locator,

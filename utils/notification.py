@@ -30,6 +30,7 @@ class WindowsBalloonTip:
                 win32con.WM_TIMER: self.OnTimer,
             }
             WindowsBalloonTip._classAtom = RegisterClass(wc)
+            
     def ShowWindow(self, title, msg, timeout=8, callback=None):
         self.callback = partial(callback, msg) if callback else None
 
@@ -76,8 +77,12 @@ class WindowsBalloonTip:
         return 0
 
     def OnTimer(self, hwnd, msg, wparam, lparam):
-        user32.KillTimer(hwnd, wparam)
-        DestroyWindow(hwnd)
+        if wparam == 1:
+            user32.KillTimer(hwnd, 1)
+            user32.SetTimer(hwnd, 2, 3000, 0)
+        elif wparam == 2:
+            user32.KillTimer(hwnd, 2)
+            DestroyWindow(hwnd)
         return 0
 
     def OnDestroy(self, hwnd, msg, wparam, lparam):
