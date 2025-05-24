@@ -2,5 +2,5 @@ playwright
 tinydb
 colorlog
 python-dotenv
-win10toast_click
 pyperclip
+pandas

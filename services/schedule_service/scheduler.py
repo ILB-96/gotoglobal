@@ -8,7 +8,7 @@ from services import Log
 
 
 class Scheduler:
-    def __init__(self, interval_minutes: int = 15, tasks: list[tuple[Callable, int]] = None):
+    def __init__(self, interval_minutes: int = 15, tasks: list[tuple[Callable, int]] | None = None):
         self.scheduler = sched.scheduler(time.time, time.sleep)
         self.interval_minutes = interval_minutes
         self.tasks = tasks or []
@@ -23,10 +23,9 @@ class Scheduler:
         raise KeyboardInterrupt("User Keyboard interrupt.")
 
     def _run_tasks(self):
-        Log.info(f"Running tasks. Next run in {self.interval_minutes} minutes...")
         for func, mode in self.tasks:
             func(mode)
-            Log.info("Tasks completed. Scheduling next run...")
+        Log.info(f"Tasks completed. Scheduling next run in {self.interval_minutes} minutes...")
 
 
         self.scheduler.enterabs(
@@ -36,7 +35,7 @@ class Scheduler:
         )
 
     def start(self):
-        Log.info("Starting SchedulerService...")
+        Log.info("Starting Tasks Scheduler...")
         self.scheduler.enter(0, 1, self._run_tasks)
         try:
             self.scheduler.run()
