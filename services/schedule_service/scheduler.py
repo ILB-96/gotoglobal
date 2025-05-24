@@ -23,6 +23,7 @@ class Scheduler:
         raise KeyboardInterrupt("User Keyboard interrupt.")
 
     def _run_tasks(self):
+        Log.info("Running Tasks...")
         for func, mode in self.tasks:
             func(mode)
         Log.info(f"Tasks completed. Scheduling next run in {self.interval_minutes} minutes...")
@@ -35,7 +36,6 @@ class Scheduler:
         )
 
     def start(self):
-        Log.info("Starting Tasks Scheduler...")
         self.scheduler.enter(0, 1, self._run_tasks)
         try:
             self.scheduler.run()

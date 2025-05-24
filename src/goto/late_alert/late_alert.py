@@ -1,8 +1,6 @@
 
 import settings
 from services import WebAccess
-from services import Log
-from time import sleep
 import pyperclip
 from utils import WindowsBalloonTip
 
