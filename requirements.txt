@@ -4,3 +4,4 @@ colorlog
 python-dotenv
 pyperclip
 pandas
+win11toast
