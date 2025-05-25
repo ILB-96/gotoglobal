@@ -11,40 +11,31 @@ from win11toast import toast
 class LateAlert:
     def __init__(self, db):
         self.db = db
-        reservation = '123123'
-        self.handler_path = os.path.abspath("handler.pyw")
-        Log.info(f"LateAlert initialized with handler path: {self.handler_path}")
-        msg = f"Reservation {reservation} is late."
-        result = toast(
-            "Goto ~ Late Alert!",
-            f"Reservation {reservation} is late.\nClick to copy to clipboard.",
-            on_click=f'"{self.handler_path}" {reservation}',  # full command with argument
-            icon=os.path.abspath("c2gFav.ico")
-        )
-        result.add_done_callback(partial(self.on_toast_click, reservation))
-
-    def on_toast_click(self, reservation, future):
-        until
+        
     def start_requests(self, playwright):
         with WebAccess(playwright, settings.playwright_headless, str(settings.profile)) as web_access:
             
             web_access.start_context(str(settings.goto_url), "")
             
             late = self.get_late_reservations(web_access)
-            if late:
-                for reservation in late:
-                    reservation_url = f'{settings.goto_url}/index.html#/orders/{reservation}/details'
-                    future = self.get_future_reservation(web_access, reservation_url)
-                    msg = f"Reservation {reservation} is late."
-                    msg += f"\nFuture reservation: {future}" if future else ""
-                    toast(
-                        "Goto ~ Late Alert!",
-                        f"Reservation {reservation} is late.\nClick to copy to clipboard.",
-                        on_click=f'"{self.handler_path}" {reservation}',  # full command with argument
-                        icon=os.path.abspath("c2gFav.ico")
-                    )
-            else:
-                toast("Goto ~ Late Alert!", "No late reservations found")
+            if not late:
+                return toast("Goto ~ Late Alert!", 
+                             "No late reservations found", 
+                             button="Dismiss",
+                             icon=os.path.abspath("c2gFav.ico"))
+            
+            for reservation in late:
+                reservation_url = f'{settings.goto_url}/index.html#/orders/{reservation}/details'
+                future = self.get_future_reservation(web_access, reservation_url)
+                msg = f"Reservation {reservation} is late.\nClick to copy reservation."
+                msg += f"\nFuture reservation: {future}" if future else ""
+                toast(
+                    "Goto ~ Late Alert!",
+                    msg,
+                    on_click=lambda args: pyperclip.copy(reservation),
+                    button="Dismiss",
+                    icon=os.path.abspath("c2gFav.ico")
+                )
 
     def get_late_reservations(self, web_access: WebAccess):
         """
