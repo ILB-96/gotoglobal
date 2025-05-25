@@ -51,7 +51,7 @@ class WebAccess:
             )
             self.context: BrowserContext = self.browser.new_context()
 
-        self.page: Page = self.context.pages[0] if self.context.pages else self.context.new_page()
+        self.pages: list[Page] = [self.context.pages[0] if self.context.pages else self.context.new_page()]
 
     def start_context(
         self, url: str, ignore="**/*.{png,jpg,jpeg,css,svg}", timeout=45000
@@ -60,10 +60,10 @@ class WebAccess:
 
         if not self.profile:
             self.context = self.browser.new_context()
-            self.page: Page = self.context.new_page()
+            self.pages: list[Page] = [self.context.new_page()]
         if ignore:
             self.context.route(ignore, lambda route: route.abort())
-        self.page.goto(url, timeout=timeout, wait_until="networkidle")
+        self.pages[-1].goto(url, timeout=timeout, wait_until="networkidle")
 
     def new_tab(self, url: str, timeout=45000):
         """Opens a new tab in the browser and navigates to the specified URL.
@@ -73,10 +73,11 @@ class WebAccess:
             timeout (int, optional): The maximum time to wait for the page to load, in milliseconds. Defaults to 45000.
 
         Returns:
-            None
+            New tab index (int): The index of the newly opened tab in the pages list.
         """
-        self.page = self.context.new_page()
-        self.page.goto(url, timeout=timeout, wait_until="networkidle")
+        self.pages.append(self.context.new_page())
+        self.pages[-1].goto(url, timeout=timeout, wait_until="networkidle")
+        return len(self.pages) - 1
     
     @staticmethod
     def expect_text(locator: Locator, default=""):
