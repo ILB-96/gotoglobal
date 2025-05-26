@@ -32,7 +32,7 @@ class LateAlert:
                 toast(
                     "Goto ~ Late Alert!",
                     msg,
-                    on_click=lambda args: pyperclip.copy(reservation),
+                    on_click=lambda args: pyperclip.copy(str(reservation)),
                     button="Dismiss",
                     icon=os.path.abspath("c2gFav.ico")
                 )
