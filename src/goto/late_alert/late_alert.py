@@ -17,7 +17,7 @@ class LateAlert:
             
             web_access.start_context(str(settings.goto_url), "")
             
-            late = self.get_late_reservations(web_access)
+            late = self.fetch_late_ride(web_access)
             if not late:
                 return toast("Goto ~ Late Alert!", 
                              "No late reservations found", 
@@ -25,10 +25,16 @@ class LateAlert:
                              icon=os.path.abspath("c2gFav.ico"))
             
             for reservation in late:
-                reservation_url = f'{settings.goto_url}/index.html#/orders/{reservation}/details'
-                future = self.get_future_reservation(web_access, reservation_url)
-                msg = f"Reservation {reservation} is late.\nClick to copy reservation."
-                msg += f"\nFuture reservation: {future}" if future else ""
+                ride_url = f'{settings.goto_url}/index.html#/orders/{reservation}/details'
+                page_index = web_access.new_tab(str(settings.goto_url))
+                page = web_access.pages[page_index]
+                
+                page.goto(ride_url)
+                end_time = self.fetch_end_time(page)
+                future = self.fetch_future_ride(page)
+                self.db.
+                msg = f"Ride {reservation} ended at {end_time}.\nClick to copy ride ID."
+                msg += f"\nNext ride at {future}" if future else "No future ride found."
                 toast(
                     "Goto ~ Late Alert!",
                     msg,
@@ -36,8 +42,10 @@ class LateAlert:
                     button="Dismiss",
                     icon=os.path.abspath("c2gFav.ico")
                 )
-
-    def get_late_reservations(self, web_access: WebAccess):
+    def fetch_end_time(self, page):
+       return page.locator('(//td[contains(@title, "End Time")])[1]//following-sibling::td').text_content()
+        
+    def fetch_late_ride(self, web_access: WebAccess):
         """
         This function checks for late reservations.
         :param web_access: WebAccess instance
@@ -46,20 +54,15 @@ class LateAlert:
         late_reserv_frame = web_access.pages[0].get_by_text("</form> </div> </div>").content_frame.get_by_text("A2A - Late Reservations Reservation that customer is far from parking")
         return {locator.text_content() for locator in late_reserv_frame.locator('#billingReceipetSpan h3').all()}
     
-    def get_future_reservation(self, web_access: WebAccess, reservation_url):
-        page_index = web_access.new_tab(str(settings.goto_url))
-        page = web_access.pages[page_index]
-        
-        page.goto(reservation_url)
-        
+    def fetch_future_ride(self, page):
         page.locator('//*[contains(@ng-click, "showCarDetails")]').click()
         page.get_by_role("button", name="Future reservations").click()
         sleep(10)
         try:
-            future_reservations = page.locator('div:nth-child(4) > .details-block-table .table-body tr:nth-child(1) [ng-switch-when="dateAndTimeShort"]').all()
-            return future_reservations[0].text_content() if future_reservations else ""
+            upcoming_ride = page.locator('div:nth-child(4) > .details-block-table .table-body tr:nth-child(1) [ng-switch-when="dateAndTimeShort"]').all()
+            return upcoming_ride[0].text_content() if upcoming_ride else ""
         except Exception as e:
-            Log.error(f"Error getting future reservation: {e}")
+            Log.error(f"Error getting future ride: {e}")
             return ""
     
     def bo_search(self, page, search_value):
