@@ -7,7 +7,7 @@ def setup_shared_resources(mode):
         {
             "goto": [
                 "gotoDB.json",
-                "reservation_id"
+                "ride_id"
             ]
         }
     )

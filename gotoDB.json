@@ -1,0 +1,16 @@
+{
+    "goto": {
+        "1": {
+            "ride_id": "60841333",
+            "end_time": "28/05/2025 19:30",
+            "future_ride_time": "02/06/2025 01:45",
+            "resolved_time": "28/05/2025 21:43"
+        },
+        "2": {
+            "ride_id": "60842209",
+            "end_time": "28/05/2025 21:30",
+            "future_ride_time": "07/06/2025 16:00",
+            "resolved_time": null
+        }
+    }
+}
