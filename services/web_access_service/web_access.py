@@ -14,58 +14,55 @@ from playwright.sync_api import (
 )
 
 from services import Log
-
-
+    
 class WebAccess:
     """Provides access to web functionality."""
 
-    def __init__(self, playwright: Playwright, headless=True, profile: str = None):
+    def __init__(self, playwright: Playwright, headless=True, profile: str | None= None):
         """
         Initializes a WebAccess object.
 
         Parameters:
         - playwright (Playwright): The Playwright instance used to launch the browser.
         - headless (bool): Whether to run the browser in headless mode. Default is True.
-        - profile (str): Path to a user data directory for persistent context. Optional.
         """
-        edge_executable_path = Path("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe")
-        args = ["--profile-directory=Default"]
-        
-        
+        BROWSER_PATH = Path("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe")
+        self.pages: dict[str, Page] = {}
         if profile:
-            self.profile = Path(profile)
-            assert os.path.isdir(profile) or not os.path.exists(profile)
-
+            user_data_dir = Path.home() / "AppData" / "Local" / "Microsoft" / "Edge" / "User Data" / profile
+            assert os.path.exists(user_data_dir)
             self.context: BrowserContext = playwright.chromium.launch_persistent_context(
-                user_data_dir=profile,
+                user_data_dir=user_data_dir,
                 headless=headless,
-                executable_path=edge_executable_path,
-                args=args,
+                executable_path=BROWSER_PATH,
             )
-            self.browser = self.context.browser
         else:
-            self.profile = None
-            self.browser: Browser = playwright.chromium.launch(
+            self.context: BrowserContext = playwright.chromium.launch(
                 headless=headless,
-                executable_path=edge_executable_path,
-            )
-            self.context: BrowserContext = self.browser.new_context()
+                executable_path=BROWSER_PATH,
+            ).new_context()
 
-        self.pages: list[Page] = [self.context.pages[0] if self.context.pages else self.context.new_page()]
 
     def start_context(
-        self, url: str, ignore="**/*.{png,jpg,jpeg,css,svg}", timeout=45000
+        self,ignore="**/*.{png,jpg,jpeg,css,svg}"
     ):
         # Persistent context: don't recreate context
 
-        if not self.profile:
-            self.context = self.browser.new_context()
-            self.pages: list[Page] = [self.context.new_page()]
+        # if not self.profile:
+        #     self.context = self.browser.new_context()
         if ignore:
             self.context.route(ignore, lambda route: route.abort())
-        self.pages[-1].goto(url, timeout=timeout, wait_until="networkidle")
+            
+            
+    def create_pages(self, pages: dict[str, str]):
+        for page_name, url in pages.items():
+            self.create_new_page(page_name, url)
+        
+        if self.context.pages[0].url == "about:blank":
+            self.context.pages[0].close()
+        
 
-    def new_tab(self, url: str, timeout=45000):
+    def create_new_page(self, page_name: str, url: str, open_mode = 'close', timeout=45000):
         """Opens a new tab in the browser and navigates to the specified URL.
 
         Args:
@@ -75,9 +72,17 @@ class WebAccess:
         Returns:
             New tab index (int): The index of the newly opened tab in the pages list.
         """
-        self.pages.append(self.context.new_page())
-        self.pages[-1].goto(url, timeout=timeout, wait_until="networkidle")
-        return len(self.pages) - 1
+        if open_mode == 'close' and self.pages.get(page_name):
+            self.pages[page_name].close()
+        
+        if not self.pages.get(page_name) or open_mode == 'close':
+            self.pages[page_name] = self.context.new_page()
+        elif open_mode == 'reuse' and self.pages[page_name].url.startswith(url):
+            return self.pages[page_name]
+        
+        self.pages[page_name].goto(url, timeout=timeout, wait_until="networkidle")
+        
+        return self.pages[page_name]
     
     @staticmethod
     def expect_text(locator: Locator, default=""):
@@ -110,7 +115,7 @@ class WebAccess:
         label: str = "text()",
     ):
         return self.expect_click(
-            self.page.locator(
+            self.pages.locator(
                 f"xpath=//{element_type}[normalize-space({label})='{text}']"
             )
         )

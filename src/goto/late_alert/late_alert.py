@@ -11,17 +11,16 @@ class LateAlert:
     def __init__(self, db:TinyDatabase):
         self.db = db
         
-    def start_requests(self, playwright):
-        with WebAccess(playwright, settings.playwright_headless, str(settings.profile)) as web_access:
-            web_access.start_context(str(settings.goto_url), "")
-            late_rides = self.fetch_late_ride(web_access)
-            if not late_rides:
-                return self._notify_no_late_reservations()
-                
-            for ride in late_rides:
-                self._process_ride(ride, web_access)
-                
-            self.resolve_rides(late_rides)
+    def start_requests(self, web_access: WebAccess):
+        web_access.create_new_page("goto_bo", "https://car2gobo.gototech.co/index.html#/orders/current/", "reuse")
+        late_rides = self.fetch_late_ride(web_access)
+        if not late_rides:
+            return self._notify_no_late_reservations()
+            
+        for ride in late_rides:
+            self._process_ride(ride, web_access)
+            
+        self.resolve_rides(late_rides)
 
     def _notify_no_late_reservations(self):
         toast(
@@ -53,23 +52,23 @@ class LateAlert:
 
     def _fetch_and_store_ride_times(self, ride: tuple[str, str], web_access: WebAccess):
         ride_url = self._build_ride_url(ride[0])
-        page = self._open_ride_page(web_access, ride_url)
-        end_time = self._get_end_time(page)
+        self._open_ride_page(web_access, ride_url)
+        end_time = self._get_end_time(web_access.pages['ride'])
+        
         future_ride_url = self._build_ride_url(ride[1])
-        page.goto(future_ride_url)
-        future_ride_time = self._get_future_ride_time(page)
+        web_access.create_new_page("ride", future_ride_url, open_mode="replace")
+        future_ride_time = self._get_future_ride_time(web_access.pages['ride'])
+        
         self._store_ride_times(ride[0], end_time, future_ride_time)
-        page.close()
         return end_time, future_ride_time
 
     def _build_ride_url(self, ride):
         return f'{settings.goto_url}/index.html#/orders/{ride}/details'
 
     def _open_ride_page(self, web_access: WebAccess, ride_url: str):
-        page_index = web_access.new_tab(str(settings.goto_url))
-        page = web_access.pages[page_index]
-        page.goto(ride_url)
-        return page
+        web_access.create_new_page("ride", str(settings.goto_url), open_mode="reuse")
+        web_access.create_new_page("ride", ride_url, open_mode="replace")
+        return web_access.pages['ride']
 
     def _get_end_time(self, page):
         end_time = self.fetch_end_time(page)
@@ -132,7 +131,7 @@ class LateAlert:
         :param web_access: WebAccess instance
         :return: List of late reservations
         """
-        late_reserv_frame = web_access.pages[0].get_by_text("</form> </div> </div>").content_frame.get_by_text("A2A - Late Reservations Reservation that customer is far from parking")
+        late_reserv_frame = web_access.pages['goto_bo'].get_by_text("</form> </div> </div>").content_frame.get_by_text("A2A - Late Reservations Reservation that customer is far from parking")
         entries = late_reserv_frame.locator('#billingReceipetSpan h3').all()
         grouped_data = []
 
