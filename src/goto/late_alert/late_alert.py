@@ -8,8 +8,9 @@ from datetime import datetime as dt, timedelta
 from win11toast import toast
 
 class LateAlert:
-    def __init__(self, db:TinyDatabase):
+    def __init__(self, db:TinyDatabase, toast_callback=None):
         self.db = db
+        self.toast_callback = toast_callback
         
     def start_requests(self, web_access: WebAccess):
         web_access.create_new_page("goto_bo", "https://car2gobo.gototech.co/index.html#/orders/current/", "reuse")
@@ -23,10 +24,9 @@ class LateAlert:
         self.resolve_rides(late_rides)
 
     def _notify_no_late_reservations(self):
-        toast(
+        self.toast_callback(
             "Goto ~ Late Alert!",
             "No late reservations found",
-            button="Dismiss",
             icon=os.path.abspath("c2gFav.ico")
         )
 
@@ -95,13 +95,11 @@ class LateAlert:
         return None
 
     def _notify_late_ride(self, ride, end_time, future_ride_time):
-        msg = f"Ride {ride} ended at {end_time}.\nClick to copy ride ID."
+        msg = f"Ride {ride} ended at {end_time}."
         msg += f"\nNext ride at {future_ride_time}" if future_ride_time else "No future ride found."
         toast(
             "Goto ~ Late Alert!",
             msg,
-            on_click=lambda args: pyperclip.copy(str(ride)),
-            button="Dismiss",
             icon=os.path.abspath("c2gFav.ico")
         )
     
