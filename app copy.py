@@ -81,7 +81,7 @@ class PlaywrightWorker(QThread):
                 self.page_loaded.emit("autotel_bo", 0, 0, "Page Loaded")
 
                 # Start alert logic, block here until it finishes
-                late_alert.LateAlert(self.db, toast_callback=lambda title, msg, icon: self.toast_signal.emit(title, msg, icon)).start_requests(web_access)
+                late_alert.LateAlert(self.db, toast_callback=lambda title, msg, icon: self.toast_signal.emit(title, msg, icon)).start_requests()
 
                 # Keep thread alive until GUI closes
                 self.exec()

@@ -5,39 +5,44 @@ import settings
 from services import WebAccess, Log, TinyDatabase, QueryBuilder
 import pyperclip
 from datetime import datetime as dt, timedelta
-from win11toast import toast
 
 class LateAlert:
-    def __init__(self, db:TinyDatabase, toast_callback=None):
+    def __init__(self, db:TinyDatabase, show_toast, gui_table, web_access: WebAccess):
         self.db = db
-        self.toast_callback = toast_callback
+        self.show_toast = show_toast
+        self.gui_table = gui_table
+        self.web_access = web_access
         
-    def start_requests(self, web_access: WebAccess):
-        web_access.create_new_page("goto_bo", "https://car2gobo.gototech.co/index.html#/orders/current/", "reuse")
-        late_rides = self.fetch_late_ride(web_access)
+    def start_requests(self):
+        self.web_access.create_new_page("goto_bo", "https://car2gobo.gototech.co/index.html#/orders/current/", "reuse")
+        late_rides = self.fetch_late_ride()
+        
         if not late_rides:
+            self.gui_table.clear_table()
+            self.gui_table.add_row(["No late reservations found", "11", "11", "11"])
+            self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))
             return self._notify_no_late_reservations()
             
         for ride in late_rides:
-            self._process_ride(ride, web_access)
-            
+            self._process_ride(ride)
+        self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))
         self.resolve_rides(late_rides)
 
     def _notify_no_late_reservations(self):
-        self.toast_callback(
+        self.show_toast(
             "Goto ~ Late Alert!",
             "No late reservations found",
             icon=os.path.abspath("c2gFav.ico")
         )
 
-    def _process_ride(self, ride: tuple[str,str], web_access: WebAccess):
+    def _process_ride(self, ride: tuple[str,str]):
         data = self.db.find_one({'ride_id': ride}, 'goto')
         # if data:
         #     if self._should_skip_due_to_end_time(data):
         #         return
         #     end_time, future_ride_time = data.get('end_time', None), data.get('future_ride_time', None)
         # else:
-        end_time, future_ride_time = self._fetch_and_store_ride_times(ride, web_access)
+        end_time, future_ride_time = self._fetch_and_store_ride_times(ride)
         self._notify_late_ride(ride[0], end_time, future_ride_time)
 
     def _should_skip_due_to_end_time(self, data):
@@ -50,25 +55,25 @@ class LateAlert:
                 Log.error(f"Error parsing end_time: {e}")
         return False
 
-    def _fetch_and_store_ride_times(self, ride: tuple[str, str], web_access: WebAccess):
+    def _fetch_and_store_ride_times(self, ride: tuple[str, str]):
         ride_url = self._build_ride_url(ride[0])
-        self._open_ride_page(web_access, ride_url)
-        end_time = self._get_end_time(web_access.pages['ride'])
+        self._open_ride_page(ride_url)
+        end_time = self._get_end_time(self.web_access.pages['ride'])
         
         future_ride_url = self._build_ride_url(ride[1])
-        web_access.create_new_page("ride", future_ride_url, open_mode="replace")
-        future_ride_time = self._get_future_ride_time(web_access.pages['ride'])
-        
+        self.web_access.create_new_page("ride", future_ride_url, open_mode="replace")
+        future_ride_time = self._get_future_ride_time(self.web_access.pages['ride'])
+        self.gui_table.add_row([ride[0], end_time, ride[1], future_ride_time])
         self._store_ride_times(ride[0], end_time, future_ride_time)
         return end_time, future_ride_time
 
     def _build_ride_url(self, ride):
         return f'{settings.goto_url}/index.html#/orders/{ride}/details'
 
-    def _open_ride_page(self, web_access: WebAccess, ride_url: str):
-        web_access.create_new_page("ride", str(settings.goto_url), open_mode="reuse")
-        web_access.create_new_page("ride", ride_url, open_mode="replace")
-        return web_access.pages['ride']
+    def _open_ride_page(self, ride_url: str):
+        self.web_access.create_new_page("ride", str(settings.goto_url), open_mode="reuse")
+        self.web_access.create_new_page("ride", ride_url, open_mode="replace")
+        return self.web_access.pages['ride']
 
     def _get_end_time(self, page):
         end_time = self.fetch_end_time(page)
@@ -97,7 +102,7 @@ class LateAlert:
     def _notify_late_ride(self, ride, end_time, future_ride_time):
         msg = f"Ride {ride} ended at {end_time}."
         msg += f"\nNext ride at {future_ride_time}" if future_ride_time else "No future ride found."
-        toast(
+        self.show_toast(
             "Goto ~ Late Alert!",
             msg,
             icon=os.path.abspath("c2gFav.ico")
@@ -123,13 +128,13 @@ class LateAlert:
         sleep(5)
         return page.locator('(//td[contains(@title, "End Time")])[1]//following-sibling::td').text_content()
 
-    def fetch_late_ride(self, web_access: WebAccess):
+    def fetch_late_ride(self):
         """
         This function checks for late reservations.
         :param web_access: WebAccess instance
         :return: List of late reservations
         """
-        late_reserv_frame = web_access.pages['goto_bo'].get_by_text("</form> </div> </div>").content_frame.get_by_text("A2A - Late Reservations Reservation that customer is far from parking")
+        late_reserv_frame = self.web_access.pages['goto_bo'].get_by_text("</form> </div> </div>").content_frame.get_by_text("A2A - Late Reservations Reservation that customer is far from parking")
         entries = late_reserv_frame.locator('#billingReceipetSpan h3').all()
         grouped_data = []
 

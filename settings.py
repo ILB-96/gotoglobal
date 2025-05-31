@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
-
+app_icon = 'c2gFav.ico'
 goto_url = os.getenv("GOTO_URL")
 autotel_url = os.getenv("AUTOTEL_URL")
 profile = os.getenv("BROWSER_PROFILE")
