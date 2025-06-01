@@ -8,20 +8,24 @@ from datetime import datetime as dt, timedelta
 from win11toast import toast
 
 class BatteriesAlert:
-    def __init__(self, db:TinyDatabase):
+    def __init__(self, db:TinyDatabase, show_toast, gui_table, web_access: WebAccess):
         self.db = db
+        self.show_toast = show_toast
+        self.gui_table = gui_table
+        self.web_access = web_access
         
-    def start_requests(self, playwright):
-        with WebAccess(playwright, settings.playwright_headless, str(settings.profile)) as web_access:
-            web_access.start_context(str(settings.autotel_url), "")
-            autotel_cars_url = str(settings.autotel_url) + r'/index.html#/cars/'
-            web_access.pages[0].goto(autotel_cars_url)
-            web_access.pages[0].locator("td").filter(has_text="AllAvailablePending").get_by_role("combobox").select_option("number:60")
-            web_access.pages[0].get_by_role("cell", name="All").get_by_role("combobox").select_option("number:1")
-            cars_rows = web_access.pages[0].locator('//tr[contains(@ng-repeat, "row in $data track by $index")]').all()
-            
-            for row in cars_rows:
-                car_id = row.locator('//*[contains(@ng-click, "carsTableCtrl.showCarDetails(row)")]').text_content()
-                car_battery = row.locator('td').filter(has_text='%').text_content()
-                active_ride = row.locator('td').filter(has_text='ActiveRide').text_content()
-                
+    def start_requests(self):
+        autotel_cars_url = r'https://prodautotelbo.gototech.co/index.html#/cars'
+        page = self.web_access.create_new_page("autotel_bo", autotel_cars_url, "update")
+        sleep(5)
+        select_elements = page.locator("select").all()
+        select_elements[0].select_option("number:60")
+        sleep(5)
+        select_elements[1].select_option("number:1")
+        sleep(5)
+        cars_rows = page.locator('//tr[contains(@ng-repeat, "row in $data track by $index")]').all()
+        for row in cars_rows:
+            car_id = str(row.locator('//*[contains(@ng-click, "carsTableCtrl.showCarDetails(row)")]').text_content()).strip()
+            car_battery = str(row.locator('td').filter(has_text='%').text_content()).strip()
+            active_ride = str(row.locator("//*[contains(@ng-if, \"::$root.matchProject('ATL')||($root.matchProject('E2E'))\")][4]").text_content()).strip()
+            Log.info(f"Car ID: {car_id}, Battery: {car_battery}, Active Ride: {active_ride}")

@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 from services import window, table
 import settings
 from src.goto import late_alert
-
+from src.autotel import batteries
 
 def setup_shared_resources(mode):
     return TinyDatabase({
@@ -43,8 +43,8 @@ class PlaywrightWorker(QThread):
     def __init__(self, db, late_rides_table, batteries_table):
         super().__init__()
         self.db = db
-        self.late = None
         self.late_rides_table = late_rides_table
+        self.batteries_table = batteries_table
 
     def run(self):
         with sync_playwright() as playwright:
@@ -52,21 +52,29 @@ class PlaywrightWorker(QThread):
                 web_access.start_context("")
                 web_access.create_pages({
                     "goto_bo": "https://car2gobo.gototech.co",
-                    "autotel_bo": "https://prodautotelbo.gototech.co"
+                    "autotel_bo": "https://prodautotelbo.gototech.co",
+                    "pointer": "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
                 })
 
                 self.page_loaded.emit("goto_bo", 0, 0, "Page Loaded")
                 self.page_loaded.emit("autotel_bo", 0, 0, "Page Loaded")
 
-                self.late = late_alert.LateAlert(
+                late = late_alert.LateAlert(
                     self.db,
                     show_toast=lambda title, msg, icon: self.toast_signal.emit(title, msg, icon),
                     gui_table=self.late_rides_table,
                     web_access=web_access,
                 )
+                
+                batteries_alert = batteries.BatteriesAlert(self.db,
+                    show_toast=lambda title, msg, icon: self.toast_signal.emit(title, msg, icon),
+                    gui_table=self.batteries_table,
+                    web_access=web_access)
+                
                 while True:
+                    batteries_alert.start_requests()
                     self.late_rides_table.start_loading_indicator()
-                    self.late.start_requests()
+                    late.start_requests()
                     self.late_rides_table.stop_loading_indicator()
                     sleep(15*60)
 

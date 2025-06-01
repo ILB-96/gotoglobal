@@ -79,7 +79,7 @@ class WebAccess:
             self.pages[page_name] = self.context.new_page()
         elif open_mode == 'reuse' and self.pages[page_name].url.startswith(url):
             return self.pages[page_name]
-        
+        Log.info(f"Opening page: {page_name} with URL: {url}")
         self.pages[page_name].goto(url, timeout=timeout, wait_until="networkidle")
         
         return self.pages[page_name]
@@ -107,18 +107,6 @@ class WebAccess:
             raise KeyboardInterrupt("User Keyboard interrupt.")
         except Exception:
             return False
-
-    def click_by_text(
-        self,
-        element_type: str,
-        text: str,
-        label: str = "text()",
-    ):
-        return self.expect_click(
-            self.pages.locator(
-                f"xpath=//{element_type}[normalize-space({label})='{text}']"
-            )
-        )
 
     def open_all_dropdowns(self, xpath: str):
         dropdown_toggles = self.page.locator(xpath).all()

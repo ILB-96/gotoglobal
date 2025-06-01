@@ -1,10 +1,10 @@
 import os
-import re
 from time import sleep
 import settings
 from services import WebAccess, Log, TinyDatabase, QueryBuilder
 import pyperclip
 from datetime import datetime as dt, timedelta
+from src.pages import OrdersPage
 
 class LateAlert:
     def __init__(self, db:TinyDatabase, show_toast, gui_table, web_access: WebAccess):
@@ -134,29 +134,8 @@ class LateAlert:
         :param web_access: WebAccess instance
         :return: List of late reservations
         """
-        late_reserv_frame = self.web_access.pages['goto_bo'].get_by_text("</form> </div> </div>").content_frame.get_by_text("A2A - Late Reservations Reservation that customer is far from parking")
-        entries = late_reserv_frame.locator('#billingReceipetSpan h3').all()
-        grouped_data = []
-
-        for h3 in entries:
-            h3_text = str(h3.text_content()).strip()
-
-            # Try to get the next sibling paragraph
-            sibling_p = h3.evaluate_handle("node => node.nextElementSibling && node.nextElementSibling.tagName === 'P' ? node.nextElementSibling : null")
-            
-            if sibling_p:
-                p_text = sibling_p.evaluate("node => node.textContent").strip()
-                match = re.search(r'Next (\d+)', p_text)
-                if match:
-                    p_text = match.group(1)
-                else:
-                    p_text = None
-                
-            else:
-                p_text = None
-
-            grouped_data.append((h3_text, p_text))
-        return grouped_data
+        return OrdersPage(self.web_access.pages['goto_bo']).get_late_rides()
+        
     
     def fetch_future_ride(self, page):
         try:
@@ -164,13 +143,3 @@ class LateAlert:
         except Exception as e:
             Log.error(f"Error getting future ride: {e}")
             return ""
-    
-    def bo_search(self, page, search_value):
-        """
-        This function performs a search on the page.
-        :param page: The page to perform the search on
-        :param search_value: The value to search for
-        """
-        page.get_by_role("textbox", name="Search").click()
-        page.get_by_role("textbox", name="Search").fill(search_value)
-        page.get_by_role("button", name="Search").click()
