@@ -79,7 +79,7 @@ class WebAccess:
             self.pages[page_name] = self.context.new_page()
         elif open_mode == 'reuse' and self.pages[page_name].url.startswith(url):
             return self.pages[page_name]
-        Log.info(f"Opening page: {page_name} with URL: {url}")
+
         self.pages[page_name].goto(url, timeout=timeout, wait_until="networkidle")
         
         return self.pages[page_name]

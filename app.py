@@ -21,7 +21,6 @@ def goto_tab(main_win):
         title="Late Rides",
         columns=["Ride ID", "End Time", "Future Ride", "Future Ride Time"]
     )
-    goto_late_rides.start_loading_indicator()
     main_win.build_tab(title="Goto", widgets=[goto_late_rides])
     return goto_late_rides
 
@@ -31,7 +30,6 @@ def autotel_tab(main_win):
         title="Autotel Batteries",
         columns=["Ride ID", "License Plate", "Battery", "Location"],
     )
-    batteries_table.start_loading_indicator()
     main_win.build_tab(title="Autotel", widgets=[batteries_table])
     return batteries_table
 
@@ -39,6 +37,8 @@ def autotel_tab(main_win):
 class PlaywrightWorker(QThread):
     page_loaded = pyqtSignal(str, int, int, str)
     toast_signal = pyqtSignal(str, str, str)
+    start_loading = pyqtSignal()
+    stop_loading = pyqtSignal()
 
     def __init__(self, db, late_rides_table, batteries_table):
         super().__init__()
@@ -49,7 +49,6 @@ class PlaywrightWorker(QThread):
     def run(self):
         with sync_playwright() as playwright:
             with WebAccess(playwright, settings.playwright_headless, "Default") as web_access:
-                web_access.start_context("")
                 web_access.create_pages({
                     "goto_bo": "https://car2gobo.gototech.co",
                     "autotel_bo": "https://prodautotelbo.gototech.co",
@@ -73,9 +72,8 @@ class PlaywrightWorker(QThread):
                 
                 while True:
                     batteries_alert.start_requests()
-                    self.late_rides_table.start_loading_indicator()
                     late.start_requests()
-                    self.late_rides_table.stop_loading_indicator()
+                    
                     sleep(15*60)
 
 

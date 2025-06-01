@@ -1,13 +1,16 @@
 from PyQt6.QtWidgets import QTableWidget, QVBoxLayout, QTableWidgetItem, QLabel, QWidget
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QMovie
 
+from services import Log
+
 class Table(QWidget):
+    row_requested = pyqtSignal(list)
+
     def __init__(self, title: str, columns: list[str], rows: int = 0, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
         self.setObjectName(title.lower().replace(' ', '_'))  # Set the name of the widget
-
+        self.row_requested.connect(self._add_row_safe)
         self._layout = QVBoxLayout(self)
         self.title_label = QLabel(f"<b>{title}</b>")
         self._layout.addWidget(self.title_label)
@@ -35,14 +38,20 @@ class Table(QWidget):
                 item.setText(text)
         else:
             raise IndexError("Row or column index out of range")
+        
     def add_row(self, row_data: list[str]):
+        # Called from any thread
+        self.row_requested.emit(row_data)
+
+    def _add_row_safe(self, row_data: list[str]):
+        # Actually manipulates the table safely in the GUI thread
         if len(row_data) != len(self._columns):
             raise ValueError("Row data length does not match number of columns")
-        
         row_position = self.table.rowCount()
         self.table.insertRow(row_position)
         for col, data in enumerate(row_data):
             item = QTableWidgetItem(data)
+            Log.info(f"Adding item to table: {data} at row {row_position}, column {col}")
             self.table.setItem(row_position, col, item)
             
             
