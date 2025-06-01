@@ -19,12 +19,13 @@ class LateAlert:
         
         if not late_rides:
             
-            self.gui_table_row(("No late reservations found", "", "", ""))
+            self.gui_table_row([["No late reservations found", "", "", ""]])
             # self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))
             return self._notify_no_late_reservations()
-            
+        self.rows = []
         for ride in late_rides:
             self._process_ride(ride)
+        self.gui_table_row(self.rows)
         # self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))
         self.resolve_rides(late_rides)
 
@@ -63,7 +64,7 @@ class LateAlert:
         future_ride_url = self._build_ride_url(ride[1])
         self.web_access.create_new_page("ride", future_ride_url, open_mode="replace")
         future_ride_time = self._get_future_ride_time(self.web_access.pages['ride'])
-        self.gui_table_row((ride[0], end_time, ride[1], future_ride_time))
+        self.rows.append([ride[0], end_time, ride[1], future_ride_time])
         self._store_ride_times(ride[0], end_time, future_ride_time)
         return end_time, future_ride_time
 

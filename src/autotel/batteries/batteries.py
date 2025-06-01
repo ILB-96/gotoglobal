@@ -25,10 +25,11 @@ class BatteriesAlert:
         sleep(5)
         cars_rows = page.locator('//tr[contains(@ng-repeat, "row in $data track by $index")]').all()
         # self.gui_table_row.clear_table()
+        rows = []
         for row in cars_rows:
             car_id = str(row.locator('//*[contains(@ng-click, "carsTableCtrl.showCarDetails(row)")]').text_content()).strip()
             car_battery = str(row.locator('td').filter(has_text='%').text_content()).strip()
             active_ride = str(row.locator("//*[contains(@ng-if, \"::$root.matchProject('ATL')||($root.matchProject('E2E'))\")][4]").text_content()).strip()
-            self.gui_table_row((active_ride, car_id, car_battery, ''))
-            Log.info(f"Car ID: {car_id}, Battery: {car_battery}, Active Ride: {active_ride}")
+            rows.append([active_ride, car_id, car_battery, ''])
+        self.gui_table_row(rows)
         # self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))

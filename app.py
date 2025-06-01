@@ -36,22 +36,22 @@ def autotel_tab(main_win):
 class WorkSignals(QObject):
     page_loaded = pyqtSignal(str, int, int, object)
     toast_signal = pyqtSignal(str, str, str)
-    late_table_row = pyqtSignal(tuple)
-    batteries_table_row = pyqtSignal(tuple)
+    late_table_row = pyqtSignal(object)
+    batteries_table_row = pyqtSignal(object)
     
     start_loading = pyqtSignal()
     stop_loading = pyqtSignal()
 class PlaywrightWorker(QRunnable):
 
-    def __init__(self, db, web_access):
+    def __init__(self, db):
         super().__init__()
         self.db = db
-        self.web_access = web_access
         self.signals = WorkSignals()
 
     @pyqtSlot()
     def run(self):
-
+        playwright = sync_playwright().start()
+        web_access = WebAccess(playwright, settings.playwright_headless, 'Default')
         web_access.create_pages({
             "goto_bo": "https://car2gobo.gototech.co",
             "autotel_bo": "https://prodautotelbo.gototech.co",
@@ -62,12 +62,12 @@ class PlaywrightWorker(QRunnable):
             self.db,
             show_toast=lambda title, msg, icon: self.signals.toast_signal.emit(title, msg, icon),
             gui_table_row=lambda row: self.signals.late_table_row.emit(row),
-            web_access=self.web_access,
+            web_access=web_access,
         )
         batteries_alert = batteries.BatteriesAlert(self.db,
             show_toast=lambda title, msg, icon: self.signals.toast_signal.emit(title, msg, icon),
             gui_table_row=lambda row: self.signals.batteries_table_row.emit(row),
-            web_access=self.web_access)
+            web_access=web_access)
         late.start_requests()
         batteries_alert.start_requests()
         
@@ -84,22 +84,21 @@ class PlaywrightWorker(QRunnable):
 
 if __name__ == "__main__":
     db = setup_shared_resources(0)
-    with sync_playwright() as playwright:
-        with WebAccess(playwright, settings.playwright_headless, "Default") as web_access:
-            app = QApplication(sys.argv)
-            main_win = window.MainWindow(title="GotoGlobal", app_icon=settings.app_icon)
 
-            late_rides_table = goto_tab(main_win)
-            batteries_table = autotel_tab(main_win)
+    app = QApplication(sys.argv)
+    main_win = window.MainWindow(title="GotoGlobal", app_icon=settings.app_icon)
 
-            worker = PlaywrightWorker(db, web_access)
-            worker.toast_signal.connect(main_win.show_toast)
-            worker.page_loaded.connect(main_win.run_task)
-            worker.late_table_row.connect(late_rides_table.add_row)
-            worker.batteries_table_row.connect(batteries_table.add_row)
-            
-            main_win.threadpool.start(worker)
+    late_rides_table = goto_tab(main_win)
+    batteries_table = autotel_tab(main_win)
+
+    worker = PlaywrightWorker(db)
+    worker.signals.toast_signal.connect(main_win.show_toast)
+    worker.signals.page_loaded.connect(main_win.run_task)
+    worker.signals.late_table_row.connect(late_rides_table.add_rows)
+    worker.signals.batteries_table_row.connect(batteries_table.add_rows)
+    
+    main_win.threadpool.start(worker)
 
 
-            main_win.show()
-            sys.exit(app.exec())
+    main_win.show()
+    sys.exit(app.exec())

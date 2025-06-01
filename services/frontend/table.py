@@ -21,7 +21,6 @@ class Table(QWidget):
         self._columns = columns  # Store columns for later use
         self.table = QTableWidget(rows, len(columns))
         self.table.setHorizontalHeaderLabels(columns)
-        self.table.setSortingEnabled(True)
         self.table.setAlternatingRowColors(True)
 
         self._layout.addWidget(self.table)
@@ -42,6 +41,26 @@ class Table(QWidget):
     def add_row(self, row_data: list[str]):
         # Called from any thread
         self.row_requested.emit(row_data)
+        
+    def add_rows(self, rows_data: list[list[str]]):
+        if not all(len(row) == len(self._columns) for row in rows_data):
+            raise ValueError("One or more rows do not match the number of columns")
+
+        self.table.setUpdatesEnabled(False)
+        self.table.blockSignals(True)
+
+        start_row = self.table.rowCount()
+        self.table.setRowCount(start_row + len(rows_data))
+
+        for i, row_data in enumerate(rows_data):
+            row_index = start_row + i
+            for col_index, data in enumerate(row_data):
+                item = QTableWidgetItem("" if data is None else str(data))
+                self.table.setItem(row_index, col_index, item)
+
+        self.table.blockSignals(False)
+        self.table.setUpdatesEnabled(True)
+        self.table.viewport().update()
 
     def _add_row_safe(self, row_data: list[str]):
         # Actually manipulates the table safely in the GUI thread
