@@ -8,10 +8,10 @@ from datetime import datetime as dt, timedelta
 from win11toast import toast
 
 class BatteriesAlert:
-    def __init__(self, db:TinyDatabase, show_toast, gui_table, web_access: WebAccess):
+    def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess):
         self.db = db
         self.show_toast = show_toast
-        self.gui_table = gui_table
+        self.gui_table_row = gui_table_row
         self.web_access = web_access
         
     def start_requests(self):
@@ -24,11 +24,11 @@ class BatteriesAlert:
         select_elements[1].select_option("number:1")
         sleep(5)
         cars_rows = page.locator('//tr[contains(@ng-repeat, "row in $data track by $index")]').all()
-        self.gui_table.clear_table()
+        # self.gui_table_row.clear_table()
         for row in cars_rows:
             car_id = str(row.locator('//*[contains(@ng-click, "carsTableCtrl.showCarDetails(row)")]').text_content()).strip()
             car_battery = str(row.locator('td').filter(has_text='%').text_content()).strip()
             active_ride = str(row.locator("//*[contains(@ng-if, \"::$root.matchProject('ATL')||($root.matchProject('E2E'))\")][4]").text_content()).strip()
-            self.gui_table.add_row([active_ride, car_id, car_battery, ''])
+            self.gui_table_row((active_ride, car_id, car_battery, ''))
             Log.info(f"Car ID: {car_id}, Battery: {car_battery}, Active Ride: {active_ride}")
-        self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))
+        # self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))

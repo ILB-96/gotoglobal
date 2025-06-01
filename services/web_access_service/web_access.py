@@ -271,12 +271,8 @@ class WebAccess:
         - None
         """
         try:
-            if self.page:
-                self.page.close()
             if self.context:
                 self.context.close()
-            if self.browser:
-                self.browser.close()
         except Exception as e:
             pass
 

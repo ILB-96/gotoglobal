@@ -2,6 +2,7 @@ import time
 
 from PyQt6.QtCore import (
     QTimer,
+    QThreadPool,
 )
 from PyQt6.QtWidgets import (
     QApplication,
@@ -23,6 +24,7 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon(app_icon))
         self.tabs = QTabWidget()
         self.setWindowTitle(title)
+        self.threadpool = QThreadPool()
 
         self.setCentralWidget(self.tabs)
         
@@ -41,3 +43,6 @@ class MainWindow(QMainWindow):
             msg,
             button="Dismiss",
             icon=icon)
+        
+    def run_task(self, task):
+        task()

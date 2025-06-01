@@ -7,10 +7,10 @@ from datetime import datetime as dt, timedelta
 from src.pages import OrdersPage
 
 class LateAlert:
-    def __init__(self, db:TinyDatabase, show_toast, gui_table, web_access: WebAccess):
+    def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess):
         self.db = db
         self.show_toast = show_toast
-        self.gui_table = gui_table
+        self.gui_table_row = gui_table_row
         self.web_access = web_access
         
     def start_requests(self):
@@ -18,14 +18,14 @@ class LateAlert:
         late_rides = self.fetch_late_ride()
         
         if not late_rides:
-            self.gui_table.clear_table()
-            self.gui_table.add_row(["No late reservations found", "11", "11", "11"])
-            self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))
+            
+            self.gui_table_row(("No late reservations found", "", "", ""))
+            # self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))
             return self._notify_no_late_reservations()
             
         for ride in late_rides:
             self._process_ride(ride)
-        self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))
+        # self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))
         self.resolve_rides(late_rides)
 
     def _notify_no_late_reservations(self):
@@ -63,7 +63,7 @@ class LateAlert:
         future_ride_url = self._build_ride_url(ride[1])
         self.web_access.create_new_page("ride", future_ride_url, open_mode="replace")
         future_ride_time = self._get_future_ride_time(self.web_access.pages['ride'])
-        self.gui_table.add_row([ride[0], end_time, ride[1], future_ride_time])
+        self.gui_table_row((ride[0], end_time, ride[1], future_ride_time))
         self._store_ride_times(ride[0], end_time, future_ride_time)
         return end_time, future_ride_time
 
