@@ -1,4 +1,5 @@
 import sys
+from time import sleep
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
 from services import TinyDatabase, WebAccess
@@ -44,12 +45,8 @@ class PlaywrightWorker(QThread):
         self.db = db
         self.late = None
         self.late_rides_table = late_rides_table
-        self.timer = QTimer()  # Create here but configure later
 
     def run(self):
-        # Timer must be moved to this thread
-        self.timer.moveToThread(self)
-
         with sync_playwright() as playwright:
             with WebAccess(playwright, settings.playwright_headless, "Default") as web_access:
                 web_access.start_context("")
@@ -67,21 +64,14 @@ class PlaywrightWorker(QThread):
                     gui_table=self.late_rides_table,
                     web_access=web_access,
                 )
+                while True:
+                    self.late_rides_table.start_loading_indicator()
+                    self.late.start_requests()
+                    self.late_rides_table.stop_loading_indicator()
+                    sleep(15*60)
 
-                # Initial load
-                self.late.start_requests()
-                self.late_rides_table.stop_loading_indicator()
-
-                # Setup timer in the correct thread after everything is initialized
-                self.timer.setInterval(15 * 60 * 1000)
-                self.timer.timeout.connect(self.late.start_requests)
-                self.timer.start()
-
-                self.exec()  # Start thread event loop
 
     def cleanup(self):
-        if self.timer and self.timer.isActive():
-            self.timer.stop()
         self.quit()
         self.wait()
 
