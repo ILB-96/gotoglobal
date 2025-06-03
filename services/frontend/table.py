@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QTableWidget, QVBoxLayout, QTableWidgetItem, QLabel, QWidget
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QMovie
-
+from datetime import datetime as dt
 from services import Log
 
 class Table(QWidget):
@@ -43,12 +43,13 @@ class Table(QWidget):
         self.row_requested.emit(row_data)
         
     def add_rows(self, rows_data: list[list[str]]):
+        self.clear_table()
         if not all(len(row) == len(self._columns) for row in rows_data):
             raise ValueError("One or more rows do not match the number of columns")
 
         self.table.setUpdatesEnabled(False)
         self.table.blockSignals(True)
-
+        self.set_last_updated(dt.now().strftime("%H:%M"))
         start_row = self.table.rowCount()
         self.table.setRowCount(start_row + len(rows_data))
 

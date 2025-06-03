@@ -1,4 +1,5 @@
 import sys
+import threading
 from time import sleep
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt, QRunnable, QObject, pyqtSignal, pyqtSlot, QTimer
@@ -38,6 +39,7 @@ class WorkSignals(QObject):
     toast_signal = pyqtSignal(str, str, str)
     late_table_row = pyqtSignal(object)
     batteries_table_row = pyqtSignal(object)
+    gui_table_update = pyqtSignal(str)
     
     start_loading = pyqtSignal()
     stop_loading = pyqtSignal()
@@ -47,6 +49,8 @@ class PlaywrightWorker(QRunnable):
         super().__init__()
         self.db = db
         self.signals = WorkSignals()
+        self.running = True
+        self.stop_event = threading.Event()
 
     @pyqtSlot()
     def run(self):
@@ -68,18 +72,22 @@ class PlaywrightWorker(QRunnable):
             show_toast=lambda title, msg, icon: self.signals.toast_signal.emit(title, msg, icon),
             gui_table_row=lambda row: self.signals.batteries_table_row.emit(row),
             web_access=web_access)
-        late.start_requests()
-        batteries_alert.start_requests()
+        
         
         # self.signals.page_loaded.emit("goto_bo", 0, 0, )
         # self.signals.page_loaded.emit("autotel_bo", 0, 0, )
+        while self.running:
+            late.start_requests()
+            for _ in range(3):
+                if self.stop_event.is_set():
+                    break
+                batteries_alert.start_requests()
+                self.stop_event.wait(timeout=5 * 60)
 
-
-
-
-    def cleanup(self):
-        self.quit()
-        self.wait()
+        
+    def stop(self):
+        self.running = False
+        self.stop_event.set()
 
 
 if __name__ == "__main__":
@@ -96,9 +104,8 @@ if __name__ == "__main__":
     worker.signals.page_loaded.connect(main_win.run_task)
     worker.signals.late_table_row.connect(late_rides_table.add_rows)
     worker.signals.batteries_table_row.connect(batteries_table.add_rows)
-    
+
     main_win.threadpool.start(worker)
-
-
+    app.aboutToQuit.connect(worker.stop)
     main_win.show()
     sys.exit(app.exec())

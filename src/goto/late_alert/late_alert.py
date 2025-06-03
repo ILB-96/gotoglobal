@@ -7,7 +7,7 @@ from datetime import datetime as dt, timedelta
 from src.pages import OrdersPage
 
 class LateAlert:
-    def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess):
+    def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess,):
         self.db = db
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row
@@ -20,20 +20,18 @@ class LateAlert:
         if not late_rides:
             
             self.gui_table_row([["No late reservations found", "", "", ""]])
-            # self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))
             return self._notify_no_late_reservations()
         self.rows = []
         for ride in late_rides:
             self._process_ride(ride)
         self.gui_table_row(self.rows)
-        # self.gui_table.set_last_updated(dt.now().strftime("%H:%M"))
         self.resolve_rides(late_rides)
 
     def _notify_no_late_reservations(self):
         self.show_toast(
             "Goto ~ Late Alert!",
             "No late reservations found",
-            icon=os.path.abspath("c2gFav.ico")
+            os.path.abspath("c2gFav.ico")
         )
 
     def _process_ride(self, ride: tuple[str,str]):
@@ -106,7 +104,7 @@ class LateAlert:
         self.show_toast(
             "Goto ~ Late Alert!",
             msg,
-            icon=os.path.abspath("c2gFav.ico")
+            os.path.abspath("c2gFav.ico")
         )
     
     def resolve_rides(self, rides):
