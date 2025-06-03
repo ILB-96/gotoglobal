@@ -2,19 +2,20 @@ from PyQt6.QtWidgets import (
     QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout
 )
 from PyQt6.QtCore import pyqtSignal, Qt
-
 class PopupWindow(QDialog):
     confirmed = pyqtSignal(str)  # Optional: emits input if you want to connect it outside
 
-    def __init__(self, title="Auth", message="Please enter a value:", parent=None):
+    def __init__(self, cta, title="Authorization", message="Please enter a value:", parent=None):
         super().__init__(parent)
         self.setModal(True)
         self.input_value = None  # The stored value
         self.setWindowTitle(title)
+        self.setGeometry(100, 100, 500, 250)
 
         # Widgets
-        self.label = QLabel(message)
+        self.label = QLabel(cta)
         self.line_edit = QLineEdit()
+        self.line_edit.setPlaceholderText(message)
         self.confirm_button = QPushButton("Confirm")
         
         self.setStyleSheet("""
@@ -24,6 +25,8 @@ class PopupWindow(QDialog):
             QLabel {
                 font-size: 14pt;
                 color: #333;
+                font-family: 'Tahoma', 'Arial';
+                
             }
             
             QLineEdit {
@@ -31,12 +34,13 @@ class PopupWindow(QDialog):
                 padding: 5px;
                 border: 1px solid #ccc;
                 border-radius: 5px;
+                margin-bottom: 16px;
+                margin-top: 16px;
             }
             
             QPushButton {
-                
                 font-size: 14pt;
-                padding: 8px 16px;
+                padding: 8px 20px;
                 background-color: #007bff;
                 color: white;
                 border: none;
@@ -46,16 +50,15 @@ class PopupWindow(QDialog):
                 background-color: #0056b3;
             }
             """)
-        
 
         # Layout
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(self.confirm_button)
+        input_button_layout = QHBoxLayout()
+        input_button_layout.addWidget(self.line_edit)
+        input_button_layout.addWidget(self.confirm_button)
 
         layout = QVBoxLayout()
         layout.addWidget(self.label)
-        layout.addWidget(self.line_edit)
-        layout.addLayout(button_layout)
+        layout.addLayout(input_button_layout)
 
         self.setLayout(layout)
 

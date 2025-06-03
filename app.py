@@ -1,3 +1,4 @@
+from pathlib import Path
 import sys
 import threading
 from time import sleep
@@ -100,8 +101,20 @@ if __name__ == "__main__":
 
     late_rides_table = goto_tab(main_win)
     batteries_table = autotel_tab(main_win)
+    username = Path.home().name.replace('.', ' ').title()
+    cta = f"""
+    <h2>Hey {username},</h2>
+    <p>
+    welcome to your Goto service companion!
+    <br>
+    <br>
+    This app helps you monitor rides in real-time.
+    <br>
+    Please enter your phone number to get started.
+    </p>
+    """
 
-    popup = popup_window.PopupWindow(message="Enter your Phone:")
+    popup = popup_window.PopupWindow(cta, message="Enter your phone here")
     phone_number = popup.get_input()
     # worker = PlaywrightWorker(db)
     # worker.signals.toast_signal.connect(main_win.show_toast)
