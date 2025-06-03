@@ -26,7 +26,6 @@ class PopupWindow(QDialog):
                 font-size: 14pt;
                 color: #333;
                 font-family: 'Tahoma', 'Arial';
-                
             }
             
             QLineEdit {
