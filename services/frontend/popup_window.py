@@ -21,11 +21,12 @@ class PopupWindow(QDialog):
         self.setStyleSheet("""
             QDialog {
                 background-color: #f0f0f0;
+                font-family: 'Tahoma', 'Arial';
             }
+            
             QLabel {
                 font-size: 14pt;
                 color: #333;
-                font-family: 'Tahoma', 'Arial';
             }
             
             QLineEdit {
