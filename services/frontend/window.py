@@ -4,6 +4,8 @@ from PyQt6.QtCore import (
     QThreadPool,
     QPropertyAnimation, 
     QEasingCurve,
+    Qt,
+    QPoint
 )
 from PyQt6.QtWidgets import (
     QApplication,
@@ -29,13 +31,13 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.setWindowTitle(title)
         self.threadpool = QThreadPool()
-
+        
         self.tabs.setStyleSheet("""
             QTabWidget::pane {
                 background: #fff;
                 border: none;
                 font-size: 16pt;
-                font-family: 'Segoe UI', 'Arial';
+                font-family: 'Tahoma', 'Arial';
             }
             QTabBar::tab {
                 background: #e0e0e0;
@@ -58,7 +60,7 @@ class MainWindow(QMainWindow):
         """)
 
         self.setCentralWidget(self.tabs)
-        QApplication.setStyle(QStyleFactory.create("Fusion"))
+        QApplication.setStyle(QStyleFactory.create("Windows"))
 
 
         

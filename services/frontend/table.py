@@ -23,11 +23,13 @@ class Table(QWidget):
         self.table.setHorizontalHeaderLabels(columns)
         self.table.setAlternatingRowColors(True)
         self.table.setWordWrap(False)
+        self.table.verticalHeader().setVisible(False)
         self.title_label.setStyleSheet("font-size: 16pt;")
+        self.table.setStyleSheet("border-radius: 8px;")
         self.table.setStyleSheet("""
         QTableWidget {
             font-size: 13pt;
-            font-family: 'Segoe UI', 'Arial';
+            font-family: 'Tahoma', 'Arial';
             background-color: #ffffff;
             alternate-background-color: #f9f9f9;
             gridline-color: #f0f0f0;
@@ -36,7 +38,13 @@ class Table(QWidget):
             border-radius: 8px;
             padding: 2px;
         }
-
+        
+        QHeaderView {
+            background-color: transparent;
+            border: none;
+            border-radius: 8px;    
+        }
+        
         QHeaderView::section {
             background-color: #e8e8e8;
             color: #333;
@@ -49,12 +57,13 @@ class Table(QWidget):
         
         QHeaderView::section:first {
         border-top-left-radius: 8px;
-        }   
+        }
 
         QHeaderView::section:last {
             border-top-right-radius: 8px;
             border-right: none;
         }
+        
         QTableCornerButton::section {
             background-color: #e8e8e8;
             border: none;
@@ -66,6 +75,8 @@ class Table(QWidget):
         header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self._layout.addWidget(self.table)
+        
+        
         
         
 

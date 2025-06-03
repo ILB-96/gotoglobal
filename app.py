@@ -101,16 +101,16 @@ if __name__ == "__main__":
     late_rides_table = goto_tab(main_win)
     batteries_table = autotel_tab(main_win)
 
-    worker = PlaywrightWorker(db)
-    worker.signals.toast_signal.connect(main_win.show_toast)
-    worker.signals.late_table_row.connect(late_rides_table.add_rows)
-    worker.signals.batteries_table_row.connect(batteries_table.add_rows)
+    # worker = PlaywrightWorker(db)
+    # worker.signals.toast_signal.connect(main_win.show_toast)
+    # worker.signals.late_table_row.connect(late_rides_table.add_rows)
+    # worker.signals.batteries_table_row.connect(batteries_table.add_rows)
 
-    main_win.threadpool.start(worker)
-    app.aboutToQuit.connect(worker.stop)
-    # late_rides_table.add_rows([
-    #     ["12345", "2023-10-01 12:00", "No", "N/A"],
-    #     ["67890", "2023-10-01 14:30", "Yes", "2023-10-01 15:00"]
-    # ])
+    # main_win.threadpool.start(worker)
+    # app.aboutToQuit.connect(worker.stop)
+    late_rides_table.add_rows([
+        ["12345", "2023-10-01 12:00", "No", "N/A"],
+        ["67890", "2023-10-01 14:30", "Yes", "2023-10-01 15:00"]
+    ])
     main_win.show()
     sys.exit(app.exec())
