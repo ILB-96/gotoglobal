@@ -60,7 +60,6 @@ class MainWindow(QMainWindow):
         """)
 
         self.setCentralWidget(self.tabs)
-        QApplication.setStyle(QStyleFactory.create("Windows"))
 
 
         

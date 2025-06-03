@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt, QRunnable, QObject, pyqtSignal, pyqtSlot, QTimer
 from services import TinyDatabase, WebAccess
 from playwright.sync_api import sync_playwright
-from services import window, table
+from services import window, table, popup_window
 import settings
 from src.goto import late_alert
 from src.autotel import batteries
@@ -101,6 +101,8 @@ if __name__ == "__main__":
     late_rides_table = goto_tab(main_win)
     batteries_table = autotel_tab(main_win)
 
+    popup = popup_window.PopupWindow(message="Enter your Phone:")
+    phone_number = popup.get_input()
     # worker = PlaywrightWorker(db)
     # worker.signals.toast_signal.connect(main_win.show_toast)
     # worker.signals.late_table_row.connect(late_rides_table.add_rows)

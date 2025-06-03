@@ -3,9 +3,11 @@ class PointerLoginPage:
         self.page = page
 
     def login(self, username, phone):
-        self.driver.find_element("id", "username").send_keys(username)
-        self.driver.find_element("id", "password").send_keys(password)
-        self.driver.find_element("id", "login-button").click()
+        self.page.get_by_role("textbox", name="שם משתמש").click()
+        self.page.get_by_role("textbox", name="שם משתמש").fill(username)
+        self.page.get_by_role("textbox", name="מספר נייד").click()
+        self.page.get_by_role("textbox", name="מספר נייד").fill(phone)
+        self.page.locator("#button_otp").click()
 
     def is_login_successful(self):
         return "Welcome" in self.driver.page_source
