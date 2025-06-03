@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QTableWidget, QVBoxLayout, QTableWidgetItem, QLabel, QWidget
+from PyQt6.QtWidgets import QTableWidget, QVBoxLayout, QTableWidgetItem, QLabel, QWidget, QHeaderView
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QMovie
 from datetime import datetime as dt
@@ -22,8 +22,52 @@ class Table(QWidget):
         self.table = QTableWidget(rows, len(columns))
         self.table.setHorizontalHeaderLabels(columns)
         self.table.setAlternatingRowColors(True)
+        self.table.setWordWrap(False)
+        self.title_label.setStyleSheet("font-size: 16pt;")
+        self.table.setStyleSheet("""
+        QTableWidget {
+            font-size: 13pt;
+            font-family: 'Segoe UI', 'Arial';
+            background-color: #ffffff;
+            alternate-background-color: #f9f9f9;
+            gridline-color: #f0f0f0;
+            selection-background-color: #cce5ff;
+            selection-color: #000;
+            border-radius: 8px;
+            padding: 2px;
+        }
 
+        QHeaderView::section {
+            background-color: #e8e8e8;
+            color: #333;
+            font-weight: bold;
+            font-size: 12pt;
+            padding: 8px;
+            border: none;
+            border-right: 1px solid #fff;
+        }
+        
+        QHeaderView::section:first {
+        border-top-left-radius: 8px;
+        }   
+
+        QHeaderView::section:last {
+            border-top-right-radius: 8px;
+            border-right: none;
+        }
+        QTableCornerButton::section {
+            background-color: #e8e8e8;
+            border: none;
+            border-top-left-radius: 8px;
+        }
+    """)
+        header = self.table.horizontalHeader()
+        header.setStretchLastSection(True)
+        header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self._layout.addWidget(self.table)
+        
+        
 
 
     

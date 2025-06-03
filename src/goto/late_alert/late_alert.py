@@ -19,7 +19,7 @@ class LateAlert:
         
         if not late_rides:
             
-            self.gui_table_row([["No late reservations found", "", "", ""]])
+            self.gui_table_row([["No late reservations found", "0", "0", "0"]])
             return self._notify_no_late_reservations()
         self.rows = []
         for ride in late_rides:

@@ -64,14 +64,16 @@ class PlaywrightWorker(QRunnable):
 
         late = late_alert.LateAlert(
             self.db,
-            show_toast=lambda title, msg, icon: self.signals.toast_signal.emit(title, msg, icon),
+            show_toast=lambda *args, **kwargs: self.signals.toast_signal.emit(*args, **kwargs),
             gui_table_row=lambda row: self.signals.late_table_row.emit(row),
             web_access=web_access,
         )
-        batteries_alert = batteries.BatteriesAlert(self.db,
-            show_toast=lambda title, msg, icon: self.signals.toast_signal.emit(title, msg, icon),
+        batteries_alert = batteries.BatteriesAlert(
+            self.db,
+            show_toast=lambda *args, **kwargs: self.signals.toast_signal.emit(*args, **kwargs),
             gui_table_row=lambda row: self.signals.batteries_table_row.emit(row),
-            web_access=web_access)
+            web_access=web_access
+        )
         
         
         # self.signals.page_loaded.emit("goto_bo", 0, 0, )
@@ -101,11 +103,14 @@ if __name__ == "__main__":
 
     worker = PlaywrightWorker(db)
     worker.signals.toast_signal.connect(main_win.show_toast)
-    worker.signals.page_loaded.connect(main_win.run_task)
     worker.signals.late_table_row.connect(late_rides_table.add_rows)
     worker.signals.batteries_table_row.connect(batteries_table.add_rows)
 
     main_win.threadpool.start(worker)
     app.aboutToQuit.connect(worker.stop)
+    # late_rides_table.add_rows([
+    #     ["12345", "2023-10-01 12:00", "No", "N/A"],
+    #     ["67890", "2023-10-01 14:30", "Yes", "2023-10-01 15:00"]
+    # ])
     main_win.show()
     sys.exit(app.exec())
