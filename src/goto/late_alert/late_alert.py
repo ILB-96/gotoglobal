@@ -31,11 +31,11 @@ class LateAlert:
         self.show_toast(
             "Goto ~ Late Alert!",
             "No late reservations found",
-            os.path.abspath("c2gFav.ico")
+            icon=os.path.abspath(settings.app_icon)
         )
 
     def _process_ride(self, ride: tuple[str,str]):
-        data = self.db.find_one({'ride_id': ride}, 'goto')
+        # data = self.db.find_one({'ride_id': ride}, 'goto')
         # if data:
         #     if self._should_skip_due_to_end_time(data):
         #         return
@@ -77,7 +77,12 @@ class LateAlert:
     def _get_end_time(self, page):
         end_time = self.fetch_end_time(page)
         return self._parse_time(end_time, "end_time")
+    
+    def _get_start_time(self, page):
+        start_time = self.fetch_start_time(page)
+        return self._parse_time(start_time, "start_time")
 
+    
     def _get_future_ride_time(self, page):
         future_ride_time = self.fetch_future_ride(page)
         return self._parse_time(future_ride_time, "future ride time")
@@ -104,7 +109,7 @@ class LateAlert:
         self.show_toast(
             "Goto ~ Late Alert!",
             msg,
-            os.path.abspath("c2gFav.ico")
+            icon=os.path.abspath(settings.app_icon)
         )
     
     def resolve_rides(self, rides):
@@ -127,6 +132,10 @@ class LateAlert:
         sleep(5)
         return page.locator('(//td[contains(@title, "End Time")])[1]//following-sibling::td').text_content()
 
+    def fetch_start_time(self, page):
+        sleep(5)
+        return page.locator('(//td[contains(@title, "Start Time")])[1]//following-sibling::td').text_content()
+    
     def fetch_late_ride(self):
         """
         This function checks for late reservations.
@@ -138,7 +147,7 @@ class LateAlert:
     
     def fetch_future_ride(self, page):
         try:
-            return self._get_end_time(page)
+            return self._get_start_time(page)
         except Exception as e:
             Log.error(f"Error getting future ride: {e}")
             return ""
