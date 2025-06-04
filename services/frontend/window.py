@@ -72,8 +72,8 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(tab, title)
         return tab
 
-    def show_toast(self, *args, **kwargs):
-        toast(*args, **kwargs)
+    def show_toast(self, title, message, icon=None):
+        toast(title, message, icon=icon)
         
     def fade_in_window(self):
         self.setWindowOpacity(0)

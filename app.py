@@ -77,14 +77,14 @@ class PlaywrightWorker(QRunnable):
             "pointer": "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
         })
         
-        self.events.wait(3000)
+        self.events.phone_event.wait()
 
             
         self.signals.request_otp_input.emit()
         
         pointer = PointerLocation(web_access, self.account)
         
-        self.stop_event.wait(3000)
+        self.events.otp_event.wait()
 
             
         
@@ -96,38 +96,35 @@ class PlaywrightWorker(QRunnable):
         
         late = late_alert.LateAlert(
             self.db,
-            show_toast=lambda *args, **kwargs: self.signals.toast_signal.emit(*args, **kwargs),
+            show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
             gui_table_row=lambda row: self.signals.late_table_row.emit(row),
             web_access=web_access,
         )
         batteries_alert = batteries.BatteriesAlert(
             self.db,
-            show_toast=lambda *args, **kwargs: self.signals.toast_signal.emit(*args, **kwargs),
+            show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
             gui_table_row=lambda row: self.signals.batteries_table_row.emit(row),
             web_access=web_access,
             pointer=pointer,
         )
         
-        
-        # # self.signals.page_loaded.emit("goto_bo", 0, 0, )
-        # # self.signals.page_loaded.emit("autotel_bo", 0, 0, )
+
         while self.running:
             late.start_requests()
             for _ in range(3):
-                if self.stop_event.is_set():
+                if self.events.stop_event.is_set():
                     break
                 batteries_alert.start_requests()
-                self.stop_event.wait(timeout=5 * 60)
+                self.events.stop_event.wait(timeout=5 * 60)
 
     def set_account_data(self, data):
         for key, value in data.items():
             self.account[key] = value
-        self.stop_event.set()
-            
+        self.events.phone_event.set() if 'phone' in data else self.events.otp_event.set()
         
     def stop(self):
         self.running = False
-        self.stop_event.set()
+        self.events.stop_event.set()
 
 def handle_phone_input(worker):
     username = Path.home().name
