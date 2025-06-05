@@ -40,7 +40,7 @@ class PointerLocation:
 
         :param query: The location query to search for.
         """
-        return pages.PointerPage(self.webaccess.pages['pointer']).search(query)
+        return pages.PointerPage(self.webaccess.pages['pointer']).get_first_row_data(query)
         
         
         

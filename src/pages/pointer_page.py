@@ -15,12 +15,17 @@ class PointerPage:
         result = self.get_first_row_data(search_text)
         return result
     
+    @property
+    def rows(self):
+        return self.page.locator("#CarTableInfo tbody tr")
+    
     def get_first_row_data(self, search_text):
         # Find the specific <tr> where the second <td> contains the search text
-        matching_rows = self.page.locator("#CarTableInfo tbody tr")
-        for i in range(matching_rows.count()):
-            row = matching_rows.nth(i)
-            second_cell = row.locator("td").nth(1)  # 0-based index, so nth(1) = 2nd cell
-            if second_cell.inner_text().strip() == search_text:
-                return row.locator("td").nth(12).inner_text().strip()
-        return "No results"
+        matching_row = self.rows.filter(
+            has=self.page.locator("td", has_text=search_text))
+  
+        if matching_row.count() == 0:
+            return "No results"
+        
+        return matching_row.locator("td").nth(12).inner_text().strip()
+

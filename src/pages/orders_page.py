@@ -5,18 +5,26 @@ class OrdersPage:
     def __init__(self, page: Page):
         self.page = page
         
+    @property
     def late_rides_frame(self):
         return self.page.get_by_text("</form> </div> </div>").content_frame.get_by_text("A2A - Late Reservations Reservation that customer is far from parking")
+    
+    @property
+    def late_rides_entries(self):
+        """
+        Fetches late rides entries from the late rides frame.
+        :return: List of late rides entries
+        """
+        return self.late_rides_frame.locator('#billingReceipetSpan h3').all()
     
     def get_late_rides(self):
         """
         Fetches late rides from the late rides frame.
         :return: List of late rides
         """        
-        entries = self.late_rides_frame().locator('#billingReceipetSpan h3').all()
         grouped_data = []
 
-        for h3 in entries:
+        for h3 in self.late_rides_entries:
             h3_text = str(h3.text_content()).strip()
             
             sibling_p = h3.evaluate_handle("node => node.nextElementSibling && node.nextElementSibling.tagName === 'P' ? node.nextElementSibling : null")

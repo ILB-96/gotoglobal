@@ -107,7 +107,6 @@ class PlaywrightWorker(QRunnable):
             web_access=web_access,
             pointer=pointer,
         )
-        
 
         while self.running:
             late.start_requests()

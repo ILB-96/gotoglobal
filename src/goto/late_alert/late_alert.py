@@ -4,8 +4,7 @@ import settings
 from services import WebAccess, Log, TinyDatabase, QueryBuilder
 import pyperclip
 from datetime import datetime as dt, timedelta
-from src.pages import OrdersPage
-
+from src.pages import OrdersPage, RidePage
 class LateAlert:
     def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess,):
         self.db = db
@@ -18,9 +17,9 @@ class LateAlert:
         late_rides = self.fetch_late_ride()
         
         if not late_rides:
-            
             self.gui_table_row([["No late reservations found", "0", "0", "0"]])
             return self._notify_no_late_reservations()
+        
         self.rows = []
         for ride in late_rides:
             self._process_ride(ride)
@@ -35,13 +34,12 @@ class LateAlert:
         )
 
     def _process_ride(self, ride: tuple[str,str]):
-        # data = self.db.find_one({'ride_id': ride}, 'goto')
-        # if data:
-        #     if self._should_skip_due_to_end_time(data):
-        #         return
-        #     end_time, future_ride_time = data.get('end_time', None), data.get('future_ride_time', None)
-        # else:
-        end_time, future_ride_time = self._fetch_and_store_ride_times(ride)
+        if data := self.db.find_one({'ride_id': ride}, 'goto'):
+            if self._should_skip_due_to_end_time(data):
+                return
+            end_time, future_ride_time = data.get('end_time', None), data.get('future_ride_time', None)
+        else:
+            end_time, future_ride_time = self._fetch_and_store_ride_times(ride)
         self._notify_late_ride(ride[0], end_time, future_ride_time)
 
     def _should_skip_due_to_end_time(self, data):
@@ -57,11 +55,11 @@ class LateAlert:
     def _fetch_and_store_ride_times(self, ride: tuple[str, str]):
         ride_url = self._build_ride_url(ride[0])
         self._open_ride_page(ride_url)
-        end_time = self._get_end_time(self.web_access.pages['ride'])
+        end_time = self._get_end_time(self.web_access.pages['goto_bo'])
         
         future_ride_url = self._build_ride_url(ride[1])
-        self.web_access.create_new_page("ride", future_ride_url, open_mode="replace")
-        future_ride_time = self._get_future_ride_time(self.web_access.pages['ride'])
+        self.web_access.create_new_page("goto_bo", future_ride_url, open_mode="replace")
+        future_ride_time = self._get_future_ride_time(self.web_access.pages['goto_bo'])
         self.rows.append([ride[0], end_time, ride[1], future_ride_time])
         self._store_ride_times(ride[0], end_time, future_ride_time)
         return end_time, future_ride_time
@@ -70,9 +68,9 @@ class LateAlert:
         return f'{settings.goto_url}/index.html#/orders/{ride}/details'
 
     def _open_ride_page(self, ride_url: str):
-        self.web_access.create_new_page("ride", str(settings.goto_url), open_mode="reuse")
-        self.web_access.create_new_page("ride", ride_url, open_mode="replace")
-        return self.web_access.pages['ride']
+        # self.web_access.create_new_page("ride", str(settings.goto_url), open_mode="reuse")
+        self.web_access.create_new_page("goto_bo", ride_url, open_mode="replace")
+        return self.web_access.pages['goto_bo']
 
     def _get_end_time(self, page):
         end_time = self.fetch_end_time(page)
@@ -130,11 +128,11 @@ class LateAlert:
 
     def fetch_end_time(self, page):
         sleep(5)
-        return page.locator('(//td[contains(@title, "End Time")])[1]//following-sibling::td').text_content()
+        return RidePage(page).ride_end_time.text_content()
 
     def fetch_start_time(self, page):
         sleep(5)
-        return page.locator('(//td[contains(@title, "Start Time")])[1]//following-sibling::td').text_content()
+        return RidePage(page).ride_start_time.text_content()
     
     def fetch_late_ride(self):
         """
