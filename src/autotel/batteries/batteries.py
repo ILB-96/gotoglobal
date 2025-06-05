@@ -32,21 +32,32 @@ class BatteriesAlert:
             location = self.pointer.search_location(car_id.replace("-", ""))
             rows.append([car_id, car_battery, active_ride, location])
             
-            if int(car_battery.replace("%", "")) <= 30:
-                self.show_toast(
+            self.notify_battery_condition(car_id, car_battery, location)
+            
+        self.gui_table_row(rows)
+
+    def notify_battery_condition(self, car_id, car_battery, location):
+        is_low_battery = int(car_battery.replace("%", "")) <= 30
+        is_not_service_location ='תל אביב' not in location
+                                      
+        if is_low_battery and is_not_service_location:
+            self.show_toast(
                     "Autotel ~ Batteries Alert!",
-                    f"Electric Car {car_id} has low battery: {car_battery}",
+                    f"Electric Car {car_id} has low battery: {car_battery} Outside of Tel Aviv",
                     icon=os.path.abspath(settings.app_icon)
                 )
-            
-            if 'תל אביב' not in location:
-                self.show_toast(
+        elif is_not_service_location:
+            self.show_toast(
                     "Autotel ~ Batteries Alert!",
                     f"Electric Car {car_id}is not in Tel Aviv: {location}",
                     icon=os.path.abspath(settings.app_icon)
                 )
-            
-        self.gui_table_row(rows)
+        elif is_low_battery:
+            self.show_toast(
+                    "Autotel ~ Batteries Alert!",
+                    f"Electric Car {car_id} has low battery: {car_battery}",
+                    icon=os.path.abspath(settings.app_icon)
+                )
 
     def select_car_options(self, cars_page: CarsPage):
         sleep(3)
