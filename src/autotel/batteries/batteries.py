@@ -49,7 +49,7 @@ class BatteriesAlert:
         elif is_not_service_location:
             self.show_toast(
                     "Autotel ~ Batteries Alert!",
-                    f"Electric Car {car_id}is not in Tel Aviv: {location}",
+                    f"Electric Car {car_id}\nwith {car_battery} battery\nis not in Tel Aviv: {location}",
                     icon=os.path.abspath(settings.app_icon)
                 )
         elif is_low_battery:

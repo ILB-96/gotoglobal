@@ -1,5 +1,5 @@
 from playwright.sync_api import Page
-
+from .table_element import TableElement
 class CarsPage:
     def __init__(self, page: Page):
         self.page = page
@@ -12,7 +12,6 @@ class CarsPage:
     def car_status_select(self):
         """
         Selects the car status from the dropdown.
-        :param status: The status to select (e.g., "number:60").
         """
         return self.select_elements[0]
     
@@ -30,4 +29,4 @@ class CarsPage:
         Returns the rows of the cars table.
         :return: A list of rows in the cars table.
         """
-        return self.page.locator('//tr[contains(@ng-repeat, "row in $data track by $index")]').all()
+        return TableElement(self.page).table_rows

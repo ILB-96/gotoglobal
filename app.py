@@ -10,7 +10,7 @@ from services import window, table, popup_window, Log
 import settings
 from src.shared import PointerLocation
 from src.goto import late_alert
-from src.autotel import batteries
+from src.autotel import batteries, long_rides
 
 def setup_shared_resources(mode):
     return TinyDatabase({
@@ -30,18 +30,25 @@ def goto_tab(main_win):
 
 def autotel_tab(main_win):
     batteries_table = table.Table(
-        title="Autotel Batteries",
+        title="Batteries",
         columns=["Ride ID", "License Plate", "Battery", "Location"],
     )
-    main_win.build_tab(title="Autotel", widgets=[batteries_table])
-    return batteries_table
+    long_rides_table = table.Table(
+        title="Long Rides",
+        columns=["Ride ID", "Driver ID", "Duration", "Location"]
+        
+    )
+    main_win.build_tab(title="Autotel", widgets=[batteries_table, long_rides_table])
+    return batteries_table, long_rides_table
 
 class WorkSignals(QObject):
     page_loaded = pyqtSignal(str, int, int, object)
     toast_signal = pyqtSignal(str, str, str)
+    
     late_table_row = pyqtSignal(object)
     batteries_table_row = pyqtSignal(object)
-    gui_table_update = pyqtSignal(str)
+    long_rides_table_row = pyqtSignal(object)
+    
     request_phone_input = pyqtSignal()
     request_otp_input = pyqtSignal()
     input_received = pyqtSignal(object)
@@ -69,52 +76,61 @@ class PlaywrightWorker(QRunnable):
     @pyqtSlot()
     def run(self):
         self.signals.request_phone_input.emit()
-        playwright = sync_playwright().start()
-        web_access = WebAccess(playwright, settings.playwright_headless, 'Default')
-        web_access.create_pages({
-            "goto_bo": "https://car2gobo.gototech.co",
-            "autotel_bo": "https://prodautotelbo.gototech.co",
-            "pointer": "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
-        })
-        
-        self.events.phone_event.wait()
+        with sync_playwright() as playwright:
+            with WebAccess(playwright, settings.playwright_headless, 'Default') as web_access:
+                web_access.create_pages({
+                    "goto_bo": "https://car2gobo.gototech.co",
+                    "autotel_bo": "https://prodautotelbo.gototech.co",
+                    "pointer": "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
+                })
+                
+                self.events.phone_event.wait()
 
-            
-        self.signals.request_otp_input.emit()
-        
-        pointer = PointerLocation(web_access, self.account)
-        
-        self.events.otp_event.wait()
+                    
+                self.signals.request_otp_input.emit()
+                
+                pointer = PointerLocation(web_access, self.account)
+                
+                self.events.otp_event.wait()
+                
+                pointer.fill_otp(self.account.get('code', ''))
+                    
+                if not self.running:
+                    return
 
-            
-        
-        pointer.fill_otp(self.account.get('code', ''))
-            
-        if not self.running:
-            return
+                
+                late = late_alert.LateAlert(
+                    self.db,
+                    show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
+                    gui_table_row=lambda row: self.signals.late_table_row.emit(row),
+                    web_access=web_access,
+                )
+                batteries_alert = batteries.BatteriesAlert(
+                    self.db,
+                    show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
+                    gui_table_row=lambda row: self.signals.batteries_table_row.emit(row),
+                    web_access=web_access,
+                    pointer=pointer,
+                )
+                
+                # long_rides_alert = long_rides.LongRides(
+                #     self.db,
+                #     show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
+                #     gui_table_row=lambda row: self.signals.long_rides_table_row.emit(row),
+                #     web_access=web_access,
+                #     pointer=pointer,
+                # )
 
-        
-        late = late_alert.LateAlert(
-            self.db,
-            show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
-            gui_table_row=lambda row: self.signals.late_table_row.emit(row),
-            web_access=web_access,
-        )
-        batteries_alert = batteries.BatteriesAlert(
-            self.db,
-            show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
-            gui_table_row=lambda row: self.signals.batteries_table_row.emit(row),
-            web_access=web_access,
-            pointer=pointer,
-        )
+                while self.running:
+                    late.start_requests()
+                    for _ in range(3):
+                        if self.events.stop_event.is_set():
+                            break
+                        # long_rides_alert.start_requests()
+                        batteries_alert.start_requests()
+                        self.events.stop_event.wait(timeout=5 * 60)
+                
 
-        while self.running:
-            late.start_requests()
-            for _ in range(3):
-                if self.events.stop_event.is_set():
-                    break
-                batteries_alert.start_requests()
-                self.events.stop_event.wait(timeout=5 * 60)
 
     def set_account_data(self, data):
         for key, value in data.items():
@@ -164,12 +180,13 @@ if __name__ == "__main__":
     main_win = window.MainWindow(title="GotoGlobal", app_icon=settings.app_icon)
 
     late_rides_table = goto_tab(main_win)
-    batteries_table = autotel_tab(main_win)
+    batteries_table, long_rides_table = autotel_tab(main_win)
 
     worker = PlaywrightWorker(db)
     worker.signals.toast_signal.connect(main_win.show_toast)
     worker.signals.late_table_row.connect(late_rides_table.add_rows)
     worker.signals.batteries_table_row.connect(batteries_table.add_rows)
+    worker.signals.long_rides_table_row.connect(long_rides_table.add_rows)
     worker.signals.request_phone_input.connect(lambda: handle_phone_input(worker))
     worker.signals.request_otp_input.connect(lambda: handle_code_input(worker))
 

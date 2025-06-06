@@ -1,4 +1,4 @@
-from .orders_page import OrdersPage
+from .rides_page import RidesPage
 from .pointer_login import PointerLoginPage
 from .pointer_page import PointerPage
 from .ride_page import RidePage

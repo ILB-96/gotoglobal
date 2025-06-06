@@ -4,7 +4,7 @@ import settings
 from services import WebAccess, Log, TinyDatabase, QueryBuilder
 import pyperclip
 from datetime import datetime as dt, timedelta
-from src.pages import OrdersPage, RidePage
+from src.pages import RidesPage, RidePage
 class LateAlert:
     def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess,):
         self.db = db
@@ -56,10 +56,13 @@ class LateAlert:
         ride_url = self._build_ride_url(ride[0])
         self._open_ride_page(ride_url)
         end_time = self._get_end_time(self.web_access.pages['goto_bo'])
-        
-        future_ride_url = self._build_ride_url(ride[1])
-        self.web_access.create_new_page("goto_bo", future_ride_url, open_mode="replace")
-        future_ride_time = self._get_future_ride_time(self.web_access.pages['goto_bo'])
+        future_ride_time = None
+        if ride[1]:
+            future_ride_url = self._build_ride_url(ride[1])
+            self.web_access.create_new_page("goto_bo", future_ride_url, open_mode="replace")
+            
+            future_ride_time = self._get_future_ride_time(self.web_access.pages['goto_bo'])
+            
         self.rows.append([ride[0], end_time, ride[1], future_ride_time])
         self._store_ride_times(ride[0], end_time, future_ride_time)
         return end_time, future_ride_time
@@ -103,7 +106,7 @@ class LateAlert:
 
     def _notify_late_ride(self, ride, end_time, future_ride_time):
         msg = f"Ride {ride} ended at {end_time}."
-        msg += f"\nNext ride at {future_ride_time}" if future_ride_time else "No future ride found."
+        msg += f"\nNext ride at {future_ride_time}" if future_ride_time else "\nNo future ride found."
         self.show_toast(
             "Goto ~ Late Alert!",
             msg,
@@ -140,7 +143,7 @@ class LateAlert:
         :param web_access: WebAccess instance
         :return: List of late reservations
         """
-        return OrdersPage(self.web_access.pages['goto_bo']).get_late_rides()
+        return RidesPage(self.web_access.pages['goto_bo']).get_late_rides()
         
     
     def fetch_future_ride(self, page):
