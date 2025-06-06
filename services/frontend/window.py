@@ -84,13 +84,3 @@ class MainWindow(QMainWindow):
         animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
         animation.start()
         self._animation = animation
-        
-
-    
-    
-    def apply_shadow(widget):
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(12)
-        shadow.setOffset(0, 2)
-        shadow.setColor(QColor(0, 0, 0, 80))  # RGBA shadow color
-        widget.setGraphicsEffect(shadow)

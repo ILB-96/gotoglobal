@@ -75,59 +75,59 @@ class PlaywrightWorker(QRunnable):
 
     @pyqtSlot()
     def run(self):
-        self.signals.request_phone_input.emit()
+        # self.signals.request_phone_input.emit()
         with sync_playwright() as playwright:
             with WebAccess(playwright, settings.playwright_headless, 'Default') as web_access:
                 web_access.create_pages({
-                    "goto_bo": "https://car2gobo.gototech.co",
+                    # "goto_bo": "https://car2gobo.gototech.co",
                     "autotel_bo": "https://prodautotelbo.gototech.co",
-                    "pointer": "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
+                    # "pointer": "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
                 })
                 
-                self.events.phone_event.wait()
+                # self.events.phone_event.wait()
 
                     
-                self.signals.request_otp_input.emit()
+                # self.signals.request_otp_input.emit()
                 
-                pointer = PointerLocation(web_access, self.account)
+                # pointer = PointerLocation(web_access, self.account)
                 
-                self.events.otp_event.wait()
+                # self.events.otp_event.wait()
                 
-                pointer.fill_otp(self.account.get('code', ''))
+                # pointer.fill_otp(self.account.get('code', ''))
                     
                 if not self.running:
                     return
 
                 
-                late = late_alert.LateAlert(
-                    self.db,
-                    show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
-                    gui_table_row=lambda row: self.signals.late_table_row.emit(row),
-                    web_access=web_access,
-                )
-                batteries_alert = batteries.BatteriesAlert(
-                    self.db,
-                    show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
-                    gui_table_row=lambda row: self.signals.batteries_table_row.emit(row),
-                    web_access=web_access,
-                    pointer=pointer,
-                )
+                # late = late_alert.LateAlert(
+                #     self.db,
+                #     show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
+                #     gui_table_row=lambda row: self.signals.late_table_row.emit(row),
+                #     web_access=web_access,
+                # )
+                # batteries_alert = batteries.BatteriesAlert(
+                #     self.db,
+                #     show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
+                #     gui_table_row=lambda row: self.signals.batteries_table_row.emit(row),
+                #     web_access=web_access,
+                #     pointer=pointer,
+                # )
                 
                 long_rides_alert = long_rides.LongRides(
                     self.db,
                     show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
                     gui_table_row=lambda row: self.signals.long_rides_table_row.emit(row),
                     web_access=web_access,
-                    pointer=pointer,
+                    pointer=None,
                 )
 
                 while self.running:
-                    late.start_requests()
+                    # late.start_requests()
                     for _ in range(3):
                         if self.events.stop_event.is_set():
                             break
                         long_rides_alert.start_requests()
-                        batteries_alert.start_requests()
+                        # batteries_alert.start_requests()
                         self.events.stop_event.wait(timeout=5 * 60)
                 
 

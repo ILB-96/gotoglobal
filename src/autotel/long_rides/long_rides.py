@@ -1,5 +1,7 @@
+import os
 from services import TinyDatabase, WebAccess
 from services import Log
+import settings
 from src.shared import PointerLocation
 from src.pages import RidesPage
 from datetime import datetime as dt
@@ -37,17 +39,23 @@ class LongRides:
             duration = rides_page.get_duration_from_row(row).inner_text().strip()
         
             curr_duration_parsed = dt.strptime(duration, "%H:%M:%S") if 'n/a' not in duration else None
-            
-            if not prev_duration or not curr_duration_parsed or dt.strptime(prev_duration, "%H:%M:%S") > curr_duration_parsed:
+
+            if (
+                not curr_duration_parsed
+                or (prev_duration is not None and curr_duration_parsed is not None and dt.strptime(prev_duration, "%H:%M:%S") < curr_duration_parsed)
+                or (curr_duration_parsed is not None and curr_duration_parsed < dt.strptime("03:00:00", "%H:%M:%S"))
+            ):
                 break
             prev_duration = duration
+
             
             ride_id = rides_page.get_ride_id_from_row(row).inner_text().strip()
             driver_id = rides_page.get_driver_id_from_row(row).inner_text().strip()
-            location = self.pointer.search_location(ride_id.replace('-', ''))
-            
+            car_id = rides_page.get_car_id_from_row(row).inner_text().strip()
+            location = self.pointer.search_location(car_id.replace('-', ''))
+
             rows.append([ride_id, driver_id, duration, location])
             
-            Log.info(f"Long Ride: {ride_id} | Driver: {driver_id} | Duration: {duration} | Location: {location}")
+
         
         self.gui_table_row(rows)

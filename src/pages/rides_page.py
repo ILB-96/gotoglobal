@@ -2,13 +2,15 @@ import re
 from time import sleep
 from typing import Literal
 from playwright.sync_api import Page
+
+from services.logging_service.logging_service import Log
 from .table_element import TableElement
 
 class RidesPage:
     def __init__(self, page: Page):
         self.page = page
         
-    @property
+
     def table_duration_button(self):
         """
         Returns the button to sort the table by duration.
@@ -21,7 +23,7 @@ class RidesPage:
         Returns the current sort state of the duration button.
         :return: "asc" if sorted ascending, "desc" if sorted descending, None if not sorted
         """
-        return str(self.page.locator("th", has=self.table_duration_button).get_attribute("class"))
+        return str(self.page.locator("th", has=self.table_duration_button()).get_attribute("class"))
     
     @property
     def orders_table_rows(self):
@@ -43,9 +45,13 @@ class RidesPage:
         Sets the duration sort order for the orders table.
         :param order: "asc" for ascending, "desc" for descending
         """
-        while f'sort-{order}' not in self.table_duration_sort_state():
-            self.table_duration_button.click()
-            sleep(0.5)
+        # Log.info(f"Setting ride duration sort order to {self.table_duration_sort_state()}")
+        # while f'sort-{order}' not in self.table_duration_sort_state():
+        #     self.table_duration_button().click()
+        #     sleep(0.5)
+        self.table_duration_button().click()
+        sleep(0.5)
+        self.table_duration_button().click()
             
     def get_ride_id_from_row(self, row):
         """
