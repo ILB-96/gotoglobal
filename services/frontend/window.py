@@ -4,21 +4,12 @@ from PyQt6.QtCore import (
     QThreadPool,
     QPropertyAnimation, 
     QEasingCurve,
-    Qt,
-    QPoint
 )
 from PyQt6.QtWidgets import (
-    QApplication,
-    QLabel,
     QMainWindow,
-    QPushButton,
     QVBoxLayout,
     QWidget,
     QTabWidget,
-    QTableWidget,
-    QStyleFactory,
-    QGraphicsOpacityEffect,
-    QGraphicsDropShadowEffect
 )
 from PyQt6.QtGui import QIcon, QFont, QColor
 from win11toast import toast

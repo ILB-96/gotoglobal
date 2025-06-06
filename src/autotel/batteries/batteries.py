@@ -2,9 +2,7 @@ import os
 import re
 from time import sleep
 import settings
-from services import WebAccess, Log, TinyDatabase, QueryBuilder
-import pyperclip
-from datetime import datetime as dt, timedelta
+from services import WebAccess, TinyDatabase
 
 from src.pages import CarsPage
 from src.shared import PointerLocation

@@ -2,7 +2,6 @@ import os
 from time import sleep
 import settings
 from services import WebAccess, Log, TinyDatabase, QueryBuilder
-import pyperclip
 from datetime import datetime as dt, timedelta
 from src.pages import RidesPage, RidePage
 class LateAlert:

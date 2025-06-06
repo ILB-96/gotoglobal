@@ -1,8 +1,6 @@
 playwright
 tinydb
 colorlog
-python-dotenv
-pyperclip
-pandas
 win11toast
 PyQt6
+pyinstaller

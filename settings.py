@@ -1,6 +1,4 @@
 import os
-from dotenv import load_dotenv
-load_dotenv()
 app_icon = 'c2gFav.ico'
 goto_url = 'https://car2gobo.gototech.co'
 autotel_url = 'https://prodautotelbo.gototech.co'

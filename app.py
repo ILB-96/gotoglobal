@@ -1,12 +1,11 @@
 from pathlib import Path
 import sys
 import threading
-from time import sleep
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import Qt, QRunnable, QObject, pyqtSignal, pyqtSlot, QTimer
+from PyQt6.QtCore import QRunnable, QObject, pyqtSignal, pyqtSlot
 from services import TinyDatabase, WebAccess
 from playwright.sync_api import sync_playwright
-from services import window, table, popup_window, Log
+from services import window, table, popup_window
 import settings
 from src.shared import PointerLocation
 from src.goto import late_alert
@@ -174,27 +173,35 @@ def handle_code_input(worker):
     worker.signals.input_received.emit({ "code": code })
     
 if __name__ == "__main__":
-    db = setup_shared_resources(0)
+    try:
+        db = setup_shared_resources(0)
 
-    app = QApplication(sys.argv)
-    main_win = window.MainWindow(title="GotoGlobal", app_icon=settings.app_icon)
+        app = QApplication(sys.argv)
+        main_win = window.MainWindow(title="GotoGlobal", app_icon=settings.app_icon)
 
-    late_rides_table = goto_tab(main_win)
-    batteries_table, long_rides_table = autotel_tab(main_win)
+        late_rides_table = goto_tab(main_win)
+        batteries_table, long_rides_table = autotel_tab(main_win)
 
-    worker = PlaywrightWorker(db)
-    worker.signals.toast_signal.connect(main_win.show_toast)
-    worker.signals.late_table_row.connect(late_rides_table.add_rows)
-    worker.signals.batteries_table_row.connect(batteries_table.add_rows)
-    worker.signals.long_rides_table_row.connect(long_rides_table.add_rows)
-    worker.signals.request_phone_input.connect(lambda: handle_phone_input(worker))
-    worker.signals.request_otp_input.connect(lambda: handle_code_input(worker))
+        worker = PlaywrightWorker(db)
+        worker.signals.toast_signal.connect(main_win.show_toast)
+        worker.signals.late_table_row.connect(late_rides_table.add_rows)
+        worker.signals.batteries_table_row.connect(batteries_table.add_rows)
+        worker.signals.long_rides_table_row.connect(long_rides_table.add_rows)
+        worker.signals.request_phone_input.connect(lambda: handle_phone_input(worker))
+        worker.signals.request_otp_input.connect(lambda: handle_code_input(worker))
+        worker.signals.input_received.connect(worker.set_account_data)
 
-    # Receive phone back
-    worker.signals.input_received.connect(worker.set_account_data)
-    
-    main_win.threadpool.start(worker)
-    app.aboutToQuit.connect(worker.stop)
+        main_win.threadpool.start(worker)
+        app.aboutToQuit.connect(worker.stop)
 
-    main_win.show()
-    sys.exit(app.exec())
+        main_win.show()
+        sys.exit(app.exec())
+    except Exception as e:
+        import traceback
+        from PyQt6.QtWidgets import QMessageBox
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Icon.Critical)
+        msg.setWindowTitle("Startup Error")
+        msg.setText("An error occurred during startup:")
+        msg.setDetailedText(traceback.format_exc())
+        msg.exec()

@@ -3,3 +3,6 @@ venv
 .vscode
 __pycache__
 gotoDB.json
+dist
+.venv
+build
