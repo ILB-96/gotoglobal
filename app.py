@@ -8,8 +8,7 @@ from services import TinyDatabase, WebAccess
 from playwright.sync_api import sync_playwright
 from services import window, popup_window
 import settings
-from src.frontend import autotel_tab, goto_tab
-from src.frontend.tabs_setup import setup_tabs, setup_tabs_and_tables
+from src.frontend import setup_tabs_and_tables
 from src.shared import PointerLocation
 from src.goto import late_alert
 from src.autotel import batteries, long_rides
@@ -17,7 +16,8 @@ from src.autotel import batteries, long_rides
 def setup_shared_resources(mode):
     return TinyDatabase({
         "autotel": ["autotelDB.json", "ride_id"],
-        "goto": ["gotoDB.json", "ride_id"]
+        "goto": ["gotoDB.json", "ride_id"],
+        "user": ["userDB.json", "username"],
     })
 class WorkSignals(QObject):
     page_loaded = pyqtSignal(str, int, int, object)
@@ -34,7 +34,7 @@ class WorkSignals(QObject):
     start_loading = pyqtSignal()
     stop_loading = pyqtSignal()
 
-class WorkEvents():
+class WorkerEvents():
     def __init__(self):
         self.phone_event = threading.Event()
         self.otp_event = threading.Event()
@@ -46,14 +46,17 @@ class PlaywrightWorker(QRunnable):
         super().__init__()
         self.db = db
         self.signals = WorkSignals()
-        self.events = WorkEvents()
+        self.events = WorkerEvents()
         self.running = True
         
         self.account = {}
 
     @pyqtSlot()
     def run(self):
-        self.signals.request_phone_input.emit()
+        if data := self.db.find_one({'username': Path.home().name}, 'user'):
+            self.account = data
+        else:
+            self.signals.request_phone_input.emit()
         with sync_playwright() as playwright:
             with WebAccess(playwright, settings.playwright_headless, 'Default') as web_access:
                 web_access.create_pages({
@@ -61,10 +64,9 @@ class PlaywrightWorker(QRunnable):
                     "autotel_bo": "https://prodautotelbo.gototech.co",
                     "pointer": "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
                 })
-                
-                self.events.phone_event.wait()
-
-                    
+                if not self.account:
+                    self.events.phone_event.wait()
+                        
                 self.signals.request_otp_input.emit()
                 
                 pointer = PointerLocation(web_access, self.account)
@@ -113,7 +115,14 @@ class PlaywrightWorker(QRunnable):
     def set_account_data(self, data):
         for key, value in data.items():
             self.account[key] = value
-        self.events.phone_event.set() if 'phone' in data else self.events.otp_event.set()
+        if 'phone' in data:
+            self.db.upsert_one(
+                {'username': self.account['username'], 'phone': self.account['phone']},
+                'user'
+            )
+            self.events.phone_event.set()  
+        else:
+            self.events.otp_event.set()
         
     def stop(self):
         self.running = False
