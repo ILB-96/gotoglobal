@@ -19,7 +19,6 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.setWindowTitle(title)
         self.threadpool = QThreadPool()
-        self.colors = {}
         self.update_tabs_style()
        
 
