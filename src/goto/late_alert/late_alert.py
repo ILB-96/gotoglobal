@@ -24,6 +24,10 @@ class LateAlert:
             self._process_ride(ride)
         self.gui_table_row(self.rows)
         self.resolve_rides(late_rides)
+        
+        for row in self.rows:
+            ride_id, end_time, _, future_ride_time = row
+            self._notify_late_ride(ride_id, end_time, future_ride_time)
 
     def _notify_no_late_reservations(self):
         self.show_toast(
@@ -39,7 +43,9 @@ class LateAlert:
             end_time, future_ride_time = data.get('end_time', None), data.get('future_ride_time', None)
         else:
             end_time, future_ride_time = self._fetch_and_store_ride_times(ride)
-        self._notify_late_ride(ride[0], end_time, future_ride_time)
+            
+        self.rows.append([ride[0], end_time, ride[1], future_ride_time])
+
 
     def _should_skip_due_to_end_time(self, data):
         end_time_str = data.get('end_time')
@@ -62,7 +68,6 @@ class LateAlert:
             
             future_ride_time = self._get_future_ride_time(self.web_access.pages['goto_bo'])
             
-        self.rows.append([ride[0], end_time, ride[1], future_ride_time])
         self._store_ride_times(ride[0], end_time, future_ride_time)
         return end_time, future_ride_time
 

@@ -1,12 +1,15 @@
 from pathlib import Path
 import sys
 import threading
+from turtle import setup
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QRunnable, QObject, pyqtSignal, pyqtSlot
 from services import TinyDatabase, WebAccess
 from playwright.sync_api import sync_playwright
-from services import window, table, popup_window
+from services import window, popup_window
 import settings
+from src.frontend import autotel_tab, goto_tab
+from src.frontend.tabs_setup import setup_tabs, setup_tabs_and_tables
 from src.shared import PointerLocation
 from src.goto import late_alert
 from src.autotel import batteries, long_rides
@@ -16,30 +19,6 @@ def setup_shared_resources(mode):
         "autotel": ["autotelDB.json", "ride_id"],
         "goto": ["gotoDB.json", "ride_id"]
     })
-
-
-def goto_tab(main_win):
-    goto_late_rides = table.Table(
-        title="Late Rides",
-        columns=["Ride ID", "End Time", "Future Ride", "Future Ride Time"]
-    )
-    main_win.build_tab(title="Goto", widgets=[goto_late_rides])
-    return goto_late_rides
-
-
-def autotel_tab(main_win):
-    batteries_table = table.Table(
-        title="Batteries",
-        columns=["Ride ID", "License Plate", "Battery", "Location"],
-    )
-    long_rides_table = table.Table(
-        title="Long Rides",
-        columns=["Ride ID", "Driver ID", "Duration", "Location"]
-        
-    )
-    main_win.build_tab(title="Autotel", widgets=[batteries_table, long_rides_table])
-    return batteries_table, long_rides_table
-
 class WorkSignals(QObject):
     page_loaded = pyqtSignal(str, int, int, object)
     toast_signal = pyqtSignal(str, str, str)
@@ -174,19 +153,18 @@ def handle_code_input(worker):
     
 if __name__ == "__main__":
     try:
-        db = setup_shared_resources(0)
-
         app = QApplication(sys.argv)
         main_win = window.MainWindow(title="GotoGlobal", app_icon=settings.app_icon)
-
-        late_rides_table = goto_tab(main_win)
-        batteries_table, long_rides_table = autotel_tab(main_win)
+        
+        db = setup_shared_resources(0)
+    
+        tables = setup_tabs_and_tables(main_win)
 
         worker = PlaywrightWorker(db)
         worker.signals.toast_signal.connect(main_win.show_toast)
-        worker.signals.late_table_row.connect(late_rides_table.add_rows)
-        worker.signals.batteries_table_row.connect(batteries_table.add_rows)
-        worker.signals.long_rides_table_row.connect(long_rides_table.add_rows)
+        worker.signals.late_table_row.connect(tables['late_rides'].add_rows)
+        worker.signals.batteries_table_row.connect(tables['batteries'].add_rows)
+        worker.signals.long_rides_table_row.connect(tables['long_rides'].add_rows)
         worker.signals.request_phone_input.connect(lambda: handle_phone_input(worker))
         worker.signals.request_otp_input.connect(lambda: handle_code_input(worker))
         worker.signals.input_received.connect(worker.set_account_data)
