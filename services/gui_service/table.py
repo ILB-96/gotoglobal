@@ -8,7 +8,7 @@ class Table(QWidget):
 
     def __init__(self, title: str, columns: list[str], rows: int = 0, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setObjectName(title.lower().replace(' ', '_'))  # Set the name of the widget
+        self.setObjectName(title.lower().replace(' ', '_'))
         self.row_requested.connect(self._add_row_safe)
         self._layout = QVBoxLayout(self)
         self.title_label = QLabel(f"<b>{title}</b>")
@@ -17,7 +17,7 @@ class Table(QWidget):
         self.last_updated_label = QLabel("Last updated: Loading...")
         self._layout.addWidget(self.last_updated_label)
 
-        self._columns = columns  # Store columns for later use
+        self._columns = columns
         self.table = QTableWidget(rows, len(columns))
         self.table.setHorizontalHeaderLabels(columns)
         self.configure_table_styles()
@@ -100,7 +100,6 @@ class Table(QWidget):
             viewport.update()
 
     def _add_row_safe(self, row_data: list[str]):
-        # Actually manipulates the table safely in the GUI thread
         if len(row_data) != len(self._columns):
             raise ValueError("Row data length does not match number of columns")
         row_position = self.table.rowCount()

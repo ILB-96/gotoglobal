@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QWidget,
     QTabWidget,
 )
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QColor
 from win11toast import toast
 
 class MainWindow(QMainWindow):
@@ -19,7 +19,27 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.setWindowTitle(title)
         self.threadpool = QThreadPool()
-        
+        self.colors = {}
+        self.update_tabs_style()
+       
+
+        self.setCentralWidget(self.tabs)
+
+    def build_tab(self, title: str, color: str, widgets: list[QWidget]):
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        for widget in widgets:
+            layout.addWidget(widget)
+        self.tabs.addTab(tab, title)
+
+        index = self.tabs.indexOf(tab)
+        tab_bar = self.tabs.tabBar()
+        tab_bar is not None and tab_bar.setTabTextColor(index, QColor(color)) # type: ignore
+
+        return tab
+
+    def update_tabs_style(self):
+        # Global style for appearance (not color)
         self.tabs.setStyleSheet("""
             QTabWidget::pane {
                 background: #fff;
@@ -33,30 +53,17 @@ class MainWindow(QMainWindow):
                 margin-right: 4px;
                 font-size: 12pt;
                 min-width: 120px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
             }
             QTabBar::tab:selected {
                 background: #ffffff;
                 font-weight: bold;
-                color: #0055aa;
             }
             QTabBar::tab:hover {
                 background: #d0d0d0;
             }
-            
         """)
-
-        self.setCentralWidget(self.tabs)
-
-    def build_tab(self, title: str, widgets: list[QWidget]):
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
-        tab.setObjectName(title.lower().replace(' ', '_'))
-        for widget in widgets:
-            layout.addWidget(widget)
-        self.tabs.addTab(tab, title)
-        return tab
 
     def show_toast(self, title, message, icon=None, duration='short'):
         def _run_toast():

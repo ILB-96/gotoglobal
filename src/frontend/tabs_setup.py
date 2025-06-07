@@ -7,7 +7,7 @@ def goto_tab(main_win):
         columns=["Ride ID", "End Time", "Future Ride", "Future Ride Time"]
     )
     
-    main_win.build_tab(title="Goto", widgets=[goto_late_rides])
+    main_win.build_tab(title="Goto", color="#201c6c", widgets=[goto_late_rides])
     
     return {'late_rides': goto_late_rides}
 
@@ -22,7 +22,7 @@ def autotel_tab(main_win):
         columns=["Ride ID", "Driver ID", "Duration", "Location"]
     )
     
-    main_win.build_tab(title="Autotel", widgets=[batteries_table, long_rides_table])
+    main_win.build_tab(title="Autotel", color="#80c454", widgets=[batteries_table, long_rides_table])
     
     return {'batteries': batteries_table, 'long_rides': long_rides_table}
 
