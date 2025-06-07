@@ -34,11 +34,6 @@ class WorkSignals(QObject):
     start_loading = pyqtSignal()
     stop_loading = pyqtSignal()
 
-class WorkerEvents():
-    def __init__(self):
-        self.phone_event = threading.Event()
-        self.otp_event = threading.Event()
-        self.stop_event = threading.Event()
 
 class PlaywrightWorker(QRunnable):
 
@@ -46,7 +41,7 @@ class PlaywrightWorker(QRunnable):
         super().__init__()
         self.db = db
         self.signals = WorkSignals()
-        self.events = WorkerEvents()
+        self.stop_event = threading.Event()
         self.running = True
         
         self.account = {}
@@ -64,14 +59,16 @@ class PlaywrightWorker(QRunnable):
                     "autotel_bo": "https://prodautotelbo.gototech.co",
                     "pointer": "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
                 })
-                if not self.account:
-                    self.events.phone_event.wait()
+                if not self.account or not self.account.get('phone'):
+                    self.stop_event.wait()
+                    self.stop_event.clear()
                         
                 self.signals.request_otp_input.emit()
                 
                 pointer = PointerLocation(web_access, self.account)
                 
-                self.events.otp_event.wait()
+                self.stop_event.wait()
+                self.stop_event.clear()
                 
                 pointer.fill_otp(self.account.get('code', ''))
                     
@@ -103,12 +100,10 @@ class PlaywrightWorker(QRunnable):
 
                 while self.running:
                     late.start_requests()
-                    for _ in range(3):
-                        if self.events.stop_event.is_set():
-                            break
-                        long_rides_alert.start_requests()
-                        batteries_alert.start_requests()
-                        self.events.stop_event.wait(timeout=5 * 60)
+                    self.stop_event.wait(3)
+                    long_rides_alert.start_requests()
+                    batteries_alert.start_requests()
+                    self.stop_event.wait(timeout=5 * 60)
                 
 
 
@@ -120,13 +115,12 @@ class PlaywrightWorker(QRunnable):
                 {'username': self.account['username'], 'phone': self.account['phone']},
                 'user'
             )
-            self.events.phone_event.set()  
-        else:
-            self.events.otp_event.set()
+
+        self.stop_event.set()
         
     def stop(self):
         self.running = False
-        self.events.stop_event.set()
+        self.stop_event.set()
 
 def handle_phone_input(worker):
     username = Path.home().name

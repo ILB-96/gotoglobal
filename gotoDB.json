@@ -154,12 +154,42 @@
             "ride_id": "60845397",
             "end_time": "06/06/2025 18:30",
             "future_ride_time": "21/06/2025 09:00",
-            "resolved_time": null
+            "resolved_time": "07/06/2025 16:47"
         },
         "27": {
             "ride_id": "60845471",
             "end_time": "06/06/2025 18:00",
             "future_ride_time": "07/06/2025 12:30",
+            "resolved_time": "07/06/2025 16:47"
+        },
+        "28": {
+            "ride_id": "60844990",
+            "end_time": "07/06/2025 16:45",
+            "future_ride_time": "13/06/2025 11:30",
+            "resolved_time": "07/06/2025 17:19"
+        },
+        "29": {
+            "ride_id": "60845726",
+            "end_time": "07/06/2025 16:45",
+            "future_ride_time": "08/06/2025 14:30",
+            "resolved_time": "07/06/2025 17:19"
+        },
+        "30": {
+            "ride_id": "60845209",
+            "end_time": "07/06/2025 17:15",
+            "future_ride_time": "02/07/2025 18:00",
+            "resolved_time": "07/06/2025 17:36"
+        },
+        "31": {
+            "ride_id": "60845454",
+            "end_time": "07/06/2025 17:30",
+            "future_ride_time": "09/07/2025 12:00",
+            "resolved_time": "07/06/2025 18:11"
+        },
+        "32": {
+            "ride_id": "60845646",
+            "end_time": "07/06/2025 17:30",
+            "future_ride_time": "20/06/2025 15:00",
             "resolved_time": null
         }
     }

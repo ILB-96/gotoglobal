@@ -1,9 +1,6 @@
-import time
-
+import threading
 from PyQt6.QtCore import (
     QThreadPool,
-    QPropertyAnimation, 
-    QEasingCurve,
 )
 from PyQt6.QtWidgets import (
     QMainWindow,
@@ -11,7 +8,7 @@ from PyQt6.QtWidgets import (
     QWidget,
     QTabWidget,
 )
-from PyQt6.QtGui import QIcon, QFont, QColor
+from PyQt6.QtGui import QIcon
 from win11toast import toast
 
 class MainWindow(QMainWindow):
@@ -52,8 +49,6 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(self.tabs)
 
-
-        
     def build_tab(self, title: str, widgets: list[QWidget]):
         tab = QWidget()
         layout = QVBoxLayout(tab)
@@ -63,15 +58,8 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(tab, title)
         return tab
 
-    def show_toast(self, title, message, icon=None):
-        toast(title, message, icon=icon)
-        
-    def fade_in_window(self):
-        self.setWindowOpacity(0)
-        animation = QPropertyAnimation(self, b"windowOpacity")
-        animation.setDuration(600)
-        animation.setStartValue(0)
-        animation.setEndValue(1)
-        animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
-        animation.start()
-        self._animation = animation
+    def show_toast(self, title, message, icon=None, duration='short'):
+        def _run_toast():
+            toast(title, message, icon=icon, duration=duration)
+
+        threading.Thread(target=_run_toast, daemon=True).start()

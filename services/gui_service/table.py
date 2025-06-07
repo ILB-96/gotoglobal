@@ -1,6 +1,5 @@
 from PyQt6.QtWidgets import QTableWidget, QVBoxLayout, QTableWidgetItem, QLabel, QWidget, QHeaderView
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
-from PyQt6.QtGui import QMovie
+from PyQt6.QtCore import Qt, pyqtSignal
 from datetime import datetime as dt
 from services import Log
 
@@ -21,11 +20,17 @@ class Table(QWidget):
         self._columns = columns  # Store columns for later use
         self.table = QTableWidget(rows, len(columns))
         self.table.setHorizontalHeaderLabels(columns)
+        self.configure_table_styles()
+        self._layout.addWidget(self.table)
+
+    def configure_table_styles(self):
         self.table.setAlternatingRowColors(True)
         self.table.setWordWrap(False)
-        self.table.verticalHeader().setVisible(False)
+    
+        if (vertical_header := self.table.verticalHeader()) is not None:
+            vertical_header.setVisible(False)
         self.title_label.setStyleSheet("font-size: 16pt;")
-        self.table.setStyleSheet("border-radius: 8px;")
+        self.table.setStyleSheet("border-radius: 4px;")
         self.table.setStyleSheet("""
         QTableWidget {
             font-size: 13pt;
@@ -35,16 +40,14 @@ class Table(QWidget):
             gridline-color: #f0f0f0;
             selection-background-color: #cce5ff;
             selection-color: #000;
-            border-radius: 8px;
+            border-radius: 4px;
             padding: 2px;
         }
-        
         QHeaderView {
             background-color: transparent;
             border: none;
-            border-radius: 8px;    
+            border-radius: 4px;
         }
-        
         QHeaderView::section {
             background-color: #e8e8e8;
             color: #333;
@@ -54,48 +57,24 @@ class Table(QWidget):
             border: none;
             border-right: 1px solid #fff;
         }
-        
         QHeaderView::section:first {
-        border-top-left-radius: 8px;
+        border-top-left-radius: 4px;
         }
-
         QHeaderView::section:last {
-            border-top-right-radius: 8px;
+            border-top-right-radius: 4px;
             border-right: none;
         }
-        
         QTableCornerButton::section {
             background-color: #e8e8e8;
             border: none;
-            border-top-left-radius: 8px;
+            border-top-left-radius: 4px;
         }
     """)
-        header = self.table.horizontalHeader()
-        header.setStretchLastSection(True)
-        header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self._layout.addWidget(self.table)
-        
-        
-        
-        
-
-
-    
-    def update_cell(self, row: int, col: int, text: str):
-        if row < self.table.rowCount() and col < self.table.columnCount():
-            item = self.table.item(row, col)
-            if item is None:
-                item = QTableWidgetItem(text)
-                self.table.setItem(row, col, item)
-            else:
-                item.setText(text)
-        else:
-            raise IndexError("Row or column index out of range")
-        
-    def add_row(self, row_data: list[str]):
-        # Called from any thread
-        self.row_requested.emit(row_data)
+        self.last_updated_label.setStyleSheet("color: green; font-weight: bold;")
+        if (header := self.table.horizontalHeader()) is not None:
+            header.setStretchLastSection(True)
+            header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         
     def add_rows(self, rows_data: list[list[str]]):
         self.clear_table()
@@ -116,7 +95,9 @@ class Table(QWidget):
 
         self.table.blockSignals(False)
         self.table.setUpdatesEnabled(True)
-        self.table.viewport().update()
+        viewport = self.table.viewport()
+        if viewport is not None:
+            viewport.update()
 
     def _add_row_safe(self, row_data: list[str]):
         # Actually manipulates the table safely in the GUI thread
@@ -129,41 +110,12 @@ class Table(QWidget):
             Log.info(f"Adding item to table: {data} at row {row_position}, column {col}")
             self.table.setItem(row_position, col, item)
             
-            
     def clear_table(self):
         self.table.setRowCount(0)
         self.table.setColumnCount(len(self._columns))
         for col in range(self.table.columnCount()):
             self.table.setHorizontalHeaderItem(col, QTableWidgetItem(self._columns[col]))
-
-    
-    def start_loading_indicator(self):
-        if hasattr(self, "_loading_overlay"):
-            return self._loading_overlay.show()
-        
-        self._loading_overlay = QLabel(self)
-        self._loading_overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self._loading_overlay.setStyleSheet("background: rgba(255,255,255,180); border-radius: 8px;")
-        self._loading_overlay.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
-        self._spinner_movie = QMovie("spinner.gif")
-        self._spinner_movie.setScaledSize(QSize(32, 32))  # 🔹 Set desired spinner size
-        self._loading_overlay.setMovie(self._spinner_movie)
-        self._spinner_movie.start()
-
-        self._loading_overlay.resize(self.table.size())
-        self._loading_overlay.move(self.table.pos())
-        self._loading_overlay.show()
-
-        self.table.raise_()
-        self._loading_overlay.raise_()
-    
-    def stop_loading_indicator(self):
-        if hasattr(self, "_loading_overlay"):
-            self._loading_overlay.hide()
-            if hasattr(self, "_spinner_movie"):
-                self._spinner_movie.stop()
                 
     def set_last_updated(self, timestamp: str):
         self.last_updated_label.setText(f"Last updated: {timestamp}")
-        self.last_updated_label.setStyleSheet("color: green; font-weight: bold;")
+        
