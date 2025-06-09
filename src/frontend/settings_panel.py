@@ -9,6 +9,8 @@ class SettingsPanel(QWidget):
         super().__init__(parent)
         if account is None:
             account = {}
+        
+        self.error_message = "Please fill in all required fields."
 
         self.late_rides_cb = QCheckBox("Late rides")
         self.late_rides_cb.setChecked(account.get("late_rides", True))
@@ -67,6 +69,13 @@ class SettingsPanel(QWidget):
     def toggle_pointer(self, state):
         self.pointer_cb.setChecked(self.long_rides_cb.isChecked() or self.batteries_cb.isChecked() or self.pointer_cb.isChecked())
         self.pointer_cb.setDisabled(self.long_rides_cb.isChecked() or self.batteries_cb.isChecked())
+
+    def is_valid(self):
+        import re
+        return (
+            not self.pointer_cb.isChecked()
+            or bool(re.fullmatch(r"^\d{10}$", self.phone_input.text().strip()))
+        )
 
 
     def get_data(self):

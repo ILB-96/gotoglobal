@@ -73,6 +73,13 @@ class PopupWindow(QDialog):
             self.error_label.setVisible(True)
             return
         
+        for widget in self.widgets:
+            is_valid = True
+            if hasattr(widget, 'is_valid') and not widget.is_valid():
+                self.error_label.setText(widget.error_message)
+                self.error_label.setVisible(True)
+                return
+        
         
 
         self.error_label.setVisible(False)
