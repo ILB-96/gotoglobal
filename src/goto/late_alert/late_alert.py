@@ -1,7 +1,7 @@
 import os
 from time import sleep
 import settings
-from services import WebAccess, Log, TinyDatabase, QueryBuilder
+from services import WebAccess, TinyDatabase, QueryBuilder
 from datetime import datetime as dt, timedelta
 from src.pages import RidesPage, RidePage
 class LateAlert:
@@ -54,7 +54,7 @@ class LateAlert:
                 end_time_dt = dt.strptime(end_time_str, "%d/%m/%Y %H:%M")
                 return end_time_dt <= dt.now() - timedelta(minutes=30)
             except Exception as e:
-                Log.error(f"Error parsing end_time: {e}")
+                pass
         return False
 
     def _fetch_and_store_ride_times(self, ride: tuple[str, str]):
@@ -105,7 +105,7 @@ class LateAlert:
         try:
             return dt.strptime(time_str, "%d/%m/%Y %H:%M").strftime("%d/%m/%Y %H:%M") if time_str else None
         except Exception as e:
-            Log.error(f"Error parsing {label}: {e}")
+            pass
         return None
 
     def _notify_late_ride(self, ride, end_time, future_ride_time):
@@ -131,7 +131,6 @@ class LateAlert:
                 resolved_time = dt.now().strftime("%d/%m/%Y %H:%M")
                 data_item['resolved_time'] = resolved_time
                 self.db.upsert_one(data_item, 'goto')
-                Log.info(f"Resolved ride {ride_id} at {resolved_time}")
 
     def fetch_end_time(self, page):
         sleep(5)
@@ -154,5 +153,4 @@ class LateAlert:
         try:
             return self._get_start_time(page)
         except Exception as e:
-            Log.error(f"Error getting future ride: {e}")
             return ""

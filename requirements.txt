@@ -1,6 +1,5 @@
 playwright
 tinydb
-colorlog
 win11toast
 PyQt6
 pyinstaller

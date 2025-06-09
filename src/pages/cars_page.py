@@ -1,5 +1,6 @@
 from playwright.sync_api import Page
 from .table_element import TableElement
+
 class CarsPage:
     def __init__(self, page: Page):
         self.page = page

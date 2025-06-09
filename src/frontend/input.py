@@ -1,3 +1,4 @@
+import re
 from PyQt6.QtWidgets import QLineEdit
 
 class Input(QLineEdit):
@@ -8,6 +9,9 @@ class Input(QLineEdit):
         self.setPlaceholderText(placeholder)
         self.setStyleSheet("QLineEdit { font-size: 14px; }")
 
-    
+    def is_valid(self):
+        return bool(re.fullmatch(r"^\d{6}$", self.text().strip()))
+        
+        
     def get_data(self):
         return {self.title: self.text().strip()}

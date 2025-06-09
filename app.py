@@ -1,20 +1,18 @@
 from pathlib import Path
 import sys
 import threading
-from turtle import setup
-from PyQt6.QtWidgets import QApplication, QLineEdit
+from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QRunnable, QObject, pyqtSignal, pyqtSlot
 from services import TinyDatabase, WebAccess
 from playwright.sync_api import sync_playwright
 from services import window, popup_window
-from services.logging_service.logging_service import Log
 import settings
 from src.frontend import setup_tabs_and_tables, Input, SettingsPanel
 from src.shared import PointerLocation
 from src.goto import late_alert
 from src.autotel import batteries, long_rides
 
-def setup_shared_resources(mode):
+def setup_shared_resources():
     return TinyDatabase({
         "autotel": ["autotelDB.json", "ride_id"],
         "goto": ["gotoDB.json", "ride_id"],
@@ -62,6 +60,7 @@ class PlaywrightWorker(QRunnable):
                 })
                 self.stop_event.wait()
                 self.stop_event.clear()
+                pointer = None
                 if self.account.get('pointer', False):
                     self.signals.request_otp_input.emit()
                 
@@ -69,7 +68,7 @@ class PlaywrightWorker(QRunnable):
                 
                     self.stop_event.wait()
                     self.stop_event.clear()
-                    Log.info(self.account)
+                    
                     pointer.fill_otp(self.account.get('code', ''))
                     
                 if not self.running:
@@ -162,7 +161,6 @@ def handle_code_input(worker):
         widgets=[line_edit],
     )
     data = popup.get_input()
-    Log.info(f"Received OTP input: {data}")
     worker.signals.input_received.emit({ **data })
     
 if __name__ == "__main__":
@@ -170,7 +168,7 @@ if __name__ == "__main__":
         app = QApplication(sys.argv)
         main_win = window.MainWindow(title="GotoGlobal", app_icon=settings.app_icon)
         
-        db = setup_shared_resources(0)
+        db = setup_shared_resources()
     
         tables = setup_tabs_and_tables(main_win)
 

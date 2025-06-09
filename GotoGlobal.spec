@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_data_files
 
-# Optional: Manually ensure Python DLL is added if needed
 import ctypes.util
 
 python_dll_path = ctypes.util.find_library(f"python{sys.version_info.major}{sys.version_info.minor}")
@@ -14,7 +13,6 @@ if python_dll_path is None:
 python_dll_tuple = (python_dll_path, '.')
 
 
-chromium_dir = Path.home() / "AppData" / "Local" / "ms-playwright" / "chromium-1169"
 
 # Your app icon (replace with the actual path if needed)
 app_icon = os.path.abspath("c2gFav.ico") if os.path.exists("c2gFav.ico") else None
@@ -22,16 +20,13 @@ app_icon = os.path.abspath("c2gFav.ico") if os.path.exists("c2gFav.ico") else No
 # Main analysis
 a = Analysis(
     ['app.py'],
-    pathex=['.', 'services', 'src'],  # Ensure your local modules are discoverable
+    pathex=['.', 'services', 'src'],
     binaries=[
         python_dll_tuple  # Include Python DLL explicitly
     ],
     datas=[
-        # Add Chromium browser so Playwright works in packaged app
-        (str(chromium_dir), 'playwright/python/_impl/_driver/package/chromium'),
-
         # Add icon (if used)
-        *( [(app_icon, '.')] if app_icon else [] ),
+        *([(app_icon, '.')] if app_icon else [] ),
 
         # Collect Playwright and TinyDB data
         *collect_data_files('playwright'),
@@ -39,15 +34,15 @@ a = Analysis(
     ],
     hiddenimports=[
         'playwright._impl._driver',  # Important for Playwright internal drivers
-        'colorlog',
         'PyQt6',
+        'PyInstaller'
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
     noarchive=False,
-    optimize=0,
+    optimize=2,
 )
 
 pyz = PYZ(a.pure)
@@ -69,7 +64,6 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=app_icon,
-    # onefile=False — default behavior if not specified
 )
 
 coll = COLLECT(
@@ -78,6 +72,6 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=True,
-    upx_exclude=[],
+    upx_exclude=["node.exe", '_uuid.pyd', 'python3.dll'],
     name='GotoGlobal',
 )

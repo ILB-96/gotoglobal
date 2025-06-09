@@ -1,7 +1,6 @@
 from PyQt6.QtWidgets import QTableWidget, QVBoxLayout, QTableWidgetItem, QLabel, QWidget, QHeaderView
 from PyQt6.QtCore import Qt, pyqtSignal
 from datetime import datetime as dt
-from services import Log
 
 class Table(QWidget):
     row_requested = pyqtSignal(list)
@@ -106,7 +105,6 @@ class Table(QWidget):
         self.table.insertRow(row_position)
         for col, data in enumerate(row_data):
             item = QTableWidgetItem(data)
-            Log.info(f"Adding item to table: {data} at row {row_position}, column {col}")
             self.table.setItem(row_position, col, item)
             
     def clear_table(self):

@@ -1,9 +1,7 @@
-import re
 from time import sleep
 from typing import Literal
 from playwright.sync_api import Page
 
-from services.logging_service.logging_service import Log
 from .table_element import TableElement
 
 class RidesPage:
@@ -45,10 +43,6 @@ class RidesPage:
         Sets the duration sort order for the orders table.
         :param order: "asc" for ascending, "desc" for descending
         """
-        # Log.info(f"Setting ride duration sort order to {self.table_duration_sort_state()}")
-        # while f'sort-{order}' not in self.table_duration_sort_state():
-        #     self.table_duration_button().click()
-        #     sleep(0.5)
         self.table_duration_button().click()
         sleep(0.5)
         self.table_duration_button().click()

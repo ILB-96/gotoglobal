@@ -1,6 +1,4 @@
 from time import sleep
-from services.logging_service.logging_service import Log
-
 
 class PointerLoginPage:
     def __init__(self, page):
@@ -33,4 +31,4 @@ class PointerLoginPage:
                 self.page.keyboard.press(digit)
                 sleep(0.05)
             else:
-                Log.error(f"Invalid OTP digit: {digit}")
+                continue

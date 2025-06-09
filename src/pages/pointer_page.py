@@ -1,7 +1,6 @@
 from time import sleep
 from playwright.sync_api import Page
 
-from services.logging_service.logging_service import Log
 class PointerPage:
     def __init__(self, page: Page):
         self.page = page

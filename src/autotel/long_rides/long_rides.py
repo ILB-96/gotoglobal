@@ -1,7 +1,4 @@
-import os
 from services import TinyDatabase, WebAccess
-from services import Log
-import settings
 from src.shared import PointerLocation
 from src.pages import RidesPage
 from datetime import datetime as dt
@@ -13,7 +10,7 @@ class LongRides:
     their creation, updates, and any other related operations.
     """
 
-    def __init__(self, db: TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation):
+    def __init__(self, db: TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None):
         self.db = db
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row

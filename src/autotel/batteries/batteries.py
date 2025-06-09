@@ -1,5 +1,4 @@
 import os
-import re
 from time import sleep
 import settings
 from services import WebAccess, TinyDatabase
@@ -9,7 +8,7 @@ from src.pages import CarsPage
 from src.shared import PointerLocation
 
 class BatteriesAlert:
-    def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation):
+    def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None):
         self.db = db
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row
@@ -19,7 +18,7 @@ class BatteriesAlert:
     def start_requests(self):
         autotel_cars_url = r'https://prodautotelbo.gototech.co/index.html#/cars'
         page = self.web_access.create_new_page("autotel_bo", autotel_cars_url, "update")
-        self.web_access.pages['pointer'].reload(wait_until='networkidle')
+        
         cars_page = CarsPage(page)
         self.select_car_options(cars_page)
         
@@ -51,7 +50,7 @@ class BatteriesAlert:
         car_id = str(row.locator('//*[contains(@ng-click, "carsTableCtrl.showCarDetails(row)")]').text_content()).strip()
         car_battery = str(row.locator('td', has_text='%').text_content()).strip()
         active_ride = str(row.locator("//*[contains(@ng-if, \"::$root.matchProject('ATL')||($root.matchProject('E2E'))\")][4]").text_content()).strip()
-        location = self.pointer.search_location(car_id.replace("-", ""))
+        location = self.pointer.search_location(car_id.replace("-", "")) if self.pointer else "Unknown Location"
         
         return [active_ride, car_id, car_battery, location]
 
