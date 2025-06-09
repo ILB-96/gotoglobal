@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QTableWidget, QVBoxLayout, QTableWidgetItem, QLabel, QWidget, QHeaderView
+from typing import Callable
+from PyQt6.QtWidgets import QTableWidget, QVBoxLayout, QTableWidgetItem, QLabel, QWidget, QHeaderView, QPushButton, QHBoxLayout
 from PyQt6.QtCore import Qt, pyqtSignal
 from datetime import datetime as dt
 
@@ -67,6 +68,7 @@ class Table(QWidget):
             border: none;
             border-top-left-radius: 4px;
         }
+
     """)
         self.last_updated_label.setStyleSheet("color: green; font-weight: bold;")
         if (header := self.table.horizontalHeader()) is not None:
@@ -74,7 +76,7 @@ class Table(QWidget):
             header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         
-    def add_rows(self, rows_data: list[list[str]]):
+    def add_rows(self, rows_data: list[list[str | tuple[str, Callable]]]):
         self.clear_table()
         if not all(len(row) == len(self._columns) for row in rows_data):
             raise ValueError("One or more rows do not match the number of columns")
@@ -85,11 +87,26 @@ class Table(QWidget):
         start_row = self.table.rowCount()
         self.table.setRowCount(start_row + len(rows_data))
 
+
         for i, row_data in enumerate(rows_data):
             row_index = start_row + i
             for col_index, data in enumerate(row_data):
-                item = QTableWidgetItem("" if data is None else str(data))
-                self.table.setItem(row_index, col_index, item)
+                if isinstance(data, tuple) and callable(data[1]):
+                    button = QPushButton(data[0])
+                    button.setStyleSheet("padding: 6px 12px; border: none; background-color: #007bff; color: white; border-radius: 4px; font-size: 12pt; font-family: 'Tahoma', 'Arial'; font-weight: semi-bold;")
+
+                    button.clicked.connect(data[1])
+
+                    # Needed to embed widgets into cells
+                    container = QWidget()
+                    layout = QHBoxLayout(container)
+                    layout.addWidget(button)
+                    layout.setContentsMargins(0, 0, 0, 0)
+                    layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    self.table.setCellWidget(row_index, col_index, container)
+                else:
+                    item = QTableWidgetItem("" if data is None else str(data))
+                    self.table.setItem(row_index, col_index, item)
 
         self.table.blockSignals(False)
         self.table.setUpdatesEnabled(True)

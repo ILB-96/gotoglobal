@@ -1,3 +1,4 @@
+from functools import partial
 import os
 from time import sleep
 import settings
@@ -8,12 +9,13 @@ from src.pages import CarsPage
 from src.shared import PointerLocation
 
 class BatteriesAlert:
-    def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None):
+    def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None, open_ride):
         self.db = db
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row
         self.web_access = web_access
         self.pointer = pointer
+        self.open_ride = open_ride
         
     def start_requests(self):
         autotel_cars_url = r'https://prodautotelbo.gototech.co/index.html#/cars'
@@ -35,8 +37,8 @@ class BatteriesAlert:
                 continue
             
             self.db.upsert_one(
-                {'ride_id': active_ride, 
-                'car_id': car_id, 
+                {'ride_id': active_ride[0], 
+                'car_id': car_id,
                 'car_battery': car_battery, 
                 'location': location, 
                 'report_time': dt.now().strftime("%d/%m/%Y %H:%M")
@@ -51,8 +53,9 @@ class BatteriesAlert:
         car_battery = str(row.locator('td', has_text='%').text_content()).strip()
         active_ride = str(row.locator("//*[contains(@ng-if, \"::$root.matchProject('ATL')||($root.matchProject('E2E'))\")][4]").text_content()).strip()
         location = self.pointer.search_location(car_id.replace("-", "")) if self.pointer else "Unknown Location"
-        
-        return [active_ride, car_id, car_battery, location]
+        url = f"https://prodautotelbo.gototech.co/index.html#/orders/{active_ride}/details"
+        open_ride_url = partial(self.open_ride.emit, url) if self.open_ride else None
+        return [(active_ride, open_ride_url), car_id, car_battery, location]
 
     def notify_battery_condition(self, car_id, car_battery, location):
         is_low_battery = int(car_battery.replace("%", "")) <= 30

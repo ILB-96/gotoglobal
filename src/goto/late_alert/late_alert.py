@@ -5,11 +5,12 @@ from services import WebAccess, TinyDatabase, QueryBuilder
 from datetime import datetime as dt, timedelta
 from src.pages import RidesPage, RidePage
 class LateAlert:
-    def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess,):
+    def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, open_ride):
         self.db = db
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row
         self.web_access = web_access
+        self.open_ride = open_ride
         
     def start_requests(self):
         self.web_access.create_new_page("goto_bo", "https://car2gobo.gototech.co/index.html#/orders/current/", "reuse")
@@ -43,7 +44,7 @@ class LateAlert:
             end_time, future_ride_time = data.get('end_time', None), data.get('future_ride_time', None)
         else:
             end_time, future_ride_time = self._fetch_and_store_ride_times(ride)
-            
+
         self.rows.append([ride[0], end_time, ride[1], future_ride_time])
 
 

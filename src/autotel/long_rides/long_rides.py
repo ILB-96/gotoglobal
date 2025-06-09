@@ -1,3 +1,4 @@
+from functools import partial
 from services import TinyDatabase, WebAccess
 from src.shared import PointerLocation
 from src.pages import RidesPage
@@ -10,13 +11,13 @@ class LongRides:
     their creation, updates, and any other related operations.
     """
 
-    def __init__(self, db: TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None):
+    def __init__(self, db: TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None, open_ride):
         self.db = db
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row
         self.web_access = web_access
         self.pointer = pointer
-    
+        self.open_ride = open_ride
     def start_requests(self):
         """
         Initiates the process of fetching and processing long rides.
@@ -51,7 +52,9 @@ class LongRides:
             car_id = rides_page.get_car_id_from_row(row).inner_text().strip()
             location = self.pointer.search_location(car_id.replace('-', '')) if self.pointer else "Unknown Location"
 
-            rows.append([ride_id, driver_id, duration, location])
+            url = f"https://prodautotelbo.gototech.co/index.html#/orders/{ride_id}/details"
+            open_ride_url = partial(self.open_ride.emit, url) if self.open_ride else None
+            rows.append([(ride_id, open_ride_url), driver_id, duration, location])
             
 
         

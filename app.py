@@ -1,4 +1,5 @@
 from pathlib import Path
+from queue import Queue
 import sys
 import threading
 from PyQt6.QtWidgets import QApplication
@@ -26,6 +27,7 @@ class WorkSignals(QObject):
     batteries_table_row = pyqtSignal(object)
     long_rides_table_row = pyqtSignal(object)
     
+    open_url_requested = pyqtSignal(str)
     request_settings_input = pyqtSignal()
     request_otp_input = pyqtSignal()
     input_received = pyqtSignal(object)
@@ -42,6 +44,8 @@ class PlaywrightWorker(QRunnable):
         self.signals = WorkSignals()
         self.stop_event = threading.Event()
         self.running = True
+        self.url_queue = Queue()
+        self.signals.open_url_requested.connect(self.enqueue_url)
         
         self.account = {}
 
@@ -52,8 +56,8 @@ class PlaywrightWorker(QRunnable):
         # else:
         self.signals.request_settings_input.emit()
         with sync_playwright() as playwright:
-            with WebAccess(playwright, settings.playwright_headless, 'Default') as web_access:
-                web_access.create_pages({
+            with WebAccess(playwright, settings.playwright_headless, 'Default') as self.web_access:
+                self.web_access.create_pages({
                     "goto_bo": "https://car2gobo.gototech.co",
                     "autotel_bo": "https://prodautotelbo.gototech.co",
                     "pointer": "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
@@ -64,7 +68,7 @@ class PlaywrightWorker(QRunnable):
                 if self.account.get('pointer', False):
                     self.signals.request_otp_input.emit()
                 
-                    pointer = PointerLocation(web_access, self.account)
+                    pointer = PointerLocation(self.web_access, self.account)
                 
                     self.stop_event.wait()
                     self.stop_event.clear()
@@ -82,35 +86,52 @@ class PlaywrightWorker(QRunnable):
                         self.db,
                         show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
                         gui_table_row=lambda row: self.signals.late_table_row.emit(row),
-                        web_access=web_access,
+                        web_access=self.web_access,
+                        open_ride=self.signals.open_url_requested
                     )
                 if self.account.get('batteries', False):
                     batteries_alert = batteries.BatteriesAlert(
                         self.db,
                         show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
                         gui_table_row=lambda row: self.signals.batteries_table_row.emit(row),
-                        web_access=web_access,
+                        web_access=self.web_access,
                         pointer=pointer,
+                        open_ride=self.signals.open_url_requested
                     )
-                
                 
                 if self.account.get('long_rides', False):
                     long_rides_alert = long_rides.LongRides(
                         self.db,
                         show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
                         gui_table_row=lambda row: self.signals.long_rides_table_row.emit(row),
-                        web_access=web_access,
+                        web_access=self.web_access,
                         pointer=pointer,
+                        open_ride=self.signals.open_url_requested
                     )
 
                 while self.running:
+                    while not self.url_queue.empty() and self.running:
+                        try:
+                            url = self.url_queue.get_nowait()
+                            page = self.web_access.context.new_page()
+                            if settings.goto_url in url:
+                                page.goto(settings.goto_url)
+                            elif settings.autotel_url in url:
+                                page.goto(settings.autotel_url)
+                            page.goto(url)
+                        except Exception as e:
+                            pass
+
                     if late is not None:
                         late.start_requests()
                     if long_rides_alert is not None:
                         long_rides_alert.start_requests()
                     if batteries_alert is not None:
                         batteries_alert.start_requests()
+
                     self.stop_event.wait(timeout=7 * 60)
+                    self.stop_event.clear()
+
 
     def set_account_data(self, data):
         for key, value in data.items():
@@ -122,7 +143,11 @@ class PlaywrightWorker(QRunnable):
             )
 
         self.stop_event.set()
-        
+    
+    def enqueue_url(self, url: str):
+        self.url_queue.put(url)
+        self.stop_event.set()
+    
     def stop(self):
         self.running = False
         self.stop_event.set()
@@ -184,6 +209,7 @@ if __name__ == "__main__":
         worker.signals.request_settings_input.connect(lambda: handle_settings_input(worker))
         worker.signals.request_otp_input.connect(lambda: handle_code_input(worker))
         worker.signals.input_received.connect(worker.set_account_data)
+        
 
         main_win.threadpool.start(worker)
         app.aboutToQuit.connect(worker.stop)
