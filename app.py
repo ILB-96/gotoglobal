@@ -74,6 +74,9 @@ class PlaywrightWorker(QRunnable):
                 if not self.running:
                     return
 
+                long_rides_alert = None
+                late = None
+                batteries_alert = None
                 if self.account.get('late_rides', False):
                     late = late_alert.LateAlert(
                         self.db,
@@ -90,6 +93,7 @@ class PlaywrightWorker(QRunnable):
                         pointer=pointer,
                     )
                 
+                
                 if self.account.get('long_rides', False):
                     long_rides_alert = long_rides.LongRides(
                         self.db,
@@ -100,11 +104,11 @@ class PlaywrightWorker(QRunnable):
                     )
 
                 while self.running:
-                    if self.account.get('late_rides', False):
+                    if late is not None:
                         late.start_requests()
-                    if self.account.get('long_rides', False):
+                    if long_rides_alert is not None:
                         long_rides_alert.start_requests()
-                    if self.account.get('batteries', False):
+                    if batteries_alert is not None:
                         batteries_alert.start_requests()
                     self.stop_event.wait(timeout=7 * 60)
 

@@ -49,7 +49,7 @@ class LongRides:
             ride_id = rides_page.get_ride_id_from_row(row).inner_text().strip()
             driver_id = rides_page.get_driver_id_from_row(row).inner_text().strip()
             car_id = rides_page.get_car_id_from_row(row).inner_text().strip()
-            location = self.pointer.search_location(car_id.replace('-', ''))
+            location = self.pointer.search_location(car_id.replace('-', '')) if self.pointer else "Unknown Location"
 
             rows.append([ride_id, driver_id, duration, location])
             

@@ -8,7 +8,6 @@ class Table(QWidget):
     def __init__(self, title: str, columns: list[str], rows: int = 0, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setObjectName(title.lower().replace(' ', '_'))
-        self.row_requested.connect(self._add_row_safe)
         self._layout = QVBoxLayout(self)
         self.title_label = QLabel(f"<b>{title}</b>")
         self._layout.addWidget(self.title_label)
@@ -98,15 +97,6 @@ class Table(QWidget):
         if viewport is not None:
             viewport.update()
 
-    def _add_row_safe(self, row_data: list[str]):
-        if len(row_data) != len(self._columns):
-            raise ValueError("Row data length does not match number of columns")
-        row_position = self.table.rowCount()
-        self.table.insertRow(row_position)
-        for col, data in enumerate(row_data):
-            item = QTableWidgetItem(data)
-            self.table.setItem(row_position, col, item)
-            
     def clear_table(self):
         self.table.setRowCount(0)
         self.table.setColumnCount(len(self._columns))

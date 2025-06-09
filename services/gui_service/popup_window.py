@@ -1,9 +1,10 @@
 from PyQt6.QtWidgets import (
-    QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout
+    QDialog, QLabel, QPushButton, QVBoxLayout
 )
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QIcon
-import re
+
+from typing import Any, Dict
 
 class PopupWindow(QDialog):
     confirmed = pyqtSignal(str)
@@ -84,13 +85,12 @@ class PopupWindow(QDialog):
         self.error_label.setVisible(False)
         self.confirmed.emit(self.input_value)
         self.accept()
-
-    def get_input(self):
-        result = self.exec()
-        data = {}
+    def get_input(self) -> Dict[str, Any]:
+        self.exec()
+        data: Dict[str, Any] = {}
         for widget in self.widgets:
             widget_data = widget.get_data() if hasattr(widget, 'get_data') else None
             if widget_data:
                 data.update(widget_data)
             
-        return data if result == QDialog.DialogCode.Accepted else None
+        return data

@@ -32,11 +32,7 @@ a = Analysis(
         *collect_data_files('playwright'),
         *collect_data_files('tinydb'),
     ],
-    hiddenimports=[
-        'playwright._impl._driver',  # Important for Playwright internal drivers
-        'PyQt6',
-        'PyInstaller'
-    ],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
