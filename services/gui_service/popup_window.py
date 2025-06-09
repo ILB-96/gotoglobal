@@ -8,26 +8,22 @@ import re
 class PopupWindow(QDialog):
     confirmed = pyqtSignal(str)
 
-    def __init__(self, cta, title="Authorization", message="Please enter a value:", icon=None, parent=None, regex=None, regex_error="Invalid format."):
+    def __init__(self, cta, title="Authorization", icon=None, parent=None, widgets=None):
         super().__init__(parent)
         self.setModal(True)
         self.input_value = None
         self.setWindowTitle(title)
         self.setGeometry(100, 100, 500, 250)
-        self.regex = re.compile(regex) if regex else None
-        self.regex_error = regex_error
         if icon:
             self.setWindowIcon(QIcon(icon))
 
         # Widgets
         self.label = QLabel(cta)
-        self.line_edit = QLineEdit()
-        self.line_edit.setPlaceholderText(message)
         self.confirm_button = QPushButton("Confirm")
         self.error_label = QLabel("")
         self.error_label.setStyleSheet("color: red; font-size: 10pt;")
         self.error_label.setVisible(False)
-
+        self.widgets = widgets or []
         self.setStyleSheet("""
             QDialog {
                 background-color: #f0f0f0;
@@ -60,33 +56,38 @@ class PopupWindow(QDialog):
 
         # Layout
         input_button_layout = QHBoxLayout()
-        input_button_layout.addWidget(self.line_edit)
         input_button_layout.addWidget(self.confirm_button)
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addLayout(input_button_layout)
-        layout.addWidget(self.error_label)
-        self.setLayout(layout)
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.label)
+        self.layout.addLayout(input_button_layout)
+        self.layout.addWidget(self.error_label)
+        
+        for widget in self.widgets:
+            self.layout.addWidget(widget)
+        self.setLayout(self.layout)
 
         # Signals
         self.confirm_button.clicked.connect(self.on_confirm)
 
     def on_confirm(self):
-        value = self.line_edit.text().strip()
-        if not value:
-            self.error_label.setText("Input is required.")
+        if not self.widgets:
+            self.error_label.setText("Missing widgets.")
             self.error_label.setVisible(True)
             return
-        if self.regex and not self.regex.fullmatch(value):
-            self.error_label.setText(self.regex_error)
-            self.error_label.setVisible(True)
-            return
+        
+        
+
         self.error_label.setVisible(False)
-        self.input_value = value
         self.confirmed.emit(self.input_value)
         self.accept()
 
     def get_input(self):
         result = self.exec()
-        return self.input_value if result == QDialog.DialogCode.Accepted else None
+        data = {}
+        for widget in self.widgets:
+            widget_data = widget.get_data() if hasattr(widget, 'get_data') else None
+            if widget_data:
+                data.update(widget_data)
+            
+        return data if result == QDialog.DialogCode.Accepted else None

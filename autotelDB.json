@@ -419,6 +419,62 @@
             "car_battery": "30%",
             "location": "תל אביב יפו מאור הגולה 33",
             "report_time": "07/06/2025 19:14"
+        },
+        "61": {
+            "ride_id": "4828505",
+            "car_id": "881-28-702",
+            "car_battery": "54%",
+            "location": "No results",
+            "report_time": "09/06/2025 12:48"
+        },
+        "62": {
+            "ride_id": "4828459",
+            "car_id": "881-28-802",
+            "car_battery": "46%",
+            "location": "No results",
+            "report_time": "09/06/2025 12:48"
+        },
+        "63": {
+            "ride_id": "4828358",
+            "car_id": "881-29-602",
+            "car_battery": "88%",
+            "location": "No results",
+            "report_time": "09/06/2025 12:48"
+        },
+        "64": {
+            "ride_id": "4828509",
+            "car_id": "895-53-802",
+            "car_battery": "71%",
+            "location": "No results",
+            "report_time": "09/06/2025 12:48"
+        },
+        "65": {
+            "ride_id": "4828481",
+            "car_id": "895-54-302",
+            "car_battery": "52%",
+            "location": "No results",
+            "report_time": "09/06/2025 12:48"
+        },
+        "66": {
+            "ride_id": "4828547",
+            "car_id": "895-54-602",
+            "car_battery": "92%",
+            "location": "No results",
+            "report_time": "09/06/2025 12:48"
+        },
+        "67": {
+            "ride_id": "4828449",
+            "car_id": "111-94-203",
+            "car_battery": "66%",
+            "location": "No results",
+            "report_time": "09/06/2025 12:48"
+        },
+        "68": {
+            "ride_id": "4828560",
+            "car_id": "895-53-102",
+            "car_battery": "66%",
+            "location": "No results",
+            "report_time": "09/06/2025 12:55"
         }
     }
 }

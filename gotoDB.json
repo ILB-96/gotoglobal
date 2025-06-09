@@ -190,6 +190,12 @@
             "ride_id": "60845646",
             "end_time": "07/06/2025 17:30",
             "future_ride_time": "20/06/2025 15:00",
+            "resolved_time": "09/06/2025 12:52"
+        },
+        "33": {
+            "ride_id": "60846398",
+            "end_time": "09/06/2025 12:45",
+            "future_ride_time": "22/06/2025 12:00",
             "resolved_time": null
         }
     }
