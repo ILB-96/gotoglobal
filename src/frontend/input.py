@@ -8,5 +8,6 @@ class Input(QLineEdit):
         self.setPlaceholderText(placeholder)
         self.setStyleSheet("QLineEdit { font-size: 14px; }")
 
+    
     def get_data(self):
         return {self.title: self.text().strip()}

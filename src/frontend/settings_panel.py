@@ -54,7 +54,7 @@ class SettingsPanel(QWidget):
 
         # Main layout
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Settings:"))
+        layout.addWidget(QLabel("<h3>Settings:</h3>"))
         layout.addWidget(goto_group)
         layout.addWidget(autot_group)
         layout.addWidget(others_group)

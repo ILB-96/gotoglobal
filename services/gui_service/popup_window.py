@@ -19,7 +19,7 @@ class PopupWindow(QDialog):
 
         # Widgets
         self.label = QLabel(cta)
-        self.confirm_button = QPushButton("Confirm")
+        self.confirm_button = QPushButton("Lets Go")
         self.error_label = QLabel("")
         self.error_label.setStyleSheet("color: red; font-size: 10pt;")
         self.error_label.setVisible(False)
@@ -54,18 +54,15 @@ class PopupWindow(QDialog):
             }
         """)
 
-        # Layout
-        input_button_layout = QHBoxLayout()
-        input_button_layout.addWidget(self.confirm_button)
 
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.label)
-        self.layout.addLayout(input_button_layout)
-        self.layout.addWidget(self.error_label)
+        layout = QVBoxLayout()
+        layout.addWidget(self.label)
+        layout.addWidget(self.error_label)
         
         for widget in self.widgets:
-            self.layout.addWidget(widget)
-        self.setLayout(self.layout)
+            layout.addWidget(widget)
+        layout.addWidget(self.confirm_button)
+        self.setLayout(layout)
 
         # Signals
         self.confirm_button.clicked.connect(self.on_confirm)

@@ -130,7 +130,7 @@ def handle_settings_input(worker):
     <h2>Hey {username.replace('.', ' ').title()},</h2>
     <p>
     Welcome to your GOTO service companion!
-    <br><br>
+    <br>
     </p>
     """
     settings_panel = SettingsPanel(account=worker.account)
