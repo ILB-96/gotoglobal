@@ -18,13 +18,13 @@ class LateAlert:
         late_rides = self.fetch_late_ride()
         
         if not late_rides:
-            self.gui_table_row([["No late reservations found", "0", "0", "0"]], btn_colors=("1d5cd0", "392890","1f1f68"))
+            self.gui_table_row([["No late reservations found", "0", "0", "0"]], btn_colors=("#1d5cd0", "#392890","#1f1f68"))
             return self._notify_no_late_reservations()
         
         self.rows = []
         for ride in late_rides:
             self._process_ride(ride)
-        self.gui_table_row(self.rows, btn_colors=("1d5cd0", "392890","1f1f68"))
+        self.gui_table_row(self.rows, btn_colors=("#1d5cd0", "#392890","#1f1f68"))
         self.resolve_rides(late_rides)
         
         for row in self.rows:
@@ -49,7 +49,7 @@ class LateAlert:
         open_future_ride = None
         if ride[1]:
             future_ride_url = self._build_ride_url(ride[1])
-            open_future_ride = partial(self.open_ride, future_ride_url)
+            open_future_ride = partial(self.open_ride.emit, future_ride_url)
         future_ride_info = (ride[1], open_future_ride) if ride[1] else "No future ride"
 
         url = self._build_ride_url(ride[0])

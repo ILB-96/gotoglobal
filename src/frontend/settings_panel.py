@@ -34,7 +34,7 @@ class SettingsPanel(QWidget):
         # Styling
         self.setStyleSheet("""
             QWidget {
-                font-family: 'Tahoma', sans-serif;
+                font-family: 'Tahoma', "Arial";
                 font-size: 16px;
             }
 

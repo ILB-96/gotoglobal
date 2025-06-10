@@ -67,10 +67,10 @@ class Table(QWidget):
             }
             QTableWidget::item:hover {
                 background-color: #e3f2fd;
-                text: black;
+                color: black;
             }
             QTableWidget::item:focus {
-                text: black;
+                color: black;
             }
         """)
 
