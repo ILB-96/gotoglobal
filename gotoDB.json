@@ -316,7 +316,7 @@
             "ride_id": "60846949",
             "end_time": "10/06/2025 21:00",
             "future_ride_time": null,
-            "resolved_time": null
+            "resolved_time": "10/06/2025 21:49"
         },
         "54": {
             "ride_id": "60847066",
@@ -328,7 +328,13 @@
             "ride_id": "60846984",
             "end_time": "10/06/2025 21:15",
             "future_ride_time": "20/06/2025 15:30",
-            "resolved_time": null
+            "resolved_time": "10/06/2025 21:26"
+        },
+        "56": {
+            "ride_id": "60846967",
+            "end_time": "10/06/2025 21:45",
+            "future_ride_time": "21/06/2025 08:00",
+            "resolved_time": "10/06/2025 21:49"
         }
     }
 }

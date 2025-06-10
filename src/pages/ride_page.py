@@ -20,4 +20,11 @@ class RidePage:
         """
         return self.page.locator('(//td[contains(@title, "Start Time")])[1]//following-sibling::td')
     
+    @property
+    def car_id(self):
+        """
+        Fetches the car ID associated with the ride.
+        :return: Car ID as a string
+        """
+        return self.page.locator('//a[@ng-click="orderDetailsCtrl.showCarDetails()"]')
     

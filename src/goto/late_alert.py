@@ -71,6 +71,7 @@ class LateAlert:
         ride_url = self._build_ride_url(ride[0])
         self._open_ride_page(ride_url)
         end_time = self._get_end_time(self.web_access.pages['goto_bo'])
+        car_id = self._get_car_id(self.web_access.pages['goto_bo'])
         future_ride_time = None
         if ride[1]:
             future_ride_url = self._build_ride_url(ride[1])
@@ -83,7 +84,11 @@ class LateAlert:
 
     def _build_ride_url(self, ride):
         return f'{settings.goto_url}/index.html#/orders/{ride}/details'
-
+    def _get_car_id(self, page):
+        try:
+            return RidePage(page).car_id.text_content()
+        except Exception as e:
+            return None
     def _open_ride_page(self, ride_url: str):
         # self.web_access.create_new_page("ride", str(settings.goto_url), open_mode="reuse")
         self.web_access.create_new_page("goto_bo", ride_url, open_mode="replace")
