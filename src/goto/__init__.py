@@ -1,1 +1,1 @@
-from . import late_alert
+from .late_alert import LateAlert

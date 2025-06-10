@@ -23,7 +23,7 @@ class WorkSignals(QObject):
     page_loaded = pyqtSignal(str, int, int, object)
     toast_signal = pyqtSignal(str, str, str)
     
-    late_table_row = pyqtSignal(object)
+    late_table_row = pyqtSignal(object, tuple)
     batteries_table_row = pyqtSignal(object)
     long_rides_table_row = pyqtSignal(object)
     
@@ -85,7 +85,7 @@ class PlaywrightWorker(QRunnable):
                     late = late_alert.LateAlert(
                         self.db,
                         show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
-                        gui_table_row=lambda row: self.signals.late_table_row.emit(row),
+                        gui_table_row=lambda row, btn_colors: self.signals.late_table_row.emit(row, btn_colors),
                         web_access=self.web_access,
                         open_ride=self.signals.open_url_requested
                     )
@@ -202,18 +202,23 @@ if __name__ == "__main__":
         tables = setup_tabs_and_tables(main_win)
 
         worker = PlaywrightWorker(db)
-        worker.signals.toast_signal.connect(main_win.show_toast)
-        worker.signals.late_table_row.connect(tables['late_rides'].add_rows)
-        worker.signals.batteries_table_row.connect(tables['batteries'].add_rows)
-        worker.signals.long_rides_table_row.connect(tables['long_rides'].add_rows)
-        worker.signals.request_settings_input.connect(lambda: handle_settings_input(worker))
-        worker.signals.request_otp_input.connect(lambda: handle_code_input(worker))
-        worker.signals.input_received.connect(worker.set_account_data)
+        # worker.signals.toast_signal.connect(main_win.show_toast)
+        # worker.signals.late_table_row.connect(tables['late_rides'].add_rows)
+        # worker.signals.batteries_table_row.connect(tables['batteries'].add_rows)
+        # worker.signals.long_rides_table_row.connect(tables['long_rides'].add_rows)
+        # worker.signals.request_settings_input.connect(lambda: handle_settings_input(worker))
+        # worker.signals.request_otp_input.connect(lambda: handle_code_input(worker))
+        # worker.signals.input_received.connect(worker.set_account_data)
         
 
-        main_win.threadpool.start(worker)
-        app.aboutToQuit.connect(worker.stop)
-
+        # main_win.threadpool.start(worker)
+        # app.aboutToQuit.connect(worker.stop)
+        handle_settings_input(worker)
+        # rows = [["12313", "12/12/2023 12:00", ("Future Ride", lambda: print("Open Future Ride")), "12/12/2023 13:00"],
+        #         ["12314", "12/12/2023 12:30", ("Future Ride", lambda: print("Open Future Ride")), "12/12/2023 13:30"]]
+        
+        # tables['late_rides'].add_rows(rows, btn_colors=("#1d5cd0", "#392890", "#1f1f68"))
+        # tables['batteries'].add_rows(rows)
         main_win.show()
         sys.exit(app.exec())
     except Exception as e:

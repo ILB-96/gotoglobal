@@ -1,3 +1,4 @@
+from functools import partial
 import os
 from time import sleep
 import settings
@@ -17,13 +18,13 @@ class LateAlert:
         late_rides = self.fetch_late_ride()
         
         if not late_rides:
-            self.gui_table_row([["No late reservations found", "0", "0", "0"]])
+            self.gui_table_row([["No late reservations found", "0", "0", "0"]], btn_colors=("1d5cd0", "392890","1f1f68"))
             return self._notify_no_late_reservations()
         
         self.rows = []
         for ride in late_rides:
             self._process_ride(ride)
-        self.gui_table_row(self.rows)
+        self.gui_table_row(self.rows, btn_colors=("1d5cd0", "392890","1f1f68"))
         self.resolve_rides(late_rides)
         
         for row in self.rows:
@@ -44,8 +45,16 @@ class LateAlert:
             end_time, future_ride_time = data.get('end_time', None), data.get('future_ride_time', None)
         else:
             end_time, future_ride_time = self._fetch_and_store_ride_times(ride)
+        
+        open_future_ride = None
+        if ride[1]:
+            future_ride_url = self._build_ride_url(ride[1])
+            open_future_ride = partial(self.open_ride, future_ride_url)
+        future_ride_info = (ride[1], open_future_ride) if ride[1] else "No future ride"
 
-        self.rows.append([ride[0], end_time, ride[1], future_ride_time])
+        url = self._build_ride_url(ride[0])
+        open_ride_url = partial(self.open_ride.emit, url)
+        self.rows.append([(ride[0], open_ride_url), end_time, future_ride_info , future_ride_time])
 
 
     def _should_skip_due_to_end_time(self, data):

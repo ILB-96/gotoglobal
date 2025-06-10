@@ -1,2 +1,2 @@
-from . import batteries
-from . import long_rides
+from .batteries import BatteriesAlert
+from .long_rides import LongRides

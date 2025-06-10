@@ -28,55 +28,59 @@ class Table(QWidget):
     
         if (vertical_header := self.table.verticalHeader()) is not None:
             vertical_header.setVisible(False)
+        
         self.title_label.setStyleSheet("font-size: 16pt;")
         self.table.setStyleSheet("border-radius: 4px;")
         self.table.setStyleSheet("""
-        QTableWidget {
-            font-size: 13pt;
-            font-family: 'Tahoma', 'Arial';
-            background-color: #ffffff;
-            alternate-background-color: #f9f9f9;
-            gridline-color: #f0f0f0;
-            selection-background-color: #cce5ff;
-            selection-color: #000;
-            border-radius: 4px;
-            padding: 2px;
-        }
-        QHeaderView {
-            background-color: transparent;
-            border: none;
-            border-radius: 4px;
-        }
-        QHeaderView::section {
-            background-color: #e8e8e8;
-            color: #333;
-            font-weight: bold;
-            font-size: 12pt;
-            padding: 8px;
-            border: none;
-            border-right: 1px solid #fff;
-        }
-        QHeaderView::section:first {
-        border-top-left-radius: 4px;
-        }
-        QHeaderView::section:last {
-            border-top-right-radius: 4px;
-            border-right: none;
-        }
-        QTableCornerButton::section {
-            background-color: #e8e8e8;
-            border: none;
-            border-top-left-radius: 4px;
-        }
+            QTableWidget {
+                font-size: 12pt;
+                font-family: 'Tahoma', 'Arial';
+                background-color: #ffffff;
+                alternate-background-color: #f4f6f9;
+                gridline-color: #dcdcdc;
+                border: none;
+                border-radius: 8px;
+            }
+            QTableWidget::item {
+                padding: 8px;
+            }
+            QHeaderView::section {
+                background-color: #f0f0f0;
+                color: #333;
+                font-weight: bold;
+                font-size: 11pt;
+                padding: 6px;
+                border: none;
+                border-right: 1px solid #ddd;
+            }
+            QHeaderView::section:first {
+                border-top-left-radius: 8px;
+            }
+            QHeaderView::section:last {
+                border-top-right-radius: 8px;
+                border-right: none;
+            }
+            QTableCornerButton::section {
+                background-color: #f0f0f0;
+                border: none;
+                border-top-left-radius: 8px;
+            }
+            QTableWidget::item:hover {
+                background-color: #e3f2fd;
+                text: black;
+            }
+            QTableWidget::item:focus {
+                text: black;
+            }
+        """)
 
-    """)
         self.last_updated_label.setStyleSheet("color: green; font-weight: bold;")
         if (header := self.table.horizontalHeader()) is not None:
             header.setStretchLastSection(True)
             header.setDefaultAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         
-    def add_rows(self, rows_data: list[list[str | tuple[str, Callable]]]):
+    def add_rows(self, rows_data: list[list[str | tuple[str, Callable]]], btn_colors=("#4caf50", '#45a049', '#388e3c')):
         self.clear_table()
         if not all(len(row) == len(self._columns) for row in rows_data):
             raise ValueError("One or more rows do not match the number of columns")
@@ -90,13 +94,32 @@ class Table(QWidget):
 
         for i, row_data in enumerate(rows_data):
             row_index = start_row + i
+            
             for col_index, data in enumerate(row_data):
                 if isinstance(data, tuple) and callable(data[1]):
                     button = QPushButton(data[0])
-                    button.setStyleSheet("padding: 6px 12px; border: none; background-color: #007bff; color: white; border-radius: 4px; font-size: 12pt; font-family: 'Tahoma', 'Arial'; font-weight: semi-bold;")
+                    button.setStyleSheet(f"""
+                        QPushButton {{
+                            min-height: 24px;
+                            padding: 6px 14px;
+                            background-color: {btn_colors[0]};
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 15px;
+                            font-weight: 700;
+                            font-family: 'Tahoma', 'Arial';
+                        }}
+                        QPushButton:hover {{
+                            background-color: {btn_colors[1]};
+                        }}
+                        QPushButton:pressed {{
+                            background-color: {btn_colors[2]};
+                        }}
+                    """)
 
                     button.clicked.connect(data[1])
-
+                    button.setCursor(Qt.CursorShape.PointingHandCursor)
                     # Needed to embed widgets into cells
                     container = QWidget()
                     layout = QHBoxLayout(container)
@@ -106,7 +129,9 @@ class Table(QWidget):
                     self.table.setCellWidget(row_index, col_index, container)
                 else:
                     item = QTableWidgetItem("" if data is None else str(data))
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)        
                     self.table.setItem(row_index, col_index, item)
+                self.table.setRowHeight(row_index, 56)
 
         self.table.blockSignals(False)
         self.table.setUpdatesEnabled(True)
