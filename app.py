@@ -100,7 +100,7 @@ class PlaywrightWorker(QRunnable):
                     )
                 
                 if self.account.get('long_rides', False):
-                    long_rides_alert = long_rides.LongRides(
+                    long_rides_alert = LongRides(
                         self.db,
                         show_toast=lambda title, message, icon: self.signals.toast_signal.emit(title, message, icon),
                         gui_table_row=lambda row: self.signals.long_rides_table_row.emit(row),
