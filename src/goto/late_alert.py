@@ -29,7 +29,7 @@ class LateAlert:
         
         for row in self.rows:
             ride_id, end_time, _, future_ride_time = row
-            self._notify_late_ride(ride_id, end_time, future_ride_time)
+            self._notify_late_ride(ride_id[0], end_time, future_ride_time)
 
     def _notify_no_late_reservations(self):
         self.show_toast(

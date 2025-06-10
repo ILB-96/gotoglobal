@@ -39,7 +39,7 @@ class Table(QWidget):
                 alternate-background-color: #f4f6f9;
                 gridline-color: #dcdcdc;
                 border: none;
-                border-radius: 8px;
+                border-radius: 4px;
             }
             QTableWidget::item {
                 padding: 8px;
@@ -54,16 +54,16 @@ class Table(QWidget):
                 border-right: 1px solid #ddd;
             }
             QHeaderView::section:first {
-                border-top-left-radius: 8px;
+                border-top-left-radius: 4px;
             }
             QHeaderView::section:last {
-                border-top-right-radius: 8px;
+                border-top-right-radius: 4px;
                 border-right: none;
             }
             QTableCornerButton::section {
                 background-color: #f0f0f0;
                 border: none;
-                border-top-left-radius: 8px;
+                border-top-left-radius: 4px;
             }
             QTableWidget::item:hover {
                 background-color: #e3f2fd;
@@ -105,7 +105,7 @@ class Table(QWidget):
                             background-color: {btn_colors[0]};
                             color: white;
                             border: none;
-                            border-radius: 8px;
+                            border-radius: 4px;
                             font-size: 15px;
                             font-weight: 700;
                             font-family: 'Tahoma', 'Arial';
@@ -129,7 +129,10 @@ class Table(QWidget):
                     self.table.setCellWidget(row_index, col_index, container)
                 else:
                     item = QTableWidgetItem("" if data is None else str(data))
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)        
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
+                    # Ensure alignment is preserved in edit mode
+                    item.setData(Qt.ItemDataRole.TextAlignmentRole, Qt.AlignmentFlag.AlignCenter)
                     self.table.setItem(row_index, col_index, item)
                 self.table.setRowHeight(row_index, 56)
 

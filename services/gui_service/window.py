@@ -1,6 +1,7 @@
 import threading
 from PyQt6.QtCore import (
     QThreadPool,
+    Qt,
 )
 from PyQt6.QtWidgets import (
     QMainWindow,
@@ -29,6 +30,8 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(tab)
         for widget in widgets:
             layout.addWidget(widget)
+        tab.setCursor(Qt.CursorShape.PointingHandCursor)
+
         self.tabs.addTab(tab, title)
 
         index = self.tabs.indexOf(tab)
