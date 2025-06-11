@@ -60,7 +60,7 @@ class PlaywrightWorker(QRunnable):
                     pointer.login(self.account)
                     while True:
                         try:
-                            self.web_access.pages["pointer"].wait_for_selector('textarea.realInput', timeout=10000)
+                            self.web_access.pages["pointer"].wait_for_selector('textarea.realInput', timeout=7000)
 
                             self.signals.request_otp_input.emit()
                             
@@ -113,8 +113,7 @@ class PlaywrightWorker(QRunnable):
                     )
 
                 last_run = 0
-                interval = 5 * 60
-
+                
                 while self.running:
                     while not self.url_queue.empty() and self.running:
                         try:
@@ -129,7 +128,7 @@ class PlaywrightWorker(QRunnable):
                             pass
 
                     now = time.time()
-                    if now - last_run >= interval:
+                    if now - last_run >= settings.interval:
                         self.signals.start_loading.emit()
                         if late is not None:
                             late.start_requests()
@@ -141,7 +140,7 @@ class PlaywrightWorker(QRunnable):
                         self.signals.stop_loading.emit()
 
                     # Wait for a short time to avoid busy loop, but wake up if stop_event is set
-                    timeout = max(1, interval - (now - last_run))
+                    timeout = max(1, settings.interval - (now - last_run))
                     self.stop_event.wait(timeout=timeout)
                     self.stop_event.clear()
 

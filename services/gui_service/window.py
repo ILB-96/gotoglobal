@@ -15,7 +15,7 @@ from win11toast import toast
 class MainWindow(QMainWindow):
     def __init__(self, title, app_icon, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setGeometry(100, 100, 1000, 600)
+        self.setGeometry(100, 100, 1000, 800)
         self.setWindowIcon(QIcon(app_icon))
         self.tabs = QTabWidget()
         self.setWindowTitle(title)

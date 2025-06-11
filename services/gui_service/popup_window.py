@@ -79,8 +79,6 @@ class PopupWindow(QDialog):
                 self.error_label.setText(widget.error_message)
                 self.error_label.setVisible(True)
                 return
-        
-        
 
         self.error_label.setVisible(False)
         self.confirmed.emit(self.input_value)

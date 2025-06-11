@@ -39,7 +39,7 @@ class Table(QWidget):
                 alternate-background-color: #f4f6f9;
                 gridline-color: #dcdcdc;
                 border: none;
-                border-radius: 4px;
+                border-radius: 8px;
             }
             QTableWidget::item {
                 padding: 8px;
@@ -54,16 +54,16 @@ class Table(QWidget):
                 border-right: 1px solid #ddd;
             }
             QHeaderView::section:first {
-                border-top-left-radius: 4px;
+                border-top-left-radius: 8px;
             }
             QHeaderView::section:last {
-                border-top-right-radius: 4px;
+                border-top-right-radius: 8px;
                 border-right: none;
             }
             QTableCornerButton::section {
                 background-color: #f0f0f0;
                 border: none;
-                border-top-left-radius: 4px;
+                border-top-left-radius: 8px;
             }
             QTableWidget::item:hover {
                 background-color: #e3f2fd;
@@ -120,7 +120,6 @@ class Table(QWidget):
 
                     button.clicked.connect(data[1])
                     button.setCursor(Qt.CursorShape.PointingHandCursor)
-                    # Needed to embed widgets into cells
                     container = QWidget()
                     layout = QHBoxLayout(container)
                     layout.addWidget(button)
@@ -131,7 +130,6 @@ class Table(QWidget):
                     item = QTableWidgetItem("" if data is None else str(data))
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
-                    # Ensure alignment is preserved in edit mode
                     item.setData(Qt.ItemDataRole.TextAlignmentRole, Qt.AlignmentFlag.AlignCenter)
                     self.table.setItem(row_index, col_index, item)
                 self.table.setRowHeight(row_index, 56)
@@ -173,7 +171,7 @@ class Table(QWidget):
 
         layout = QVBoxLayout(self._loading_overlay)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
-        layout.setContentsMargins(0, 50, 0, 0)  # Adjust the bottom margin to push it upward
+        layout.setContentsMargins(0, 50, 0, 0)
 
         self._loading_label = QLabel("Loading", self._loading_overlay)
         self._loading_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #444;")
@@ -189,8 +187,8 @@ class Table(QWidget):
 
         self._loading_overlay.show()
 
-        # Make sure the overlay resizes with the table
         original_resize_event = self.resizeEvent
+        
         def resize_event(event):
             self._loading_overlay.setGeometry(self.table.geometry())
             if original_resize_event:
