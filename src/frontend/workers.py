@@ -56,16 +56,27 @@ class PlaywrightWorker(QRunnable):
                 self.stop_event.clear()
                 pointer = None
                 if self.account.get('pointer', False):
-                    self.signals.request_otp_input.emit()
-                
-                    pointer = PointerLocation(self.web_access, self.account)
-                
-                    self.stop_event.wait()
-                    self.stop_event.clear()
-                    
-                    pointer.fill_otp(self.account.get('code', ''))
-                    self.stop_event.wait(5)
-                    self.stop_event.clear()
+                    pointer = PointerLocation(self.web_access)
+                    pointer.login(self.account)
+                    while True:
+                        try:
+                            self.web_access.pages["pointer"].wait_for_selector('textarea.realInput', timeout=10000)
+
+                            self.signals.request_otp_input.emit()
+                            
+                            self.stop_event.wait()
+                            self.stop_event.clear()
+
+                            pointer.fill_otp(self.account.get('code', ''))
+
+                            time.sleep(2)
+
+                        except TimeoutError:
+                            break
+
+                        finally:
+                            self.stop_event.wait(5)
+                            self.stop_event.clear()
                     
                 if not self.running:
                     return

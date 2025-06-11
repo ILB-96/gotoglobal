@@ -26,10 +26,16 @@ class SettingsPanel(QWidget):
         self.pointer_cb.setToolTip("Enable Pointer integration for ride management.")
         self.pointer_cb.setDisabled(self.long_rides_cb.isChecked() or self.batteries_cb.isChecked())
 
+        self.pointer_user_input = QLineEdit()
+        self.pointer_user_input.setPlaceholderText("Enter Pointer username")
+        self.pointer_user_input.setText(account.get("pointer_user", account.get("username", "")))
+        self.pointer_user_input.setVisible(account.get("pointer", True))
+        
         self.phone_input = QLineEdit()
         self.phone_input.setPlaceholderText("Enter phone number")
         self.phone_input.setText(account.get("phone", ""))
         self.phone_input.setVisible(account.get("pointer", True))
+        
 
         self.setStyleSheet("""
             QWidget {
@@ -88,6 +94,7 @@ class SettingsPanel(QWidget):
         others_layout = QVBoxLayout()
         pointer_layout = QHBoxLayout()
         pointer_layout.addWidget(self.pointer_cb)
+        pointer_layout.addWidget(self.pointer_user_input)
         pointer_layout.addWidget(self.phone_input)
         others_layout.addLayout(pointer_layout)
         others_group.setLayout(others_layout)
@@ -107,7 +114,9 @@ class SettingsPanel(QWidget):
 
 
     def toggle_phone_input(self, state):
-        self.phone_input.setVisible(state == Qt.CheckState.Checked.value)
+        data_visible = state == Qt.CheckState.Checked.value
+        self.pointer_user_input.setVisible(data_visible)
+        self.phone_input.setVisible(data_visible)
         
     def toggle_pointer(self, state):
         self.pointer_cb.setChecked(self.long_rides_cb.isChecked() or self.batteries_cb.isChecked() or self.pointer_cb.isChecked())
@@ -127,5 +136,6 @@ class SettingsPanel(QWidget):
             "long_rides": self.long_rides_cb.isChecked(),
             "batteries": self.batteries_cb.isChecked(),
             "pointer": self.pointer_cb.isChecked(),
+            "pointer_user": self.pointer_user_input.text() if self.pointer_cb.isChecked() else None,
             "phone": self.phone_input.text() if self.pointer_cb.isChecked() else None,
         }

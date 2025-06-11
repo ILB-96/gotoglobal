@@ -8,10 +8,10 @@ class Input(QLineEdit):
         self.title = title
         self.setPlaceholderText(placeholder)
         self.setStyleSheet("QLineEdit { font-size: 14px; font-family: 'Tahoma', 'Arial'; padding: 8px; border-radius: 4px; }")
+        self.error_message = error_message
 
     def is_valid(self):
         return bool(re.fullmatch(r"^\d{6}$", self.text().strip()))
-        
         
     def get_data(self):
         return {self.title: self.text().strip()}

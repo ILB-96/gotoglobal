@@ -7,22 +7,21 @@ class PointerLocation:
     A class to represent the location of a pointer in a 2D space.
     """
 
-    def __init__(self, webaccess: WebAccess, account: dict):
+    def __init__(self, webaccess: WebAccess):
         """
         Initializes the PointerLocation with a WebAccess instance.
 
         :param webaccess: An instance of WebAccess to interact with the web page.
         """
         self.webaccess = webaccess
-
-        self.login(account)
+    
     
     def login(self, account: dict):
         """
         Logs in to the Pointer service using the provided account credentials.
         """
         pages.PointerLoginPage(self.webaccess.pages['pointer']).login(
-            username=account.get('username', ''),
+            username=account.get('pointer_user', account.get('username', '')),
             phone=account.get('phone', '')
         )
 
