@@ -1,6 +1,6 @@
 from typing import Callable
-from PyQt6.QtWidgets import QTableWidget, QVBoxLayout, QTableWidgetItem, QLabel, QWidget, QHeaderView, QPushButton, QHBoxLayout
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtWidgets import QTableWidget, QVBoxLayout, QTableWidgetItem, QLabel, QWidget, QHeaderView, QPushButton, QHBoxLayout, QFrame
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from datetime import datetime as dt
 
 class Table(QWidget):
@@ -150,4 +150,58 @@ class Table(QWidget):
                 
     def set_last_updated(self, timestamp: str):
         self.last_updated_label.setText(f"Last updated: {timestamp}")
-        
+    
+
+    def start_loading(self):
+        if hasattr(self, "_loading_overlay") and self._loading_overlay is not None:
+            self._loading_overlay.setGeometry(self.table.geometry())
+            self._loading_overlay.raise_()
+            self._loading_overlay.show()
+            return
+
+        # Create overlay
+        self._loading_overlay = QFrame(self)
+        self._loading_overlay.setStyleSheet("""
+            QFrame {
+                background-color: rgba(255, 255, 255, 200);
+                border-radius: 4px;
+            }
+        """)
+        self._loading_overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
+        self._loading_overlay.setGeometry(self.table.geometry())
+        self._loading_overlay.raise_()
+
+        layout = QVBoxLayout(self._loading_overlay)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        layout.setContentsMargins(0, 50, 0, 0)  # Adjust the bottom margin to push it upward
+
+        self._loading_label = QLabel("Loading", self._loading_overlay)
+        self._loading_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #444;")
+        layout.addWidget(self._loading_label)
+        self._dots = ""
+        def animate():
+            self._dots = "." if self._dots == "..." else self._dots + "."
+            self._loading_label.setText(f"Loading{self._dots}")
+
+        self._loading_timer = QTimer(self)
+        self._loading_timer.timeout.connect(animate)
+        self._loading_timer.start(500)
+
+        self._loading_overlay.show()
+
+        # Make sure the overlay resizes with the table
+        original_resize_event = self.resizeEvent
+        def resize_event(event):
+            self._loading_overlay.setGeometry(self.table.geometry())
+            if original_resize_event:
+                original_resize_event(event)
+        self.resizeEvent = resize_event
+
+
+    
+    def stop_loading(self):
+        if hasattr(self, "_loading_overlay"):
+            self._loading_overlay.hide()
+        if hasattr(self, "_loading_timer") and self._loading_timer.isActive():
+            self._loading_timer.stop()
+

@@ -56,7 +56,15 @@ def handle_code_input(worker):
     )
     data = popup.get_input()
     worker.signals.input_received.emit({ **data })
-    
+
+def handle_start_loading(tables):
+    for table in tables.values():
+        table.start_loading()
+        
+def handle_stop_loading(tables):
+    for table in tables.values():
+        table.stop_loading()
+
 if __name__ == "__main__":
     try:
         app = QApplication(sys.argv)
@@ -74,7 +82,8 @@ if __name__ == "__main__":
         worker.signals.request_settings_input.connect(lambda: handle_settings_input(worker))
         worker.signals.request_otp_input.connect(lambda: handle_code_input(worker))
         worker.signals.input_received.connect(worker.set_account_data)
-        
+        worker.signals.start_loading.connect(lambda: handle_start_loading(tables))
+        worker.signals.stop_loading.connect(lambda: handle_stop_loading(tables))
 
         main_win.threadpool.start(worker)
         app.aboutToQuit.connect(worker.stop)
@@ -83,7 +92,7 @@ if __name__ == "__main__":
         #         ["12314", "12/12/2023 12:30", ("Future Ride", lambda: print("Open Future Ride")), "12/12/2023 13:30"]]
         
         # tables['late_rides'].add_rows(rows, btn_colors=("#1d5cd0", "#392890", "#1f1f68"))
-        # tables['batteries'].add_rows(rows)
+
         main_win.show()
         sys.exit(app.exec())
     except Exception as e:

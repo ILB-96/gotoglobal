@@ -6,7 +6,7 @@ def goto_tab(main_win):
         title="Late Rides",
         columns=["Ride ID", "End Time", "Future Ride", "Future Ride Time"]
     )
-    
+    goto_late_rides.start_loading()
     main_win.build_tab(title="Goto", color="#201c6c", widgets=[goto_late_rides])
     
     return {'late_rides': goto_late_rides}
@@ -21,6 +21,8 @@ def autotel_tab(main_win):
         title="Long Rides",
         columns=["Ride ID", "Driver ID", "Duration", "Location"]
     )
+    batteries_table.start_loading()
+    long_rides_table.start_loading()
     
     main_win.build_tab(title="Autotel", color="#80c454", widgets=[batteries_table, long_rides_table])
     

@@ -23,6 +23,9 @@ class WorkSignals(QObject):
     request_settings_input = pyqtSignal()
     request_otp_input = pyqtSignal()
     input_received = pyqtSignal(object)
+    
+    start_loading = pyqtSignal()
+    stop_loading = pyqtSignal()
 
 class PlaywrightWorker(QRunnable):
     def __init__(self, db):
@@ -116,6 +119,7 @@ class PlaywrightWorker(QRunnable):
 
                     now = time.time()
                     if now - last_run >= interval:
+                        self.signals.start_loading.emit()
                         if late is not None:
                             late.start_requests()
                         if long_rides_alert is not None:
@@ -123,6 +127,7 @@ class PlaywrightWorker(QRunnable):
                         if batteries_alert is not None:
                             batteries_alert.start_requests()
                         last_run = now
+                        self.signals.stop_loading.emit()
 
                     # Wait for a short time to avoid busy loop, but wake up if stop_event is set
                     timeout = max(1, interval - (now - last_run))
