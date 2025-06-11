@@ -7,7 +7,7 @@ class Input(QLineEdit):
         super().__init__(parent)
         self.title = title
         self.setPlaceholderText(placeholder)
-        self.setStyleSheet("QLineEdit { font-size: 14px; }")
+        self.setStyleSheet("QLineEdit { font-size: 14px; font-family: 'Tahoma', 'Arial'; padding: 8px; border-radius: 4px; }")
 
     def is_valid(self):
         return bool(re.fullmatch(r"^\d{6}$", self.text().strip()))

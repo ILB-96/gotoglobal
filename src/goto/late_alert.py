@@ -5,6 +5,7 @@ import settings
 from services import WebAccess, TinyDatabase, QueryBuilder
 from datetime import datetime as dt, timedelta
 from src.pages import RidesPage, RidePage
+from src.shared import utils
 class LateAlert:
     def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, open_ride):
         self.db = db
@@ -35,7 +36,7 @@ class LateAlert:
         self.show_toast(
             "Goto ~ Late Alert!",
             "No late reservations found",
-            icon=os.path.abspath(settings.app_icon)
+            icon=utils.resource_path(settings.app_icon)
         )
 
     def _process_ride(self, ride: tuple[str,str]):
@@ -129,7 +130,7 @@ class LateAlert:
         self.show_toast(
             "Goto ~ Late Alert!",
             msg,
-            icon=os.path.abspath(settings.app_icon)
+            icon=utils.resource_path(settings.app_icon)
         )
     
     def resolve_rides(self, rides):

@@ -4,31 +4,26 @@ import os
 import sys
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_data_files
-
 import ctypes.util
 
 python_dll_path = ctypes.util.find_library(f"python{sys.version_info.major}{sys.version_info.minor}")
 if python_dll_path is None:
     raise FileNotFoundError("Cannot find system Python DLL (e.g., python311.dll)")
-python_dll_tuple = (python_dll_path, '.')
+python_dll_tuple = (python_dll_path, '.\\GotoGlobal')
 
-
-
-# Your app icon (replace with the actual path if needed)
-app_icon = os.path.abspath("c2gFav.ico") if os.path.exists("c2gFav.ico") else None
+app_icon = os.path.abspath("c2gFav.ico")
+autotel_icon =  os.path.abspath("autoFav.ico")
 
 # Main analysis
 a = Analysis(
     ['app.py'],
     pathex=['.', 'services', 'src'],
     binaries=[
-        python_dll_tuple  # Include Python DLL explicitly
+        python_dll_tuple
     ],
     datas=[
-        # Add icon (if used)
         *([(app_icon, '.')] if app_icon else [] ),
-
-        # Collect Playwright and TinyDB data
+        *([(autotel_icon, '.')] if autotel_icon else [] ),
         *collect_data_files('playwright'),
         *collect_data_files('tinydb'),
     ],
@@ -59,7 +54,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=app_icon,
+    icon=app_icon
 )
 
 coll = COLLECT(

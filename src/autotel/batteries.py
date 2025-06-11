@@ -6,7 +6,7 @@ from services import WebAccess, TinyDatabase
 from datetime import datetime as dt
 
 from src.pages import CarsPage
-from src.shared import PointerLocation
+from src.shared import PointerLocation, utils
 
 class BatteriesAlert:
     def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None, open_ride):
@@ -65,19 +65,19 @@ class BatteriesAlert:
             self.show_toast(
                     "Autotel ~ Batteries Alert!",
                     f"Electric Car {car_id} has low battery: {car_battery} Outside of Tel Aviv",
-                    icon=os.path.abspath(settings.autotel_icon)
+                    icon=utils.resource_path(settings.autotel_icon)
                 )
         elif is_not_service_location:
             self.show_toast(
                     "Autotel ~ Batteries Alert!",
                     f"Electric Car {car_id}\nwith {car_battery} battery\nis not in Tel Aviv: {location}",
-                    icon=os.path.abspath(settings.autotel_icon)
+                    icon=utils.resource_path(settings.autotel_icon)
                 )
         elif is_low_battery:
             self.show_toast(
                     "Autotel ~ Batteries Alert!",
                     f"Electric Car {car_id} has low battery: {car_battery}",
-                    icon=os.path.abspath(settings.autotel_icon)
+                    icon=utils.resource_path(settings.autotel_icon)
                 )
 
     def select_car_options(self, cars_page: CarsPage):

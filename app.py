@@ -1,14 +1,15 @@
+import os
 from pathlib import Path
-from queue import Queue
 import sys
-import threading
 from PyQt6.QtWidgets import QApplication
 from services import TinyDatabase
-from playwright.sync_api import sync_playwright
 from services import window, popup_window
 import settings
 from src.frontend import setup_tabs_and_tables, Input, SettingsPanel, PlaywrightWorker
+import traceback
+from PyQt6.QtWidgets import QMessageBox
 
+from src.shared import utils
 
 def setup_shared_resources():
     return TinyDatabase({
@@ -29,7 +30,7 @@ def handle_settings_input(worker):
     settings_panel = SettingsPanel(account=worker.account)
     popup = popup_window.PopupWindow(
         cta,
-        icon=settings.app_icon,
+        icon=utils.resource_path(settings.app_icon),
         widgets=[settings_panel]
     )
     data = popup.get_input()
@@ -51,7 +52,7 @@ def handle_code_input(worker):
     )
     popup = popup_window.PopupWindow(
         cta,
-        icon=settings.app_icon,
+        icon=utils.resource_path(settings.app_icon),
         widgets=[line_edit],
     )
     data = popup.get_input()
@@ -68,7 +69,7 @@ def handle_stop_loading(tables):
 if __name__ == "__main__":
     try:
         app = QApplication(sys.argv)
-        main_win = window.MainWindow(title="GotoGlobal", app_icon=settings.app_icon)
+        main_win = window.MainWindow(title="GotoGlobal", app_icon=utils.resource_path(settings.app_icon))
         
         db = setup_shared_resources()
     
@@ -93,11 +94,11 @@ if __name__ == "__main__":
         
         # tables['late_rides'].add_rows(rows, btn_colors=("#1d5cd0", "#392890", "#1f1f68"))
 
+
         main_win.show()
         sys.exit(app.exec())
     except Exception as e:
-        import traceback
-        from PyQt6.QtWidgets import QMessageBox
+
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Critical)
         msg.setWindowTitle("Startup Error")

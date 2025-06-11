@@ -31,20 +31,17 @@ class SettingsPanel(QWidget):
         self.phone_input.setText(account.get("phone", ""))
         self.phone_input.setVisible(account.get("pointer", True))
 
-        # Styling
         self.setStyleSheet("""
             QWidget {
                 font-family: 'Tahoma', "Arial";
                 font-size: 16px;
             }
-
             QGroupBox {
                 border: 1px solid #dcdcdc;
-                border-radius: 8px;
+                border-radius: 4px;
                 margin-top: 16px;
                 padding: 10px;
             }
-
             QGroupBox::title {
                 subcontrol-origin: margin;
                 padding: 0 5px;
@@ -52,15 +49,13 @@ class SettingsPanel(QWidget):
                 color: #333;
                 margin-top: 5px;
             }
-
             QLabel {
                 font-weight: 600;
                 margin-bottom: 2px;
             }
-
             QLineEdit {
                 border: none;
-                border-radius: 8px;
+                border-radius: 4px;
                 padding: 8px 12px;
                 font-size: 16px;
             }
