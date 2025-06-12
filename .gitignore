@@ -6,3 +6,4 @@ gotoDB.json
 dist
 .venv
 build
+.DS_Store
