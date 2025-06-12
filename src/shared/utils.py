@@ -8,7 +8,7 @@ def resource_path(relative_path):
     """
     try:
         # If running as a bundled app
-        base_path = sys._MEIPASS
+        base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
     except AttributeError:
         # If running as a script
         base_path = os.path.abspath(".")

@@ -1,11 +1,12 @@
 from .dao_service import TinyDatabase, QueryBuilder
 from .web_access_service import WebAccess
-from .gui_service import window, table, popup_window
+from .gui_service import MainWindow, Table, PopupWindow
+
 __all__ = [
     "TinyDatabase",
     "QueryBuilder",
     "WebAccess",
-    "window",
-    "table",
-    "popup_window"
+    "MainWindow",
+    "Table",
+    "PopupWindow"
 ]
