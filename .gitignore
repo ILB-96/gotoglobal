@@ -2,7 +2,7 @@
 venv
 .vscode
 __pycache__
-gotoDB.json
+*.json
 dist
 .venv
 build
