@@ -3,7 +3,7 @@ from src.frontend import setup_tabs_and_tables, PlaywrightWorker
 import settings
 from src.shared import utils
 
-from handlers import (
+from .handlers import (
     handle_settings_input,
     handle_code_input,
     handle_start_loading,

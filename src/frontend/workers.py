@@ -94,11 +94,11 @@ class PlaywrightWorker(QRunnable):
                 self.stop_event.clear()
                 pointer.fill_otp(self.account.get('code', ''))
                 time.sleep(2)
-            except TimeoutError:
+            except Exception:
                 break
-            finally:
-                self.stop_event.wait(5)
-                self.stop_event.clear()
+
+        self.stop_event.wait(5)
+        self.stop_event.clear()
         return pointer
 
     def _init_alerts(self, pointer):
