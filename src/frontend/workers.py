@@ -46,8 +46,8 @@ class PlaywrightWorker(QRunnable):
         with sync_playwright() as playwright:
             with WebAccess(playwright, settings.playwright_headless, 'Default') as self.web_access:
                 self.web_access.create_pages({
-                    "goto_bo": "https://car2gobo.gototech.co",
-                    "autotel_bo": "https://prodautotelbo.gototech.co",
+                    "goto_bo": settings.goto_url,
+                    "autotel_bo": settings.autotel_url,
                     "pointer": "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
                 })
                 self.stop_event.wait()

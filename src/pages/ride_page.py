@@ -10,7 +10,7 @@ class RidePage:
         Fetches the end time of the ride.
         :return: End time as a string
         """
-        return self.page.locator('(//td[contains(@title, "End Time")])[1]//following-sibling::td')
+        return self.page.locator('[title="End Time"] + td')
     
     @property
     def ride_start_time(self):
@@ -18,7 +18,7 @@ class RidePage:
         Fetches the start time of the ride.
         :return: Start time as a string
         """
-        return self.page.locator('(//td[contains(@title, "Start Time")])[1]//following-sibling::td')
+        return self.page.locator('[title="Start Time"] + td')
     
     @property
     def car_id(self):
@@ -26,5 +26,13 @@ class RidePage:
         Fetches the car ID associated with the ride.
         :return: Car ID as a string
         """
-        return self.page.locator('//a[@ng-click="orderDetailsCtrl.showCarDetails()"]')
+        return self.page.locator('[ng-click="orderDetailsCtrl.showCarDetails()"]')
+    
+    @property
+    def ride_comment(self):
+        """
+        Fetches the comment associated with the ride.
+        :return: Ride comment as a string
+        """
+        return self.page.locator('textarea[ng-blur="orderDetailsCtrl.updateReservationFields()"]')
     

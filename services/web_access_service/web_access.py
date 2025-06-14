@@ -60,7 +60,7 @@ class WebAccess:
             self.context.pages[0].close()
         
 
-    def create_new_page(self, page_name: str, url: str, open_mode = 'close', timeout=45000):
+    def create_new_page(self, page_name: str, url: str, open_mode = 'close', timeout=45000, wait_until="networkidle"):
         """Opens a new tab in the browser and navigates to the specified URL.
 
         Args:
@@ -70,15 +70,15 @@ class WebAccess:
         Returns:
             New tab index (int): The index of the newly opened tab in the pages list.
         """
-        if open_mode == 'close' and self.pages.get(page_name):
+        if open_mode == 'close' and self.pages.get(page_name) and not self.pages[page_name].is_closed():
             self.pages[page_name].close()
         
-        if not self.pages.get(page_name) or open_mode == 'close':
+        if not self.pages.get(page_name) or self.pages.get(page_name).is_closed() or open_mode == 'close':
             self.pages[page_name] = self.context.new_page()
         elif open_mode == 'reuse' and self.pages[page_name].url.startswith(url):
             return self.pages[page_name]
 
-        self.pages[page_name].goto(url, timeout=timeout, wait_until="networkidle")
+        self.pages[page_name].goto(url, timeout=timeout, wait_until=wait_until)
         
         return self.pages[page_name]
 

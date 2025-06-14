@@ -19,7 +19,7 @@ def autotel_tab(main_win):
     )
     long_rides_table = Table(
         title="Long Rides",
-        columns=["Ride ID", "Driver ID", "Duration", "Location"]
+        columns=["Ride ID", "Driver ID", "Duration", "Location", "Comment"]
     )
     batteries_table.start_loading()
     long_rides_table.start_loading()

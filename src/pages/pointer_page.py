@@ -5,15 +5,6 @@ class PointerPage:
     def __init__(self, page: Page):
         self.page = page
     
-    def search(self, search_text):
-        search_box = self.page.locator("#TextBoxDriverName2")
-        search_box.click()
-        search_box.fill("")
-        search_box.type(search_text, delay=50)
-        sleep(5)
-        result = self.get_first_row_data(search_text)
-        return result
-    
     @property
     def rows(self):
         return self.page.locator("#CarTableInfo tbody tr")

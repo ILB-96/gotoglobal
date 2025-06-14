@@ -15,17 +15,17 @@ class LateAlert:
         self.open_ride = open_ride
         
     def start_requests(self):
-        self.web_access.create_new_page("goto_bo", "https://car2gobo.gototech.co/index.html#/orders/current/", "reuse")
+        self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/current/', 'reuse')
         late_rides = self.fetch_late_ride()
         
         if not late_rides:
-            self.gui_table_row([["No late reservations found", "0", "0", "0"]], btn_colors=("#1d5cd0", "#392890","#1f1f68"))
+            self.gui_table_row([['No late reservations found', '0', '0', '0']], btn_colors=("#1d5cd0", "#392890","#1f1f68"))
             return self._notify_no_late_reservations()
         
         self.rows = []
         for ride in late_rides:
             self._process_ride(ride)
-        self.gui_table_row(self.rows, btn_colors=("#1d5cd0", "#392890","#1f1f68"))
+        self.gui_table_row(self.rows, btn_colors=('#1d5cd0', '#392890','#1f1f68'))
         self.resolve_rides(late_rides)
         
         for row in self.rows:
@@ -34,8 +34,8 @@ class LateAlert:
 
     def _notify_no_late_reservations(self):
         self.show_toast(
-            "Goto ~ Late Alert!",
-            "No late reservations found",
+            'Goto ~ Late Alert!',
+            'No late reservations found',
             icon=utils.resource_path(settings.app_icon)
         )
 
@@ -51,7 +51,7 @@ class LateAlert:
         if ride[1]:
             future_ride_url = self._build_ride_url(ride[1])
             open_future_ride = partial(self.open_ride.emit, future_ride_url)
-        future_ride_info = (ride[1], open_future_ride) if ride[1] else "No future ride"
+        future_ride_info = (ride[1], open_future_ride) if ride[1] else 'No future ride'
 
         url = self._build_ride_url(ride[0])
         open_ride_url = partial(self.open_ride.emit, url)
@@ -62,7 +62,7 @@ class LateAlert:
         end_time_str = data.get('end_time')
         if end_time_str:
             try:
-                end_time_dt = dt.strptime(end_time_str, "%d/%m/%Y %H:%M")
+                end_time_dt = dt.strptime(end_time_str, '%d/%m/%Y %H:%M')
                 return end_time_dt <= dt.now() - timedelta(minutes=30)
             except Exception as e:
                 pass

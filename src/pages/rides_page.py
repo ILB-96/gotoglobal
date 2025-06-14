@@ -53,7 +53,7 @@ class RidesPage:
         :param row: The table row element
         :return: Ride ID as a string
         """
-        return row.locator('//*[@ng-click="ordersCtrl.goToDetailsNewTab(row, $event)"]')
+        return row.locator('[ng-click*="ordersCtrl.goToDetailsNewTab(row, $event)"]')
     
     def get_driver_id_from_row(self, row):
         """
@@ -61,7 +61,7 @@ class RidesPage:
         :param row: The table row element
         :return: Ride ID as a string
         """
-        return row.locator('//*[@ng-click="ordersCtrl.editDriverDetails(row, $event)"]')
+        return row.locator('[ng-click="ordersCtrl.editDriverDetails(row, $event)"]')
     
     def get_car_id_from_row(self, row):
         """
@@ -69,7 +69,7 @@ class RidesPage:
         :param row: The table row element
         :return: Ride ID as a string
         """
-        return row.locator('//*[@ng-click="ordersCtrl.showCarDetails(row)"]')
+        return row.locator('[ng-click="ordersCtrl.showCarDetails(row)"]')
     
     def get_duration_from_row(self, row):
         """
@@ -77,7 +77,7 @@ class RidesPage:
         :param row: The table row element
         :return: Duration as a string
         """
-        return row.locator('//*[@ng-if="ordersCtrl.pageType === \'current\'"]')
+        return row.locator('[ng-if="ordersCtrl.pageType === \'current\'"]')
     
     def get_late_rides(self):
         grouped_data = []

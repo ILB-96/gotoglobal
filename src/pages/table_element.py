@@ -11,4 +11,4 @@ class TableElement:
         Returns the rows of the table.
         :return: A list of rows in the table.
         """
-        return self.page.locator('//tr[contains(@ng-repeat, "row in $data")]').all()
+        return self.page.locator('tr[ng-repeat*="row in $data"]').all()
