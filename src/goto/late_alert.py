@@ -15,8 +15,13 @@ class LateAlert:
         self.open_ride = open_ride
         
     def start_requests(self):
-        self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/current/', 'reuse')
-        late_rides = self.fetch_late_ride()
+        late_rides = None
+        
+        for _ in range(settings.retry_count):
+            self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/current/', 'reuse')
+            late_rides = self.fetch_late_ride()
+            if late_rides:
+                break
         
         if not late_rides:
             self.gui_table_row([['No late reservations found', '0', '0', '0']], btn_colors=("#1d5cd0", "#392890","#1f1f68"))
@@ -25,8 +30,13 @@ class LateAlert:
         self.rows = []
         for ride in late_rides:
             self._process_ride(ride)
+        
+        self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/future/', 'reuse')
+        for row in self.rows:
+            car_license = row[2]
+            RidesPage(self.web_access.pages['goto_bo']).search_by_car_license(car_license)
+            
         self.gui_table_row(self.rows, btn_colors=('#1d5cd0', '#392890','#1f1f68'))
-        self.resolve_rides(late_rides)
         
         for row in self.rows:
             ride_id, end_time, _, future_ride_time = row
@@ -41,28 +51,20 @@ class LateAlert:
 
     def _process_ride(self, ride: tuple[str,str]):
         if data := self.db.find_one({'ride_id': ride}, 'goto'):
-            if self._should_skip_due_to_end_time(data):
-                return
-            end_time, future_ride_time = data.get('end_time', None), data.get('future_ride_time', None)
+            end_time, car_license = data.get('end_time', None), data.get('car_license', None)
         else:
-            end_time, future_ride_time = self._fetch_and_store_ride_times(ride)
+            end_time, car_license = self._fetch_and_store_ride_times(ride)
         
-        open_future_ride = None
-        if ride[1]:
-            future_ride_url = self._build_ride_url(ride[1])
-            open_future_ride = partial(self.open_ride.emit, future_ride_url)
-        future_ride_info = (ride[1], open_future_ride) if ride[1] else 'No future ride'
 
         url = self._build_ride_url(ride[0])
         open_ride_url = partial(self.open_ride.emit, url)
-        self.rows.append([(ride[0], open_ride_url), end_time, future_ride_info , future_ride_time])
+        self.rows.append([(ride[0], open_ride_url), end_time, car_license, ""])
 
 
-    def _should_skip_due_to_end_time(self, data):
-        end_time_str = data.get('end_time')
-        if end_time_str:
+    def _should_skip_due_to_end_time(self, end_time):
+        if end_time:
             try:
-                end_time_dt = dt.strptime(end_time_str, '%d/%m/%Y %H:%M')
+                end_time_dt = dt.strptime(end_time, '%d/%m/%Y %H:%M')
                 return end_time_dt <= dt.now() - timedelta(minutes=30)
             except Exception as e:
                 pass
@@ -71,25 +73,22 @@ class LateAlert:
     def _fetch_and_store_ride_times(self, ride: tuple[str, str]):
         ride_url = self._build_ride_url(ride[0])
         self._open_ride_page(ride_url)
+        
         end_time = self._get_end_time(self.web_access.pages['goto_bo'])
-        car_id = self._get_car_id(self.web_access.pages['goto_bo'])
-        future_ride_time = None
-        if ride[1]:
-            future_ride_url = self._build_ride_url(ride[1])
-            self.web_access.create_new_page("goto_bo", future_ride_url, open_mode="replace")
-            
-            future_ride_time = self._get_future_ride_time(self.web_access.pages['goto_bo'])
-            
-        self._store_ride_times(ride[0], end_time, future_ride_time)
-        return end_time, future_ride_time
+        car_license = self._get_car_id(self.web_access.pages['goto_bo'])
+
+
+        return end_time, car_license
 
     def _build_ride_url(self, ride):
         return f'{settings.goto_url}/index.html#/orders/{ride}/details'
+    
     def _get_car_id(self, page):
         try:
-            return RidePage(page).car_id.text_content()
+            return RidePage(page).car_license.text_content()
         except Exception as e:
             return None
+        
     def _open_ride_page(self, ride_url: str):
         # self.web_access.create_new_page("ride", str(settings.goto_url), open_mode="reuse")
         self.web_access.create_new_page("goto_bo", ride_url, open_mode="replace")
@@ -103,7 +102,6 @@ class LateAlert:
         start_time = self.fetch_start_time(page)
         return self._parse_time(start_time, "start_time")
 
-    
     def _get_future_ride_time(self, page):
         future_ride_time = self.fetch_future_ride(page)
         return self._parse_time(future_ride_time, "future ride time")

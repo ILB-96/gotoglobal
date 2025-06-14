@@ -27,6 +27,21 @@ class RidesPage:
     def orders_table_rows(self):
         return TableElement(self.page).table_rows
     
+    @property
+    def car_license_input(self):
+        """
+        Returns the input field for car license search.
+        :return: Locator for the car license input field
+        """
+        return self.page.locator('[ng-model="ordersCtrl.filterFields.carLicencePlate"]')
+
+    def search_by_car_license(self, car_license: str):
+        """
+        Searches for rides by car license.
+        :param car_license: The car license to search for
+        """
+        self.car_license_input.fill(car_license)
+
     def late_rides_frame(self):
         return self.page.get_by_text("</form> </div> </div>").content_frame.get_by_text("A2A - Late Reservations Reservation that customer is far from parking")
     

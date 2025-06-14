@@ -4,3 +4,4 @@ goto_url = 'https://car2gobo.gototech.co'
 autotel_url = 'https://prodautotelbo.gototech.co'
 playwright_headless = False
 interval = 5 * 60
+retry_count = 3

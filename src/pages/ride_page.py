@@ -21,7 +21,7 @@ class RidePage:
         return self.page.locator('[title="Start Time"] + td')
     
     @property
-    def car_id(self):
+    def car_license(self):
         """
         Fetches the car ID associated with the ride.
         :return: Car ID as a string
