@@ -42,17 +42,15 @@ class PlaywrightWorker(QRunnable):
     def run(self):
         if data := self.db.find_one({'username': Path.home().name}, 'user'):
             self.account = data
+        
         self.signals.request_settings_input.emit()
         with sync_playwright() as playwright:
             with WebAccess(playwright, settings.playwright_headless, 'Default') as self.web_access:
-                self.web_access.create_pages({
-                    "goto_bo": settings.goto_url,
-                    "autotel_bo": settings.autotel_url,
-                    "pointer": "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
-                })
                 self.stop_event.wait()
                 self.stop_event.clear()
 
+                self._init_pages()
+                
                 pointer = self._handle_pointer_login() if self.account.get('pointer', False) else None
                 if not self.running:
                     return
@@ -69,6 +67,17 @@ class PlaywrightWorker(QRunnable):
                     timeout = max(1, settings.interval - (now - last_run))
                     self.stop_event.wait(timeout=timeout)
                     self.stop_event.clear()
+
+    def _init_pages(self):
+        pages_data = {}
+        if self.account.get('goto', False):
+            pages_data['goto_bo'] = settings.goto_url
+        if self.account.get('autotel_bo', False) or self.account.get('batteries', False):
+            pages_data['autotel_bo'] = settings.autotel_url
+        if self.account.get("pointer", False):
+            pages_data['pointer'] = "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
+        self.web_access.create_pages(pages_data)
+
 
     def _handle_url_queue(self):
         while not self.url_queue.empty() and self.running:
@@ -113,6 +122,7 @@ class PlaywrightWorker(QRunnable):
                 web_access=self.web_access,
                 open_ride=self.signals.open_url_requested
             )
+    
         if self.account.get('batteries', False):
             batteries_alert = BatteriesAlert(
                 self.db,
@@ -131,6 +141,7 @@ class PlaywrightWorker(QRunnable):
                 pointer=pointer,
                 open_ride=self.signals.open_url_requested
             )
+        
         return late, batteries_alert, long_rides_alert
 
     def _run_alert_requests(self, late, batteries_alert, long_rides_alert):

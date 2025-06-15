@@ -35,6 +35,14 @@ class RidesPage:
         """
         return self.page.locator('[ng-model="ordersCtrl.filterFields.carLicencePlate"]')
 
+    def row_start_time_cell(self, row):
+        """
+        Returns the start time cell of a given row.
+        :param row: The row locator.
+        :return: Locator for the start time cell in the row.
+        """
+        return TableElement(self.page).row_6th_cell(row)
+    
     def search_by_car_license(self, car_license: str):
         """
         Searches for rides by car license.
@@ -43,15 +51,42 @@ class RidesPage:
         self.car_license_input.fill(car_license)
 
     def late_rides_frame(self):
-        return self.page.get_by_text("</form> </div> </div>").content_frame.get_by_text("A2A - Late Reservations Reservation that customer is far from parking")
-    
+        """
+        Finds the iframe that contains the late reservations section.
+        :return: Playwright Frame object
+        """
+        # Find the iframe element (adjust selector if needed)
+        iframe_element = self.page.locator("iframe").first
+        self.page.wait_for_timeout(500)  # optional short wait
+
+        # Wait for iframe to be attached
+        iframe_element.wait_for()
+
+        # Get the actual frame object
+        frame = iframe_element.element_handle().content_frame()
+
+        if frame is None:
+            raise Exception("Late rides iframe not found")
+
+        # Wait for some known content to appear inside the frame
+        frame.get_by_text("A2A - Late Reservations Reservation that customer is far from parking").wait_for()
+
+        return frame
+
 
     def late_rides_entries(self):
         """
         Fetches late rides entries from the late rides frame.
-        :return: List of late rides entries
+        :return: List of h3 elements under the late rides section
         """
-        return self.late_rides_frame().locator('#billingReceipetSpan h3').all()
+        frame = self.late_rides_frame()
+
+        # Wait for the selector to be present
+        frame.wait_for_selector('#billingReceipetSpan h3')
+
+        return frame.locator('#billingReceipetSpan h3').all()
+
+
     
     def set_ride_duration_sort(self, order: Literal["asc", "desc"]):
         """

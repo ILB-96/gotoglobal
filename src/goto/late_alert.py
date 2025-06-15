@@ -31,15 +31,31 @@ class LateAlert:
         for ride in late_rides:
             self._process_ride(ride)
         
-        self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/future/', 'reuse')
+        page = self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/future/', 'reuse')
         for row in self.rows:
             car_license = row[2]
-            RidesPage(self.web_access.pages['goto_bo']).search_by_car_license(car_license)
-            
+            RidesPage(page).search_by_car_license(car_license)
+            sleep(2)
+            for sorted_row in RidesPage(page).orders_table_rows:
+                print(sorted_row.inner_text())
+                start_time = RidesPage(page).row_start_time_cell(sorted_row).text_content().strip()
+                ride_id = RidesPage(page).get_ride_id_from_row(sorted_row).text_content().strip()
+                print(f"Processing ride {ride_id} with start time {start_time}")
+                if not row[3] or dt.strptime(start_time, '%d/%m/%Y %H:%M') < dt.strptime(row[3], '%d/%m/%Y %H:%M'):
+                    row[2], row[3] = ride_id, start_time
+            if row[3]:
+                callback = partial(self.open_ride.emit, self._build_ride_url(row[2]))
+                row[2] = (row[2], callback)
+            else:
+                row[2] = row[3] = "No future ride found"
+                
+                
         self.gui_table_row(self.rows, btn_colors=('#1d5cd0', '#392890','#1f1f68'))
         
         for row in self.rows:
             ride_id, end_time, _, future_ride_time = row
+            if self._should_skip_due_to_end_time(end_time):
+                continue
             self._notify_late_ride(ride_id[0], end_time, future_ride_time)
 
     def _notify_no_late_reservations(self):
@@ -53,7 +69,7 @@ class LateAlert:
         if data := self.db.find_one({'ride_id': ride}, 'goto'):
             end_time, car_license = data.get('end_time', None), data.get('car_license', None)
         else:
-            end_time, car_license = self._fetch_and_store_ride_times(ride)
+            end_time, car_license = self._retrieve_ride_details(ride)
         
 
         url = self._build_ride_url(ride[0])
@@ -70,12 +86,12 @@ class LateAlert:
                 pass
         return False
 
-    def _fetch_and_store_ride_times(self, ride: tuple[str, str]):
+    def _retrieve_ride_details(self, ride: tuple[str, str]):
         ride_url = self._build_ride_url(ride[0])
         self._open_ride_page(ride_url)
         
-        end_time = self._get_end_time(self.web_access.pages['goto_bo'])
-        car_license = self._get_car_id(self.web_access.pages['goto_bo'])
+        end_time = self.fetch_end_time(self.web_access.pages['goto_bo'])
+        car_license = self._get_car_license(self.web_access.pages['goto_bo'])
 
 
         return end_time, car_license
@@ -83,7 +99,7 @@ class LateAlert:
     def _build_ride_url(self, ride):
         return f'{settings.goto_url}/index.html#/orders/{ride}/details'
     
-    def _get_car_id(self, page):
+    def _get_car_license(self, page):
         try:
             return RidePage(page).car_license.text_content()
         except Exception as e:
@@ -93,18 +109,6 @@ class LateAlert:
         # self.web_access.create_new_page("ride", str(settings.goto_url), open_mode="reuse")
         self.web_access.create_new_page("goto_bo", ride_url, open_mode="replace")
         return self.web_access.pages['goto_bo']
-
-    def _get_end_time(self, page):
-        end_time = self.fetch_end_time(page)
-        return self._parse_time(end_time, "end_time")
-    
-    def _get_start_time(self, page):
-        start_time = self.fetch_start_time(page)
-        return self._parse_time(start_time, "start_time")
-
-    def _get_future_ride_time(self, page):
-        future_ride_time = self.fetch_future_ride(page)
-        return self._parse_time(future_ride_time, "future ride time")
 
     def _store_ride_times(self, ride, end_time, future_ride_time):
         db_ride = {
@@ -163,8 +167,3 @@ class LateAlert:
         return RidesPage(self.web_access.pages['goto_bo']).get_late_rides()
         
     
-    def fetch_future_ride(self, page):
-        try:
-            return self._get_start_time(page)
-        except Exception as e:
-            return ""

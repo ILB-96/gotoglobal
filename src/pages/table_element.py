@@ -12,3 +12,11 @@ class TableElement:
         :return: A list of rows in the table.
         """
         return self.page.locator('tr[ng-repeat*="row in $data"]').all()
+    
+    def row_6th_cell(self, row):
+        """
+        Returns the 6th cell of a given row.
+        :param row: The row locator.
+        :return: Locator for the 6th cell in the row.
+        """
+        return row.locator('td:nth-child(6)')
