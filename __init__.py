@@ -1,6 +1,7 @@
-from . import services
+import services, settings, src
 
-from . import settings
-from . import src
-
-__all__ = ["services", "settings", "src"]
+__all__ = [
+    'services',
+    'settings',
+    'src'
+]

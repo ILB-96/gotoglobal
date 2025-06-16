@@ -9,8 +9,7 @@ from src.pages import CarsPage
 from src.shared import PointerLocation, utils
 
 class BatteriesAlert:
-    def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None, open_ride):
-        self.db = db
+    def __init__(self, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None, open_ride):
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row
         self.web_access = web_access
@@ -18,7 +17,7 @@ class BatteriesAlert:
         self.open_ride = open_ride
         
     def start_requests(self):
-        autotel_cars_url = r'https://prodautotelbo.gototech.co/index.html#/cars'
+        autotel_cars_url = f'{settings.autotel_url}/index.html#/cars'
         page = self.web_access.create_new_page("autotel_bo", autotel_cars_url, "update")
         
         cars_page = CarsPage(page)
@@ -33,19 +32,6 @@ class BatteriesAlert:
 
         for row in rows:
             active_ride, car_id, car_battery, location = row
-            if self.db.find_one({'ride_id': active_ride}, 'autotel'):
-                continue
-            
-            self.db.upsert_one(
-                {'ride_id': active_ride[0], 
-                'car_id': car_id,
-                'car_battery': car_battery, 
-                'location': location, 
-                'report_time': dt.now().strftime("%d/%m/%Y %H:%M")
-                },
-                'autotel'
-            )
-
             self.notify_battery_condition(car_id, car_battery, location)
 
     def extract_car_details(self, row):
@@ -53,7 +39,7 @@ class BatteriesAlert:
         car_battery = str(row.locator('td', has_text='%').text_content()).strip()
         active_ride = str(row.locator("//*[contains(@ng-if, \"::$root.matchProject('ATL')||($root.matchProject('E2E'))\")][4]").text_content()).strip()
         location = self.pointer.search_location(car_id.replace("-", "")) if self.pointer else "Unknown Location"
-        url = f"https://prodautotelbo.gototech.co/index.html#/orders/{active_ride}/details"
+        url = f"{settings.autotel_url}/index.html#/orders/{active_ride}/details"
         open_ride_url = partial(self.open_ride.emit, url) if self.open_ride else None
         return [(active_ride, open_ride_url), car_id, car_battery, location]
 

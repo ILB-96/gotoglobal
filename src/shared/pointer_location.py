@@ -16,13 +16,13 @@ class PointerLocation:
         self.webaccess = webaccess
     
     
-    def login(self, account: dict):
+    def login(self, user, phone):
         """
         Logs in to the Pointer service using the provided account credentials.
         """
         pages.PointerLoginPage(self.webaccess.pages['pointer']).login(
-            username=account.get('pointer_user', account.get('username', '')),
-            phone=account.get('phone', '')
+            user,
+            phone
         )
 
     def fill_otp(self, otp: str):

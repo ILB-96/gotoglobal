@@ -7,8 +7,7 @@ from datetime import datetime as dt, timedelta
 from src.pages import RidesPage, RidePage
 from src.shared import utils
 class LateAlert:
-    def __init__(self, db:TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, open_ride):
-        self.db = db
+    def __init__(self, show_toast, gui_table_row, web_access: WebAccess, open_ride):
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row
         self.web_access = web_access
@@ -37,11 +36,9 @@ class LateAlert:
             RidesPage(page).search_by_car_license(car_license)
             sleep(2)
             for sorted_row in RidesPage(page).orders_table_rows:
-                print(sorted_row.inner_text())
                 start_time = RidesPage(page).row_start_time_cell(sorted_row).text_content().strip()
                 ride_id = RidesPage(page).get_ride_id_from_row(sorted_row).text_content().strip()
-                print(f"Processing ride {ride_id} with start time {start_time}")
-                if not row[3] or dt.strptime(start_time, '%d/%m/%Y %H:%M') < dt.strptime(row[3], '%d/%m/%Y %H:%M'):
+                if not row[3] or self._parse_time(start_time) < self._parse_time(row[3]):
                     row[2], row[3] = ride_id, start_time
             if row[3]:
                 callback = partial(self.open_ride.emit, self._build_ride_url(row[2]))
@@ -66,12 +63,7 @@ class LateAlert:
         )
 
     def _process_ride(self, ride: tuple[str,str]):
-        if data := self.db.find_one({'ride_id': ride}, 'goto'):
-            end_time, car_license = data.get('end_time', None), data.get('car_license', None)
-        else:
-            end_time, car_license = self._retrieve_ride_details(ride)
-        
-
+        end_time, car_license = self._retrieve_ride_details(ride)
         url = self._build_ride_url(ride[0])
         open_ride_url = partial(self.open_ride.emit, url)
         self.rows.append([(ride[0], open_ride_url), end_time, car_license, ""])
@@ -80,7 +72,7 @@ class LateAlert:
     def _should_skip_due_to_end_time(self, end_time):
         if end_time:
             try:
-                end_time_dt = dt.strptime(end_time, '%d/%m/%Y %H:%M')
+                end_time_dt = self._parse_time(end_time)
                 return end_time_dt <= dt.now() - timedelta(minutes=30)
             except Exception as e:
                 pass
@@ -110,18 +102,9 @@ class LateAlert:
         self.web_access.create_new_page("goto_bo", ride_url, open_mode="replace")
         return self.web_access.pages['goto_bo']
 
-    def _store_ride_times(self, ride, end_time, future_ride_time):
-        db_ride = {
-            'ride_id': ride,
-            'end_time': end_time,
-            'future_ride_time': future_ride_time,
-            'resolved_time': None
-        }
-        self.db.upsert_one(db_ride, 'goto')
-
-    def _parse_time(self, time_str, label):
+    def _parse_time(self, time_str: str, dt_format: str = "%d/%m/%Y %H:%M") -> dt | None:
         try:
-            return dt.strptime(time_str, "%d/%m/%Y %H:%M").strftime("%d/%m/%Y %H:%M") if time_str else None
+            return dt.strptime(time_str, dt_format) if time_str else None
         except Exception as e:
             pass
         return None
@@ -134,21 +117,6 @@ class LateAlert:
             msg,
             icon=utils.resource_path(settings.app_icon)
         )
-    
-    def resolve_rides(self, rides):
-        """
-        This function resolves the rides in the database.
-        :param rides: List of ride IDs to resolve
-        """
-        query = QueryBuilder.query({ 'resolved_time': None })
-        data = self.db.search_by(query, 'goto')
-        rides_ids = [ride[0] for ride in rides]
-        for data_item in data:
-            ride_id = data_item.get('ride_id')
-            if ride_id not in rides_ids:
-                resolved_time = dt.now().strftime("%d/%m/%Y %H:%M")
-                data_item['resolved_time'] = resolved_time
-                self.db.upsert_one(data_item, 'goto')
 
     def fetch_end_time(self, page):
         sleep(5)

@@ -1,6 +1,3 @@
-from . import goto
-from . import autotel
-from . import pages
-from . import shared
-from . import frontend
-from .import app
+from . import goto, autotel, pages, shared, frontend, app
+
+__all__ = ["goto", "autotel", "pages", "shared", "frontend", "app"]

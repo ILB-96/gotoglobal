@@ -3,38 +3,37 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
+from src.shared import User
+
 
 class SettingsPanel(QWidget):
-    def __init__(self, parent=None, account=None):
+    def __init__(self, account: User, parent=None):
         super().__init__(parent)
-
-        if account is None:
-            account = {}
         
         self.error_message = "Please fill in all required fields."
 
         self.late_rides_cb = QCheckBox("Late rides")
-        self.late_rides_cb.setChecked(account.get("late_rides", True))
+        self.late_rides_cb.setChecked(account.late_rides)
 
         self.long_rides_cb = QCheckBox("Long rides")
         self.batteries_cb = QCheckBox("Batteries")
-        self.long_rides_cb.setChecked(account.get("long_rides", True))
-        self.batteries_cb.setChecked(account.get("batteries", True))
+        self.long_rides_cb.setChecked(account.long_rides)
+        self.batteries_cb.setChecked(account.batteries)
 
         self.pointer_cb = QCheckBox("Pointer")
-        self.pointer_cb.setChecked(account.get("pointer", True))
+        self.pointer_cb.setChecked(account.pointer)
         self.pointer_cb.setToolTip("Enable Pointer integration for ride management.")
         self.pointer_cb.setDisabled(self.long_rides_cb.isChecked() or self.batteries_cb.isChecked())
 
         self.pointer_user_input = QLineEdit()
         self.pointer_user_input.setPlaceholderText("Enter Pointer username")
-        self.pointer_user_input.setText(account.get("pointer_user", account.get("username", "")))
-        self.pointer_user_input.setVisible(account.get("pointer", True))
+        self.pointer_user_input.setText(account.pointer_user)
+        self.pointer_user_input.setVisible(account.pointer)
         
         self.phone_input = QLineEdit()
         self.phone_input.setPlaceholderText("Enter phone number")
-        self.phone_input.setText(account.get("phone", ""))
-        self.phone_input.setVisible(account.get("pointer", True))
+        self.phone_input.setText(account.phone)
+        self.phone_input.setVisible(account.pointer)
         
 
         self.setStyleSheet("""

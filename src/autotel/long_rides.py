@@ -13,8 +13,7 @@ class LongRides:
     their creation, updates, and any other related operations.
     """
 
-    def __init__(self, db: TinyDatabase, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None, open_ride):
-        self.db = db
+    def __init__(self, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None, open_ride):
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row
         self.web_access = web_access
