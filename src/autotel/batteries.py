@@ -1,11 +1,9 @@
 from functools import partial
-import os
-from time import sleep
 import settings
-from services import WebAccess, TinyDatabase
-from datetime import datetime as dt
+from services import WebAccess
 
 from src.pages import CarsPage
+from src.pages.ride_page import RidePage
 from src.shared import PointerLocation, utils
 
 class BatteriesAlert:
@@ -18,7 +16,7 @@ class BatteriesAlert:
         
     def start_requests(self):
         autotel_cars_url = f'{settings.autotel_url}/index.html#/cars'
-        page = self.web_access.create_new_page("autotel_bo", autotel_cars_url, "update")
+        page = self.web_access.create_new_page("autotel_bo", autotel_cars_url, "reuse")
         
         cars_page = CarsPage(page)
         self.select_car_options(cars_page)
@@ -27,21 +25,25 @@ class BatteriesAlert:
         for row in cars_page.cars_table_rows:
             data = self.extract_car_details(row)
             rows.append(data)
+        
+        for row in rows:
+            page = self.web_access.create_new_page('autotel_bo', row[-1])
+            row[-1] = RidePage(page).ride_comment.input_value().strip()
             
         self.gui_table_row(rows)
 
         for row in rows:
-            active_ride, car_id, car_battery, location = row
-            self.notify_battery_condition(car_id, car_battery, location)
+            _, car_license, car_battery, location, _ = row
+            self.notify_battery_condition(car_license, car_battery, location)
 
     def extract_car_details(self, row):
-        car_id = str(row.locator('//*[contains(@ng-click, "carsTableCtrl.showCarDetails(row)")]').text_content()).strip()
+        car_license = str(row.locator('//*[contains(@ng-click, "carsTableCtrl.showCarDetails(row)")]').text_content()).strip()
         car_battery = str(row.locator('td', has_text='%').text_content()).strip()
         active_ride = str(row.locator("//*[contains(@ng-if, \"::$root.matchProject('ATL')||($root.matchProject('E2E'))\")][4]").text_content()).strip()
-        location = self.pointer.search_location(car_id.replace("-", "")) if self.pointer else "Unknown Location"
+        location = self.pointer.search_location(car_license.replace("-", "")) if self.pointer else "Unknown Location"
         url = f"{settings.autotel_url}/index.html#/orders/{active_ride}/details"
         open_ride_url = partial(self.open_ride.emit, url) if self.open_ride else None
-        return [(active_ride, open_ride_url), car_id, car_battery, location]
+        return [(active_ride, open_ride_url), car_license, car_battery, location, url]
 
     def notify_battery_condition(self, car_id, car_battery, location):
         is_low_battery = int(car_battery.replace("%", "")) <= 30
@@ -67,9 +69,9 @@ class BatteriesAlert:
                 )
 
     def select_car_options(self, cars_page: CarsPage):
-        sleep(3)
+        self.web_access.pages['autotel_bo'].wait_for_timeout(3000)
         cars_page.car_status_select.select_option("number:60")
-        sleep(3)
+        self.web_access.pages['autotel_bo'].wait_for_timeout(3000)
         cars_page.car_category_select.select_option("number:1")
-        sleep(3)
+        self.web_access.pages['autotel_bo'].wait_for_timeout(3000)
 

@@ -8,7 +8,7 @@ class Table(QWidget):
 
     def __init__(self, title: str, columns: list[str], rows: int = 0, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setObjectName(title.lower().replace(' ', '_'))
+        self.setObjectName(title)
         self._layout = QVBoxLayout(self)
         self.title_label = QLabel(f"<b>{title}</b>")
         self._layout.addWidget(self.title_label)

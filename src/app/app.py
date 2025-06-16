@@ -25,7 +25,8 @@ def start_app(app):
     worker.signals.input_received.connect(worker.set_account_data)
     worker.signals.start_loading.connect(lambda: handle_start_loading(tables))
     worker.signals.stop_loading.connect(lambda: handle_stop_loading(tables))
-
+    worker.signals.request_delete_table.connect(lambda tab, table: main_win.delete_table_from_tab(tab, table))
+    worker.signals.request_delete_tab.connect(lambda tab: main_win.delete_tab(tab))
     main_win.threadpool.start(worker)
     app.aboutToQuit.connect(worker.stop)
     main_win.show()

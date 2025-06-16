@@ -18,6 +18,8 @@ class WorkSignals(QObject):
     late_table_row = pyqtSignal(object, tuple)
     batteries_table_row = pyqtSignal(object)
     long_rides_table_row = pyqtSignal(object)
+    request_delete_table = pyqtSignal(str, str)
+    request_delete_tab = pyqtSignal(str)
     
     open_url_requested = pyqtSignal(str)
     request_settings_input = pyqtSignal()
@@ -75,8 +77,16 @@ class PlaywrightWorker(QRunnable):
         pages_data = {}
         if self.account.late_rides:
             pages_data['goto_bo'] = settings.goto_url
+        else:
+            self.signals.request_delete_tab.emit('Goto')
         if self.account.long_rides or self.account.batteries:
             pages_data['autotel_bo'] = settings.autotel_url
+            if not self.account.long_rides:
+                self.signals.request_delete_table.emit('Autotel', 'Long Rides')
+            if not self.account.batteries:
+                self.signals.request_delete_table.emit('Autotel', 'Batteries')
+        else:
+            self.signals.request_delete_tab.emit('Autotel')
         if self.account.pointer:
             pages_data['pointer'] = "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
         self.web_access.create_pages(pages_data)

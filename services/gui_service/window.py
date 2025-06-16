@@ -28,6 +28,7 @@ class MainWindow(QMainWindow):
     def build_tab(self, title: str, color: str, widgets: list[QWidget]):
         tab = QWidget()
         layout = QVBoxLayout(tab)
+        tab.setObjectName(title)
         for widget in widgets:
             layout.addWidget(widget)
         tab.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -72,3 +73,24 @@ class MainWindow(QMainWindow):
             toast(title, message, icon=icon, duration=duration)
 
         threading.Thread(target=_run_toast, daemon=True).start()
+    
+    def delete_tab(self, object_name: str):
+        index = self.tabs.indexOf(self.tabs.findChild(QWidget, object_name))
+        if index != -1:
+            self.tabs.removeTab(index)
+            return True
+        return False
+    
+    def delete_table_from_tab(self, tab_object_name: str, table_object_name: str):
+        tab = self.tabs.findChild(QWidget, tab_object_name)
+        if not tab:
+            return
+        
+        table = tab.findChild(QWidget, table_object_name)
+        if not table:
+            return
+        
+        layout = tab.layout()
+        if layout:
+            layout.removeWidget(table)
+            table.deleteLater()

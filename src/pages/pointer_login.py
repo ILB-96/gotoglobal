@@ -1,7 +1,7 @@
-from time import sleep
+from playwright.sync_api import Page
 
 class PointerLoginPage:
-    def __init__(self, page):
+    def __init__(self, page: Page):
         self.page = page
     
     @property
@@ -29,6 +29,6 @@ class PointerLoginPage:
         for digit in otp:
             if digit.isdigit():
                 self.page.keyboard.press(digit)
-                sleep(0.05)
+                self.page.wait_for_timeout(500)
             else:
                 continue

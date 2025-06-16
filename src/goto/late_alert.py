@@ -1,8 +1,6 @@
 from functools import partial
-import os
-from time import sleep
 import settings
-from services import WebAccess, TinyDatabase, QueryBuilder
+from services import WebAccess
 from datetime import datetime as dt, timedelta
 from src.pages import RidesPage, RidePage
 from src.shared import utils
@@ -23,7 +21,7 @@ class LateAlert:
                 break
         
         if not late_rides:
-            self.gui_table_row([['No late reservations found', '0', '0', '0']], btn_colors=("#1d5cd0", "#392890","#1f1f68"))
+            self.gui_table_row([['No late reservations found', '0', '0', '0', '0']], btn_colors=("#1d5cd0", "#392890","#1f1f68"))
             return self._notify_no_late_reservations()
         
         self.rows = []
@@ -34,7 +32,7 @@ class LateAlert:
         for row in self.rows:
             car_license = row[2]
             RidesPage(page).search_by_car_license(car_license)
-            sleep(2)
+            page.wait_for_timeout(2000)
             for sorted_row in RidesPage(page).orders_table_rows:
                 start_time = RidesPage(page).row_start_time_cell(sorted_row).text_content().strip()
                 ride_id = RidesPage(page).get_ride_id_from_row(sorted_row).text_content().strip()
@@ -50,7 +48,7 @@ class LateAlert:
         self.gui_table_row(self.rows, btn_colors=('#1d5cd0', '#392890','#1f1f68'))
         
         for row in self.rows:
-            ride_id, end_time, _, future_ride_time = row
+            ride_id, end_time, _, future_ride_time, _ = row
             if self._should_skip_due_to_end_time(end_time):
                 continue
             self._notify_late_ride(ride_id[0], end_time, future_ride_time)
@@ -63,10 +61,10 @@ class LateAlert:
         )
 
     def _process_ride(self, ride: tuple[str,str]):
-        end_time, car_license = self._retrieve_ride_details(ride)
+        end_time, car_license, ride_comment = self._retrieve_ride_details(ride)
         url = self._build_ride_url(ride[0])
         open_ride_url = partial(self.open_ride.emit, url)
-        self.rows.append([(ride[0], open_ride_url), end_time, car_license, ""])
+        self.rows.append([(ride[0], open_ride_url), end_time, car_license, "", ride_comment])
 
 
     def _should_skip_due_to_end_time(self, end_time):
@@ -84,13 +82,20 @@ class LateAlert:
         
         end_time = self.fetch_end_time(self.web_access.pages['goto_bo'])
         car_license = self._get_car_license(self.web_access.pages['goto_bo'])
+        ride_comment = self._get_ride_comment(self.web_access.pages['goto_bo'])
 
 
-        return end_time, car_license
+        return end_time, car_license, ride_comment
 
     def _build_ride_url(self, ride):
         return f'{settings.goto_url}/index.html#/orders/{ride}/details'
     
+    def _get_ride_comment(self, page):
+        try:
+            return RidePage(page).ride_comment.input_value().strip()
+        except Exception as e:
+            return None
+        
     def _get_car_license(self, page):
         try:
             return RidePage(page).car_license.text_content()
@@ -119,11 +124,11 @@ class LateAlert:
         )
 
     def fetch_end_time(self, page):
-        sleep(5)
+        page.wait_for_timeout(1000)
         return RidePage(page).ride_end_time.text_content()
 
     def fetch_start_time(self, page):
-        sleep(5)
+        page.wait_for_timeout(1000)
         return RidePage(page).ride_start_time.text_content()
     
     def fetch_late_ride(self):

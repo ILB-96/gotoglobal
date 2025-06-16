@@ -1,6 +1,5 @@
 from functools import partial
-from time import sleep
-from services import TinyDatabase, WebAccess
+from services import WebAccess
 import settings
 from src.shared import PointerLocation
 from src import pages
@@ -12,7 +11,6 @@ class LongRides:
     This class is responsible for managing long rides, including
     their creation, updates, and any other related operations.
     """
-
     def __init__(self, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None, open_ride):
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row
@@ -26,7 +24,6 @@ class LongRides:
         This method will create a new page for long rides and fetch
         the relevant data.
         """
-
         page = self.web_access.create_new_page("autotel_bo", f'{settings.autotel_url}/index.html#/orders/current', "reuse")
         self.web_access.create_new_page("autotel_ride", settings.autotel_url, "reuse")
         self.web_access.pages['pointer'].reload(wait_until='networkidle')
@@ -89,7 +86,7 @@ class LongRides:
             str: The ride comment if available, otherwise an empty string.
         """
         page = self.web_access.create_new_page("autotel_ride", url, "reuse", wait_until='domcontentloaded')
-        sleep(1)
+        page.wait_for_timeout(1000)
         ride_comment = pages.RidePage(page).ride_comment.input_value().strip()
         
         return ride_comment if ride_comment else "No comment"

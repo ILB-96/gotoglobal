@@ -1,5 +1,4 @@
 playwright
-tinydb
 win11toast
 PyQt6
 pyinstaller

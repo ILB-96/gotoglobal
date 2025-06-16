@@ -57,9 +57,9 @@ class RidesPage:
         """
         # Find the iframe element (adjust selector if needed)
         iframe_element = self.page.locator("iframe").first
-        self.page.wait_for_timeout(500)  # optional short wait
+        self.page.wait_for_timeout(500)
 
-        # Wait for iframe to be attached
+
         iframe_element.wait_for()
 
         # Get the actual frame object
@@ -82,11 +82,10 @@ class RidesPage:
 
         try:     
             frame = self.late_rides_frame()
-            frame.wait_for_selector('#billingReceipetSpan h3')
+            frame.wait_for_selector('#billingReceipetSpan h3',timeout=5000)
 
             return frame.locator('#billingReceipetSpan h3').all()
-        except Exception as e:
-            print(f"Error fetching late rides entries: {e}")
+        except Exception:
             return []
 
     

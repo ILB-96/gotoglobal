@@ -4,7 +4,7 @@ from services.gui_service import Table
 def goto_tab(main_win):
     goto_late_rides = Table(
         title="Late Rides",
-        columns=["Ride ID", "End Time", "Future Ride", "Future Ride Time"]
+        columns=["Ride ID", "End Time", "Future Ride", "Future Ride Time", "Comment"]
     )
     goto_late_rides.start_loading()
     main_win.build_tab(title="Goto", color="#201c6c", widgets=[goto_late_rides])
@@ -15,7 +15,7 @@ def goto_tab(main_win):
 def autotel_tab(main_win):
     batteries_table = Table(
         title="Batteries",
-        columns=["Ride ID", "License Plate", "Battery", "Location"],
+        columns=["Ride ID", "License Plate", "Battery", "Location", "Comment"],
     )
     long_rides_table = Table(
         title="Long Rides",
@@ -40,3 +40,4 @@ def setup_tabs_and_tables(main_win):
     autotel_tables = autotel_tab(main_win)
     
     return {**goto_tables, **autotel_tables}
+

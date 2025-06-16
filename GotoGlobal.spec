@@ -25,7 +25,6 @@ a = Analysis(
         *([(app_icon, '.')] if app_icon else [] ),
         *([(autotel_icon, '.')] if autotel_icon else [] ),
         *collect_data_files('playwright'),
-        *collect_data_files('tinydb'),
     ],
     hiddenimports=[],
     hookspath=[],
