@@ -79,13 +79,15 @@ class RidesPage:
         Fetches late rides entries from the late rides frame.
         :return: List of h3 elements under the late rides section
         """
-        frame = self.late_rides_frame()
 
-        # Wait for the selector to be present
-        frame.wait_for_selector('#billingReceipetSpan h3')
+        try:     
+            frame = self.late_rides_frame()
+            frame.wait_for_selector('#billingReceipetSpan h3')
 
-        return frame.locator('#billingReceipetSpan h3').all()
-
+            return frame.locator('#billingReceipetSpan h3').all()
+        except Exception as e:
+            print(f"Error fetching late rides entries: {e}")
+            return []
 
     
     def set_ride_duration_sort(self, order: Literal["asc", "desc"]):

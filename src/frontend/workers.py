@@ -43,8 +43,6 @@ class PlaywrightWorker(QRunnable):
 
     @pyqtSlot()
     def run(self):
-
-
         self.signals.request_settings_input.emit()
         with sync_playwright() as playwright:
             with WebAccess(playwright, settings.playwright_headless, 'Default') as self.web_access:
