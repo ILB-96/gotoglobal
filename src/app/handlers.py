@@ -45,8 +45,14 @@ def handle_code_input(worker):
 
 def handle_start_loading(tables):
     for table in tables.values():
-        table.start_loading()
+        try:
+            table.start_loading()
+        except Exception:
+            pass
 
 def handle_stop_loading(tables):
     for table in tables.values():
-        table.stop_loading()
+        try:
+            table.stop_loading()
+        except Exception:
+            pass

@@ -8,7 +8,7 @@ class RidePage:
     def ride_end_time(self):
         """
         Fetches the end time of the ride.
-        :return: End time as a string
+        :return: End time as a Locator for the text input
         """
         return self.page.locator('[title="End Time"] + td')
     
@@ -16,7 +16,7 @@ class RidePage:
     def ride_start_time(self):
         """
         Fetches the start time of the ride.
-        :return: Start time as a string
+        :return: Start time as a Locator for the text input
         """
         return self.page.locator('[title="Start Time"] + td')
     
@@ -24,7 +24,7 @@ class RidePage:
     def car_license(self):
         """
         Fetches the car ID associated with the ride.
-        :return: Car ID as a string
+        :return: Car ID as a locator for the text input
         """
         return self.page.locator('[ng-click="orderDetailsCtrl.showCarDetails()"]')
     
@@ -32,7 +32,7 @@ class RidePage:
     def ride_comment(self):
         """
         Fetches the comment associated with the ride.
-        :return: Ride comment as a string
+        :return: Comment as a locator for the textarea
         """
         return self.page.locator('textarea[ng-blur="orderDetailsCtrl.updateReservationFields()"]')
     
