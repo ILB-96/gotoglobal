@@ -24,7 +24,10 @@ class Table(QWidget):
 
     def configure_table_styles(self):
         self.table.setAlternatingRowColors(True)
-        self.table.setWordWrap(False)
+        # self.table.setWordWrap(False)
+        self.table.horizontalHeader().setHighlightSections(True)
+        self.table.verticalHeader().setHighlightSections(True)
+        self.table.verticalHeader().setDefaultSectionSize(38)
     
         if (vertical_header := self.table.verticalHeader()) is not None:
             vertical_header.setVisible(False)
@@ -202,4 +205,5 @@ class Table(QWidget):
             self._loading_overlay.hide()
         if hasattr(self, "_loading_timer") and self._loading_timer.isActive():
             self._loading_timer.stop()
+
 

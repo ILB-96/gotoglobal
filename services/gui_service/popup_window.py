@@ -83,6 +83,7 @@ class PopupWindow(QDialog):
         self.error_label.setVisible(False)
         self.confirmed.emit(self.input_value)
         self.accept()
+        
     def get_input(self) -> Dict[str, Any]:
         self.exec()
         data: Dict[str, Any] = {}

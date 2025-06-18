@@ -4,7 +4,7 @@ from services import PopupWindow
 from src.shared import utils
 import settings
 
-def handle_settings_input(worker):
+def handle_settings_input(account):
     username = Path.home().name
     cta = f"""
     <h2>Hey {username.replace('.', ' ').title()},</h2>
@@ -13,14 +13,14 @@ def handle_settings_input(worker):
     <br>
     </p>
     """
-    settings_panel = SettingsPanel(account=worker.account)
+    settings_panel = SettingsPanel(account=account)
     popup = PopupWindow(
         cta,
         icon=utils.resource_path(settings.app_icon),
         widgets=[settings_panel]
     )
-    data = popup.get_input()
-    worker.signals.input_received.emit({ "username": username, **data})
+    data = { "username": username, **popup.get_input()}
+    account.update(**data)
 
 def handle_code_input(worker):
     cta = """
@@ -41,7 +41,7 @@ def handle_code_input(worker):
         widgets=[line_edit],
     )
     data = popup.get_input()
-    worker.signals.input_received.emit({ **data })
+    worker.input_received.emit({ **data })
 
 def handle_start_loading(tables):
     for table in tables.values():
