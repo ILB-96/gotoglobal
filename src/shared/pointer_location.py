@@ -1,4 +1,4 @@
-from services import WebAccess
+from services import AsyncWebAccess
 from src import pages
 
 
@@ -7,7 +7,7 @@ class PointerLocation:
     A class to represent the location of a pointer in a 2D space.
     """
 
-    def __init__(self, webaccess: WebAccess):
+    def __init__(self, webaccess: AsyncWebAccess):
         """
         Initializes the PointerLocation with a WebAccess instance.
 
@@ -16,30 +16,28 @@ class PointerLocation:
         self.webaccess = webaccess
     
     
-    def login(self, user, phone):
+    async def login(self, user, phone):
         """
         Logs in to the Pointer service using the provided account credentials.
         """
-        pages.PointerLoginPage(self.webaccess.pages['pointer']).login(
-            user,
-            phone
-        )
+        login_page = pages.PointerLoginPage(self.webaccess.pages['pointer'])
+        await login_page.login(user, phone)
 
-    def fill_otp(self, otp: str):
+    async def fill_otp(self, otp: str):
         """
         Fills the OTP input field with the provided OTP.
 
         :param otp: The one-time password to fill in the input field.
         """
-        pages.PointerLoginPage(self.webaccess.pages['pointer']).fill_otp(otp)
+        login_page = pages.PointerLoginPage(self.webaccess.pages['pointer'])
+        await login_page.fill_otp(otp)
     
-    def search_location(self, query: str):
+    async def search_location(self, query: str):
         """
         Searches for a location using the provided query string.
 
         :param query: The location query to search for.
         """
-        return pages.PointerPage(self.webaccess.pages['pointer']).get_first_row_data(query)
-        
-        
-        
+        pointer_page =  pages.PointerPage(self.webaccess.pages['pointer'])
+        data = await pointer_page.get_first_row_data(query)
+        return data

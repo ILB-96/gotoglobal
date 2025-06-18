@@ -1,4 +1,4 @@
-from playwright.sync_api import Page
+from playwright.async_api import Page
 
 class PointerLoginPage:
     def __init__(self, page: Page):
@@ -16,19 +16,19 @@ class PointerLoginPage:
     def login_button(self):
         return self.page.locator("#button_otp")
     
-    def login(self, username, phone):
-        self.username_input.click()
-        self.username_input.fill(username)
-        self.phone_input.click()
-        self.phone_input.fill(phone)
-        self.page.locator("#button_otp").click()
+    async def login(self, username, phone):
+        await self.username_input.click()
+        await self.username_input.fill(username)
+        await self.phone_input.click()
+        await self.phone_input.fill(phone)
+        await self.page.locator("#button_otp").click()
 
-    def fill_otp(self, otp):
-        self.page.wait_for_selector('textarea.realInput', timeout=10000)
-        self.page.focus('textarea.realInput')
+    async def fill_otp(self, otp):
+        await self.page.wait_for_selector('textarea.realInput', timeout=10000)
+        await self.page.focus('textarea.realInput')
         for digit in otp:
             if digit.isdigit():
-                self.page.keyboard.press(digit)
-                self.page.wait_for_timeout(500)
+                await self.page.keyboard.press(digit)
+                await self.page.wait_for_timeout(500)
             else:
                 continue

@@ -21,9 +21,9 @@ class WebAutomationWorker(QThread):
     request_delete_tab = pyqtSignal(str)
 
     open_url_requested = pyqtSignal(str)
-    request_settings_input = pyqtSignal()
     request_otp_input = pyqtSignal()
     input_received = pyqtSignal(object)
+    request_pointer_location = pyqtSignal(str)
 
     start_loading = pyqtSignal()
     stop_loading = pyqtSignal()
@@ -34,19 +34,24 @@ class WebAutomationWorker(QThread):
         self.url_queue = Queue()
         self.open_url_requested.connect(self.enqueue_url)
         self.account = account
+        self._location_condition = threading.Condition()
+        self._location_response = None
 
     @pyqtSlot()
     def run(self):
-        self.request_settings_input.emit()
         with sync_playwright() as playwright:
-            with WebAccess(playwright, settings.playwright_headless, 'Default') as self.web_access:
+            with WebAccess(playwright, settings.playwright_headless, 'chrome', 'Default') as self.web_access:
                 self._init_pages()
                 
-                pointer = self._handle_pointer_login() if self.account.pointer else None
+                # pointer = self._handle_pointer_login() if self.account.pointer else None
+                print("WebAutomationWorker started")
+                self.stop_event.wait()
+                self.stop_event.clear()
                 if not self.running:
                     return
+                print("WebAutomationWorker initialized")
 
-                late, batteries_alert, long_rides_alert = self._init_alerts(pointer)
+                late, batteries_alert, long_rides_alert = self._init_alerts()
                 last_run = 0
 
                 while self.running:
@@ -61,7 +66,12 @@ class WebAutomationWorker(QThread):
                 
                 if self.account is not None:
                     self.account.to_json(settings.user_json_path)
-
+                    
+    def enqueue_pointer_location(self, query: str):
+        self.request_pointer_location.emit(query)
+        self.stop_event.wait()
+        self.stop_event.clear()
+        
     def _init_pages(self):
         pages_data = {}
         if self.account.late_rides:
@@ -80,7 +90,16 @@ class WebAutomationWorker(QThread):
             pages_data['pointer'] = "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
         self.web_access.create_pages(pages_data)
 
+    def request_pointer_location_sync(self, car_license: str) -> object:
+        """Emit signal and wait for location data."""
+        self._location_response = None
 
+        with self._location_condition:
+            self.request_pointer_location.emit(car_license)
+            if not self._location_condition.wait(timeout=10):
+                print("Timed out waiting for pointer location")
+                return None  # Timeout fallback
+            return self._location_response
     def _handle_url_queue(self):
         while not self.url_queue.empty() and self.running:
             try:
@@ -93,24 +112,16 @@ class WebAutomationWorker(QThread):
                 page.goto(url)
             except Exception:
                 pass
-
-    def _handle_pointer_login(self):
-        pointer = PointerLocation(self.web_access)
-        pointer.login(self.account.pointer_user, self.account.phone)
-        while True:
-            try:
-                self.web_access.pages["pointer"].wait_for_selector('textarea.realInput', timeout=7000)
-                self.request_otp_input.emit()
-                self.stop_event.wait()
-                self.stop_event.clear()
-                pointer.fill_otp(self.account.code)
-                time.sleep(2)
-            except Exception:
-                break
-
-        return pointer
-
-    def _init_alerts(self, pointer):
+            
+    @pyqtSlot(object)
+    def set_location_data(self, data):
+        """Receives location data from WebDataWorker."""
+        print(f"Received location data: {data}")
+        with self._location_condition:
+            self._location_response = data
+            self._location_condition.notify()
+            
+    def _init_alerts(self, pointer=None):
         late = None
         batteries_alert = None
         long_rides_alert = None
@@ -127,7 +138,7 @@ class WebAutomationWorker(QThread):
                 show_toast=lambda title, message, icon: self.toast_signal.emit(title, message, icon),
                 gui_table_row=lambda row: self.batteries_table_row.emit(row),
                 web_access=self.web_access,
-                pointer=pointer,
+                pointer=self.request_pointer_location_sync,
                 open_ride=self.open_url_requested
             )
         if self.account.long_rides:
@@ -135,8 +146,8 @@ class WebAutomationWorker(QThread):
                 show_toast=lambda title, message, icon: self.toast_signal.emit(title, message, icon),
                 gui_table_row=lambda row: self.long_rides_table_row.emit(row),
                 web_access=self.web_access,
-                pointer=pointer,
-                open_ride=self.open_url_requested
+                pointer=self.request_pointer_location_sync,
+                open_ride=self.open_url_requested,
             )
         
         return late, batteries_alert, long_rides_alert

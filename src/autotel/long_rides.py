@@ -56,8 +56,10 @@ class LongRides:
             ride_id = rides_page.get_ride_id_from_row(row).inner_text().strip()
             driver_id = rides_page.get_driver_id_from_row(row).inner_text().strip()
             car_id = rides_page.get_car_id_from_row(row).inner_text().strip()
-            location = self.pointer.search_location(car_id.replace('-', '')) if self.pointer else "Unknown Location"
-                
+            print(f"Processing ride: {ride_id}, Driver: {driver_id}, Car: {car_id}, Duration: {duration}")
+            location = self.pointer(car_id.replace('-', '')) if self.pointer else "Unknown Location"
+            
+            print(f"Location for ride {ride_id}: {location}")
             url = f"https://prodautotelbo.gototech.co/index.html#/orders/{ride_id}/details"
                 
                 

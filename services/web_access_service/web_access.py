@@ -1,22 +1,17 @@
 import os
-from datetime import datetime as dt
 from pathlib import Path
-from typing import Generator
+from time import sleep
 
-from playwright._impl._errors import TargetClosedError
 from playwright.sync_api import (
     Page,
     Playwright,
-    expect,
-    Locator,
-    Browser,
     BrowserContext,
 )
 
 class WebAccess:
     """Provides access to web functionality."""
 
-    def __init__(self, playwright: Playwright, headless=True, profile: str | None= None):
+    def __init__(self, playwright: Playwright, headless=True, browser_name='chrome', profile: str | None= None):
         """
         Initializes a WebAccess object.
 
@@ -24,16 +19,46 @@ class WebAccess:
         - playwright (Playwright): The Playwright instance used to launch the browser.
         - headless (bool): Whether to run the browser in headless mode. Default is True.
         """
-        BROWSER_PATH = Path("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe")
+        if browser_name == 'chrome':
+            BROWSER_PATH = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
+        elif browser_name == 'edge':    
+            BROWSER_PATH = Path("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe")
         self.pages: dict[str, Page] = {}
         if profile:
-            user_data_dir = Path.home() / "AppData" / "Local" / "Microsoft" / "Edge" / "User Data" / profile
+            if browser_name == 'edge':
+                user_data_dir = (
+                    Path.home()
+                    / "AppData"
+                    / "Local"
+                    / "Microsoft"
+                    / "Edge"
+                    / "User Data"
+                    / profile
+                )
+            else:
+                user_data_dir = (
+                    Path.home()
+                    / "AppData"
+                    / "Local"
+                    / "Google"
+                    / "Chrome"
+                    / "User Data"
+                    / profile
+                )
+            # STORAGE_STATE_PATH = Path("storage_state.json")
+            # while not STORAGE_STATE_PATH.exists():
+            #     sleep(2)
             assert os.path.exists(user_data_dir)
             self.context: BrowserContext = playwright.chromium.launch_persistent_context(
                 user_data_dir=user_data_dir,
                 headless=headless,
                 executable_path=BROWSER_PATH,
             )
+        #     browser = playwright.chromium.launch(
+        #     headless=headless,
+        #     executable_path=BROWSER_PATH,
+        # )
+        #     self.context = browser.new_context(storage_state=str(STORAGE_STATE_PATH))
         else:
             self.context: BrowserContext = playwright.chromium.launch(
                 headless=headless,
