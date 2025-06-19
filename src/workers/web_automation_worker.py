@@ -1,5 +1,3 @@
-from pathlib import Path
-from queue import Queue
 import threading
 from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
 
@@ -8,7 +6,7 @@ from services import WebAccess
 import settings
 from src.autotel import BatteriesAlert, LongRides
 from src.goto import LateAlert
-from src.shared import PointerLocation, User
+from src.shared import User
 import time
 
 class WebAutomationWorker(QThread):
@@ -21,14 +19,12 @@ class WebAutomationWorker(QThread):
     request_delete_tab = pyqtSignal(str)
 
     open_url_requested = pyqtSignal(str)
-    input_received = pyqtSignal(object)
     request_pointer_location = pyqtSignal(str)
 
     def __init__(self, account: User, parent=None):
         super(WebAutomationWorker, self).__init__(parent)
         self.stop_event = threading.Event()
         self.running = True
-        self.url_queue = Queue()
 
         self.account = account
         self._location_condition = threading.Condition()
@@ -49,7 +45,6 @@ class WebAutomationWorker(QThread):
                 last_run = 0
 
                 while self.running:
-                    self._handle_url_queue()
                     now = time.time()
                     if now - last_run >= settings.interval:
                         self._run_alert_requests(late, batteries_alert, long_rides_alert)
@@ -90,26 +85,7 @@ class WebAutomationWorker(QThread):
             self.request_pointer_location.emit(car_license)
             if not self._location_condition.wait(timeout=30):
                 return None  # Timeout fallback
-            return self._location_response
-    def _handle_url_queue(self):
-        while not self.url_queue.empty() and self.running:
-            try:
-                url = self.url_queue.get_nowait()
-                page = self.web_access.context.new_page()
-                if settings.goto_url in url:
-                    page.goto(settings.goto_url)
-                elif settings.autotel_url in url:
-                    page.goto(settings.autotel_url)
-                page.goto(url)
-            except Exception:
-                pass
-            
-    @pyqtSlot(object)
-    def set_location_data(self, data):
-        """Receives location data from WebDataWorker."""
-        with self._location_condition:
-            self._location_response = data
-            self._location_condition.notify()
+            return self._location_response    
             
     def _init_alerts(self, pointer=None):
         late = None

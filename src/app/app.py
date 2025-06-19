@@ -9,8 +9,6 @@ from src.shared.user import User
 from .handlers import (
     handle_settings_input,
     handle_code_input,
-    handle_start_loading,
-    handle_stop_loading,
 )
 
 
@@ -50,7 +48,6 @@ def create_web_automation_worker(main_win, tables, worker, web_data_worker):
     worker.late_table_row.connect(tables['late_rides'].add_rows)
     worker.batteries_table_row.connect(tables['batteries'].add_rows)
     worker.long_rides_table_row.connect(tables['long_rides'].add_rows)
-    worker.input_received.connect(worker.set_account_data)
     worker.request_delete_table.connect(lambda tab, table: main_win.delete_table_from_tab(tab, table))
     worker.request_delete_tab.connect(lambda tab: main_win.delete_tab(tab))
     worker.request_pointer_location.connect(lambda query: web_data_worker.enqueue_pointer_location(query))

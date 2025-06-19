@@ -1,4 +1,3 @@
-from pathlib import Path
 from queue import Queue
 import threading
 from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
@@ -9,8 +8,7 @@ import settings
 from src.shared import PointerLocation, User
 import time
 import asyncio
-import subprocess
-import sys
+
 class WebDataWorker(QThread):
     page_loaded = pyqtSignal()
 
@@ -19,8 +17,6 @@ class WebDataWorker(QThread):
     input_received = pyqtSignal(object)
     pointer_location_requested = pyqtSignal(str)
 
-    start_loading = pyqtSignal()
-    stop_loading = pyqtSignal()
     def __init__(self, account: User, parent=None):
         super(WebDataWorker, self).__init__(parent)
         self.stop_event = threading.Event()
