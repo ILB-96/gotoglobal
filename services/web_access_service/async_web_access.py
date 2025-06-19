@@ -35,37 +35,49 @@ class AsyncWebAccess:
             BROWSER_PATH = Path(
                 "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
             )
-        # Try persistent context if a profile was given
         if self._profile:
-            user_data_dir = (
-                Path.home()
-                / "AppData"
-                / "Local"
-                / "Microsoft" if  self._browser_name == 'edge' else "Google"
-                / "Edge" if self._browser_name == 'edge' else "Chrome"
-                / "User Data"
-                / self._profile
-            )
+            if self._browser_name == 'edge':
+                user_data_dir = (
+                    Path.home()
+                    / "AppData"
+                    / "Local"
+                    / "Microsoft"
+                    / "Edge"
+                    / self._profile
+                )
+            else:
+                user_data_dir = (
+                    Path.home()
+                    / "AppData"
+                    / "Local"
+                    / "Google"
+                    / "Chrome"
+                    / "User Data"
+                    / self._profile
+                )
+
             assert os.path.exists(user_data_dir)
 
             try:
                 self.context = await self._playwright.chromium.launch_persistent_context(
-                    user_data_dir=user_data_dir,
+                    user_data_dir=user_data_dir.parent,  # <- this must be the full "User Data" dir
                     headless=self._headless,
                     executable_path=BROWSER_PATH,
+                    args=["--profile-directory=" + self._profile],
+                    no_viewport=True
                 )
                 await self.context.storage_state(path='storage_state.json')
             except PlaywrightError as e:
                 # Fallback to a fresh context if persistent failed (e.g. profile in use)
                 print(f"[AsyncWebAccess] persistent context failed: {e!r}\n– falling back to fresh context")
         # If no profile or persistent failed, launch a normal browser+context
-        if self.context is None:
+
+        else:
             browser = await self._playwright.chromium.launch(
                 headless=self._headless,
                 executable_path=BROWSER_PATH,
             )
             self.context = await browser.new_context()
-
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

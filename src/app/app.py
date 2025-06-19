@@ -31,6 +31,7 @@ def start_app(app):
     web_data_worker.input_send.connect(lambda data: web_automation_worker.set_location_data(data))
     web_data_worker.input_received.connect(web_data_worker.set_account_data)
     web_data_worker.page_loaded.connect(web_automation_worker.stop_event.set)
+    web_automation_worker.open_url_requested.connect(lambda url: web_data_worker.enqueue_url(url))
     
     
     create_web_automation_worker(main_win, tables, web_automation_worker)
@@ -46,10 +47,7 @@ def create_web_automation_worker(main_win, tables, worker):
     worker.late_table_row.connect(tables['late_rides'].add_rows)
     worker.batteries_table_row.connect(tables['batteries'].add_rows)
     worker.long_rides_table_row.connect(tables['long_rides'].add_rows)
-    worker.request_otp_input.connect(lambda: handle_code_input(worker))
     worker.input_received.connect(worker.set_account_data)
-    worker.start_loading.connect(lambda: handle_start_loading(tables))
-    worker.stop_loading.connect(lambda: handle_stop_loading(tables))
     worker.request_delete_table.connect(lambda tab, table: main_win.delete_table_from_tab(tab, table))
     worker.request_delete_tab.connect(lambda tab: main_win.delete_tab(tab))
     return worker

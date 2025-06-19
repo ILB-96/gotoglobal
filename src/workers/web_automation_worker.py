@@ -21,18 +21,15 @@ class WebAutomationWorker(QThread):
     request_delete_tab = pyqtSignal(str)
 
     open_url_requested = pyqtSignal(str)
-    request_otp_input = pyqtSignal()
     input_received = pyqtSignal(object)
     request_pointer_location = pyqtSignal(str)
 
-    start_loading = pyqtSignal()
-    stop_loading = pyqtSignal()
     def __init__(self, account: User, parent=None):
         super(WebAutomationWorker, self).__init__(parent)
         self.stop_event = threading.Event()
         self.running = True
         self.url_queue = Queue()
-        self.open_url_requested.connect(self.enqueue_url)
+
         self.account = account
         self._location_condition = threading.Condition()
         self._location_response = None
@@ -43,13 +40,10 @@ class WebAutomationWorker(QThread):
             with WebAccess(playwright, settings.playwright_headless, 'chrome', 'Default') as self.web_access:
                 self._init_pages()
                 
-                # pointer = self._handle_pointer_login() if self.account.pointer else None
-                print("WebAutomationWorker started")
                 self.stop_event.wait()
                 self.stop_event.clear()
                 if not self.running:
                     return
-                print("WebAutomationWorker initialized")
 
                 late, batteries_alert, long_rides_alert = self._init_alerts()
                 last_run = 0
@@ -86,8 +80,6 @@ class WebAutomationWorker(QThread):
                 self.request_delete_table.emit('Autotel', 'Batteries')
         else:
             self.request_delete_tab.emit('Autotel')
-        if self.account.pointer:
-            pages_data['pointer'] = "https://fleet.pointer4u.co.il/iservices/fleet2015/login"
         self.web_access.create_pages(pages_data)
 
     def request_pointer_location_sync(self, car_license: str) -> object:
@@ -96,8 +88,7 @@ class WebAutomationWorker(QThread):
 
         with self._location_condition:
             self.request_pointer_location.emit(car_license)
-            if not self._location_condition.wait(timeout=10):
-                print("Timed out waiting for pointer location")
+            if not self._location_condition.wait(timeout=30):
                 return None  # Timeout fallback
             return self._location_response
     def _handle_url_queue(self):
@@ -116,7 +107,6 @@ class WebAutomationWorker(QThread):
     @pyqtSlot(object)
     def set_location_data(self, data):
         """Receives location data from WebDataWorker."""
-        print(f"Received location data: {data}")
         with self._location_condition:
             self._location_response = data
             self._location_condition.notify()
@@ -153,23 +143,18 @@ class WebAutomationWorker(QThread):
         return late, batteries_alert, long_rides_alert
 
     def _run_alert_requests(self, late, batteries_alert, long_rides_alert):
-        self.start_loading.emit()
         if late is not None:
             late.start_requests()
         if long_rides_alert is not None:
             long_rides_alert.start_requests()
         if batteries_alert is not None:
             batteries_alert.start_requests()
-        self.stop_loading.emit()
 
     def set_account_data(self, data):
         self.account.update(**data)
         self.account.to_json(settings.user_json_path)
         self.stop_event.set()
 
-    def enqueue_url(self, url: str):
-        self.url_queue.put(url)
-        self.stop_event.set()
 
     def stop(self):
         self.running = False

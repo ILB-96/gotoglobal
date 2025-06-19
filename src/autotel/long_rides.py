@@ -25,7 +25,6 @@ class LongRides:
         the relevant data.
         """
         self.web_access.create_new_page("autotel_ride", settings.autotel_url, "reuse")
-        self.web_access.pages['pointer'].reload(wait_until='networkidle')
         
         
         rows = []
@@ -56,10 +55,8 @@ class LongRides:
             ride_id = rides_page.get_ride_id_from_row(row).inner_text().strip()
             driver_id = rides_page.get_driver_id_from_row(row).inner_text().strip()
             car_id = rides_page.get_car_id_from_row(row).inner_text().strip()
-            print(f"Processing ride: {ride_id}, Driver: {driver_id}, Car: {car_id}, Duration: {duration}")
             location = self.pointer(car_id.replace('-', '')) if self.pointer else "Unknown Location"
             
-            print(f"Location for ride {ride_id}: {location}")
             url = f"https://prodautotelbo.gototech.co/index.html#/orders/{ride_id}/details"
                 
                 

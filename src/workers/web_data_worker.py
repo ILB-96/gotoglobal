@@ -9,10 +9,11 @@ import settings
 from src.shared import PointerLocation, User
 import time
 import asyncio
+import subprocess
+import sys
 class WebDataWorker(QThread):
     page_loaded = pyqtSignal()
 
-    open_url_requested = pyqtSignal(str)
     request_otp_input = pyqtSignal()
     input_send = pyqtSignal(object)
     input_received = pyqtSignal(object)
@@ -26,7 +27,6 @@ class WebDataWorker(QThread):
         self.running = True
         self.url_queue = Queue()
         self.pointer_queue = Queue()
-        self.open_url_requested.connect(self.enqueue_url)
         self.pointer_location_requested.connect(self.enqueue_pointer_location)
         self.account = account
 
@@ -41,10 +41,15 @@ class WebDataWorker(QThread):
                 pointer = await self._handle_pointer_login() if self.account.pointer else None
             
                 self.page_loaded.emit()
+                start_time = 0
                 while self.running:
                     await self._handle_url_queue()
                     await self._handle_pointer_location_queue(pointer)
-                    self.stop_event.wait()
+                    now = time.time()
+                    if now - start_time >= settings.interval and pointer:
+                        start_time = now
+                        await self.web_access.pages["pointer"].reload()
+                    self.stop_event.wait(5*60)
                     self.stop_event.clear()
                     
     async def _init_pages(self):
@@ -54,7 +59,6 @@ class WebDataWorker(QThread):
             })
             
     async def _handle_url_queue(self):
-        print("Handling URL queue")
         while not self.url_queue.empty() and self.running:
             try:
                 url = self.url_queue.get_nowait()
@@ -68,17 +72,15 @@ class WebDataWorker(QThread):
                 pass
             
     async def _handle_pointer_location_queue(self, pointer: PointerLocation):
-        print("Handling pointer location queue")
         while not self.pointer_queue.empty() and self.running:
             try:
                 car_license = self.pointer_queue.get_nowait()
                 data = await pointer.search_location(car_license)
-                print(f"Pointer location for {car_license}: {data}")
                 self.input_send.emit(data)
             except Exception:
                 pass
 
-    async def enqueue_url(self, url: str):
+    def enqueue_url(self, url: str):
         """Enqueue a URL to be opened in the web access context."""
         if not self.running:
             return
@@ -87,7 +89,6 @@ class WebDataWorker(QThread):
 
     def enqueue_pointer_location(self, location: str):
         """Enqueue a pointer location request."""
-        print(f"Enqueuing pointer location: {location}")
         if not self.running:
             return
         self.pointer_queue.put(location)
@@ -108,9 +109,14 @@ class WebDataWorker(QThread):
                 break
 
         return pointer
+    
     def set_account_data(self, data):
         self.account.update(**data)
         self.account.to_json(settings.user_json_path)
+        self.stop_event.set()
+    
+    def stop(self):
+        self.running = False
         self.stop_event.set()
     
 

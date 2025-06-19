@@ -42,23 +42,19 @@ class WebAccess:
                     / "Local"
                     / "Google"
                     / "Chrome"
-                    / "User Data"
                     / profile
                 )
-            # STORAGE_STATE_PATH = Path("storage_state.json")
-            # while not STORAGE_STATE_PATH.exists():
-            #     sleep(2)
+
             assert os.path.exists(user_data_dir)
-            self.context: BrowserContext = playwright.chromium.launch_persistent_context(
-                user_data_dir=user_data_dir,
+
+            self.context = playwright.chromium.launch_persistent_context(
+                user_data_dir=user_data_dir.parent,
                 headless=headless,
                 executable_path=BROWSER_PATH,
+                args=["--profile-directory=" + profile,
+                '--disable-blink-features=AutomationControlled',
+                '--disable-infobars'],
             )
-        #     browser = playwright.chromium.launch(
-        #     headless=headless,
-        #     executable_path=BROWSER_PATH,
-        # )
-        #     self.context = browser.new_context(storage_state=str(STORAGE_STATE_PATH))
         else:
             self.context: BrowserContext = playwright.chromium.launch(
                 headless=headless,

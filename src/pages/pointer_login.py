@@ -29,6 +29,6 @@ class PointerLoginPage:
         for digit in otp:
             if digit.isdigit():
                 await self.page.keyboard.press(digit)
-                await self.page.wait_for_timeout(500)
+                await self.page.wait_for_timeout(200)
             else:
                 continue
