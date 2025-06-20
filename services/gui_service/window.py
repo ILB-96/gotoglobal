@@ -1,8 +1,5 @@
 import threading
-from PyQt6.QtCore import (
-    QThreadPool,
-    Qt,
-)
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QMainWindow,
     QVBoxLayout,
@@ -19,7 +16,6 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon(app_icon))
         self.tabs = QTabWidget()
         self.setWindowTitle(title)
-        self.threadpool = QThreadPool()
         self.update_tabs_style()
        
 

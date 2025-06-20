@@ -16,6 +16,7 @@ class LateAlert:
         
         for _ in range(settings.retry_count):
             self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/current/', 'reuse')
+            self.web_access.pages['goto_bo'].wait_for_timeout(5000)
             late_rides = self.fetch_late_ride()
             if late_rides:
                 break
@@ -60,11 +61,11 @@ class LateAlert:
             icon=utils.resource_path(settings.app_icon)
         )
 
-    def _process_ride(self, ride: tuple[str,str]):
+    def _process_ride(self, ride: str):
         end_time, car_license, ride_comment = self._retrieve_ride_details(ride)
-        url = self._build_ride_url(ride[0])
+        url = self._build_ride_url(ride)
         open_ride_url = partial(self.open_ride.emit, url)
-        self.rows.append([(ride[0], open_ride_url), end_time, car_license, "", ride_comment])
+        self.rows.append([(ride, open_ride_url), end_time, car_license, "", ride_comment])
 
 
     def _should_skip_due_to_end_time(self, end_time):
@@ -76,8 +77,8 @@ class LateAlert:
                 pass
         return False
 
-    def _retrieve_ride_details(self, ride: tuple[str, str]):
-        ride_url = self._build_ride_url(ride[0])
+    def _retrieve_ride_details(self, ride: str):
+        ride_url = self._build_ride_url(ride)
         self._open_ride_page(ride_url)
         
         end_time = self.fetch_end_time(self.web_access.pages['goto_bo'])

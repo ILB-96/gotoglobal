@@ -15,6 +15,7 @@ from .handlers import (
 def start_app(app):
     main_win = MainWindow(title="GotoGlobal", app_icon=utils.resource_path(settings.app_icon))
     tables = setup_tabs_and_tables(main_win)
+
     
     if (path := Path(settings.user_json_path)).exists():
         account = User.from_json(path)
@@ -27,7 +28,7 @@ def start_app(app):
     
     create_web_data_worker(web_data_worker, web_automation_worker)
 
-    create_web_automation_worker(main_win, tables, web_automation_worker)
+    create_web_automation_worker(main_win, tables, web_automation_worker, web_data_worker)
     
     app.aboutToQuit.connect(web_automation_worker.stop)
     main_win.show()

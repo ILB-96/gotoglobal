@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QDialog, QLabel, QPushButton, QVBoxLayout
 )
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtGui import QIcon
 
 from typing import Any, Dict
@@ -17,6 +17,9 @@ class PopupWindow(QDialog):
         self.setGeometry(100, 100, 500, 250)
         if icon:
             self.setWindowIcon(QIcon(icon))
+            self.setWindowOpacity(0.97)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+            
 
         # Widgets
         self.label = QLabel(cta)
@@ -27,8 +30,7 @@ class PopupWindow(QDialog):
         self.widgets = widgets or []
         self.setStyleSheet("""
             QDialog {
-                background-color: #f0f0f0;
-                font-family: 'Tahoma', 'Arial';
+                background-color: #fefcfd;
             }
             QLabel {
                 font-size: 14pt;
