@@ -72,7 +72,7 @@ class WebDataWorker(QThread):
             try:
                 car_license = self.pointer_queue.get_nowait()
                 data = await pointer.search_location(car_license)
-                self.input_send.emit(data)
+                self.input_send.emit(data.strip("").strip(","))
             except Exception:
                 pass
 
@@ -108,7 +108,6 @@ class WebDataWorker(QThread):
     
     def set_account_data(self, data):
         self.account.update(**data)
-        self.account.to_json(settings.user_json_path)
         self.stop_event.set()
     
     def stop(self):

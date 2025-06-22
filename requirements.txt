@@ -2,3 +2,8 @@ playwright
 win11toast
 PyQt6
 pyinstaller
+PyQt6-Frameless-Window>=0.4.0
+darkdetect
+colorthief
+scipy
+pillow

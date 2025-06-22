@@ -1,5 +1,4 @@
 from pathlib import Path
-from services import MainWindow
 from src.frontend import setup_tabs_and_tables
 from src.workers import WebDataWorker, WebAutomationWorker
 import settings
@@ -10,11 +9,26 @@ from .handlers import (
     handle_settings_input,
     handle_code_input,
 )
+from .common.config import cfg
+import os
+import sys
+from PyQt6.QtCore import Qt, QTranslator
+from PyQt6.QtGui import QFont
+from services.fluent.qfluentwidgets import FluentTranslator
+
+from .view.main_window import MainWindow
+
+if cfg.get(cfg.dpiScale) != "Auto":
+    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
+    os.environ["QT_SCALE_FACTOR"] = str(cfg.get(cfg.dpiScale))
 
 
 def start_app(app):
+
+    # create main window
     main_win = MainWindow(title="GotoGlobal", app_icon=utils.resource_path(settings.app_icon))
-    tables = setup_tabs_and_tables(main_win)
+    
+    # tables = setup_tabs_and_tables(main_win)
 
     
     if (path := Path(settings.user_json_path)).exists():
@@ -22,15 +36,17 @@ def start_app(app):
     else:
         account = User()
     handle_settings_input(account)
-    account.to_json(settings.user_json_path)
+    # account.to_json(settings.user_json_path)
     web_data_worker = WebDataWorker(account=account)
     web_automation_worker = WebAutomationWorker(account=account)
     
     create_web_data_worker(web_data_worker, web_automation_worker)
 
-    create_web_automation_worker(main_win, tables, web_automation_worker, web_data_worker)
+    create_web_automation_worker(main_win, web_automation_worker, web_data_worker)
     
     app.aboutToQuit.connect(web_automation_worker.stop)
+    app.aboutToQuit.connect(web_data_worker.stop)
+    # main_win.show()
     main_win.show()
     app.exec()
 
@@ -43,13 +59,13 @@ def create_web_data_worker(worker, web_automation_worker):
 
 
 
-def create_web_automation_worker(main_win, tables, worker, web_data_worker):
+def create_web_automation_worker(main_win, worker, web_data_worker):
     worker.start()
     worker.toast_signal.connect(main_win.show_toast)
-    worker.late_table_row.connect(tables['late_rides'].add_rows)
-    worker.batteries_table_row.connect(tables['batteries'].add_rows)
-    worker.long_rides_table_row.connect(tables['long_rides'].add_rows)
-    worker.request_delete_table.connect(lambda tab, table: main_win.delete_table_from_tab(tab, table))
-    worker.request_delete_tab.connect(lambda tab: main_win.delete_tab(tab))
+    worker.late_table_row.connect(main_win.viewInterface.late_rides_table.setRows)
+    worker.batteries_table_row.connect(main_win.viewInterface.batteries_table.setRows)
+    worker.long_rides_table_row.connect(main_win.viewInterface.long_rides_table.setRows)
+    worker.request_delete_table.connect(main_win.viewInterface.removeWidgets)
+    # worker.request_delete_tab.connect(lambda tab: main_win.delete_tab(tab))
     worker.request_pointer_location.connect(lambda query: web_data_worker.enqueue_pointer_location(query))
     worker.open_url_requested.connect(lambda url: web_data_worker.enqueue_url(url))
