@@ -18,10 +18,6 @@ from services.fluent.qfluentwidgets import FluentTranslator
 
 from .view.main_window import MainWindow
 
-if cfg.get(cfg.dpiScale) != "Auto":
-    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
-    os.environ["QT_SCALE_FACTOR"] = str(cfg.get(cfg.dpiScale))
-
 
 def start_app(app):
 

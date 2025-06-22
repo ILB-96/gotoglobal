@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QFrame
 from services.fluent.qfluentwidgets import (ScrollArea, PushButton, ToolButton, FluentIcon,
                             isDarkTheme, IconWidget, Theme, ToolTipFilter, TitleLabel, CaptionLabel,
                             StrongBodyLabel, BodyLabel, toggleTheme)
-from ..common.config import cfg, FEEDBACK_URL, HELP_URL, EXAMPLE_URL
+from ..common.config import FEEDBACK_URL
 from ..common.icon import Icon
 from ..common.style_sheet import StyleSheet
 from ..common.signal_bus import signalBus
