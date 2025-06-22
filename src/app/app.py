@@ -1,5 +1,4 @@
 from pathlib import Path
-from src.frontend import setup_tabs_and_tables
 from src.workers import WebDataWorker, WebAutomationWorker
 import settings
 from src.shared import utils
@@ -10,11 +9,6 @@ from .handlers import (
     handle_code_input,
 )
 from .common.config import cfg
-import os
-import sys
-from PyQt6.QtCore import Qt, QTranslator
-from PyQt6.QtGui import QFont
-from services.fluent.qfluentwidgets import FluentTranslator
 
 from .view.main_window import MainWindow
 
@@ -42,7 +36,7 @@ def start_app(app):
     
     app.aboutToQuit.connect(web_automation_worker.stop)
     app.aboutToQuit.connect(web_data_worker.stop)
-    # main_win.show()
+
     main_win.show()
     app.exec()
 
