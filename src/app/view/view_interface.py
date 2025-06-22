@@ -77,7 +77,7 @@ class TableFrame(TableWidget):
         self.setBorderVisible(True)
 
         self.setColumnCount(len(columns))
-        self.setRowCount(60)
+        self.setRowCount(0)
         self.setHorizontalHeaderLabels(columns)
         self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.horizontalHeader().setStretchLastSection(True)

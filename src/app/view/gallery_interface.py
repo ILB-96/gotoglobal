@@ -48,9 +48,9 @@ class ToolBar(QWidget):
         self.__initWidget()
 
     def __initWidget(self):
-        self.setFixedHeight(138)
+        self.setFixedHeight(70)
         self.vBoxLayout.setSpacing(0)
-        self.vBoxLayout.setContentsMargins(36, 22, 36, 12)
+        self.vBoxLayout.setContentsMargins(36, 0, 36, 0)
         self.vBoxLayout.addSpacing(4)
         self.vBoxLayout.addLayout(self.buttonLayout, 1)
         self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -99,10 +99,10 @@ class GalleryInterface(ScrollArea):
         self.setWidget(self.view)
         self.setWidgetResizable(True)
 
-        self.vBoxLayout.setSpacing(30)
+        self.vBoxLayout.setSpacing(8)
         self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.vBoxLayout.setContentsMargins(36, 20, 36, 36)
-
+        self.vBoxLayout.setContentsMargins(36, 0, 36, 36)
+        # self.vBoxLayout.addWidget(self.toolBar, 0, Qt.AlignmentFlag.AlignTop)
         self.view.setObjectName('view')
         StyleSheet.GALLERY_INTERFACE.apply(self)
 

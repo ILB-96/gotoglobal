@@ -8,26 +8,6 @@ from services.fluent.qfluentwidgets import (qconfig, QConfig, ConfigItem, Option
                             OptionsValidator, RangeConfigItem, RangeValidator,
                             FolderListValidator, Theme, FolderValidator, ConfigSerializer, ConfigValidator, __version__)
 
-
-class Language(Enum):
-    """ Language enumeration """
-
-    CHINESE_SIMPLIFIED = QLocale(QLocale.Language.Chinese, QLocale.Country.China)
-    CHINESE_TRADITIONAL = QLocale(QLocale.Language.Chinese, QLocale.Country.HongKong)
-    ENGLISH = QLocale(QLocale.Language.English)
-    AUTO = QLocale()
-
-
-class LanguageSerializer(ConfigSerializer):
-    """ Language serializer """
-
-    def serialize(self, language):
-        return language.value.name() if language != Language.AUTO else "Auto"
-
-    def deserialize(self, value: str):
-        return Language(QLocale(value)) if value != "Auto" else Language.AUTO
-
-
 def isWin11():
     return sys.platform == 'win32' and sys.getwindowsversion().build >= 22000
 
@@ -42,13 +22,6 @@ class Config(QConfig):
     pointer = ConfigItem("MainWindow", "pointerEnabled", True, BoolValidator())
     pointerUsername = ConfigItem("MainWindow", "pointerUsername", Path.home().name, ConfigValidator())
     phoneNumber = ConfigItem("MainWindow", "phoneNumber", "", ConfigValidator())
-    dpiScale = OptionsConfigItem(
-        "MainWindow", "DpiScale", "Auto", OptionsValidator([1, 1.25, 1.5, 1.75, 2, "Auto"]), restart=True)
-    language = OptionsConfigItem(
-        "MainWindow", "Language", Language.AUTO, OptionsValidator(Language), LanguageSerializer(), restart=True)
-
-    # Material
-    blurRadius  = RangeConfigItem("Material", "AcrylicBlurRadius", 15, RangeValidator(0, 40))
 
     # software update
     checkUpdateAtStartUp = ConfigItem("Update", "CheckUpdateAtStartUp", True, BoolValidator())
@@ -57,13 +30,7 @@ class Config(QConfig):
 YEAR = 2025
 AUTHOR = "Israel Barmack"
 VERSION = __version__
-HELP_URL = "https://qfluentwidgets.com"
-REPO_URL = "https://github.com/zhiyiYo/PyQt-Fluent-Widgets"
-EXAMPLE_URL = "https://github.com/zhiyiYo/PyQt-Fluent-Widgets/tree/PyQt6/examples"
 FEEDBACK_URL = "https://github.com/ILB-96/gotoglobal/issues"
-RELEASE_URL = "https://github.com/zhiyiYo/PyQt-Fluent-Widgets/releases/latest"
-ZH_SUPPORT_URL = "https://qfluentwidgets.com/zh/price/"
-EN_SUPPORT_URL = "https://qfluentwidgets.com/price/"
 
 
 cfg = Config()
