@@ -7,6 +7,7 @@ from services.fluent.qfluentwidgets.components.widgets.label import StrongBodyLa
 
 from .gallery_interface import GalleryInterface
 from ..common.style_sheet import StyleSheet
+from ..common.config import cfg
 
 
 class AutotelInterface(GalleryInterface):
@@ -35,12 +36,12 @@ class AutotelInterface(GalleryInterface):
             widget.setParent(None)  # Detach from the UI
             widget.deleteLater()
             
-    def removeWidgets(self, account):
+    def removeWidgets(self):
         """ Remove all widgets from the interface """
-        if not account.long_rides:
+        if not cfg.get(cfg.long_rides):
             self._remove(self.long_rides_title)
             self._remove(self.long_rides_table)
-        if not account.batteries:
+        if not cfg.get(cfg.batteries):
             self._remove(self.batteries_title)
             self._remove(self.batteries_table)
             

@@ -8,7 +8,7 @@ from services.fluent.qfluentwidgets import (FluentWindow,
                             SplashScreen, SystemThemeListener, isDarkTheme, NavigationItemPosition)
 import settings
 from src.shared import utils
-
+from ..common.config import cfg
 
 from .goto_interface import GotoInterface
 from .autotel_interface import AutotelInterface
@@ -63,15 +63,15 @@ class MainWindow(FluentWindow):
             self.navigationInterface.removeWidget(widget)
             widget.setParent(None)
             widget.deleteLater()
-    def removeWidgets(self, account):
-        self.gotoInterface.removeWidgets(account)
-        self.autotelInterface.removeWidgets(account)
-        if not account.long_rides and not account.batteries:
+    def removeWidgets(self):
+        self.gotoInterface.removeWidgets()
+        self.autotelInterface.removeWidgets()
+        if not cfg.get(cfg.long_rides) and not cfg.get(cfg.batteries):
             self.__remove(self.autotelInterface)
-        if not account.late_rides:
+        if not cfg.get(cfg.late_rides):
             self.__remove(self.gotoInterface)
 
-        if (not account.long_rides and not account.batteries) or not account.late_rides:
+        if (not cfg.get(cfg.long_rides) and not cfg.get(cfg.batteries)) or not cfg.get(cfg.late_rides):
             self.navigationInterface.hide()
     def resizeEvent(self, e):
         super().resizeEvent(e)

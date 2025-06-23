@@ -7,6 +7,7 @@ from services.fluent.qfluentwidgets.components.widgets.label import StrongBodyLa
 
 from .gallery_interface import GalleryInterface
 from ..common.style_sheet import StyleSheet
+from ..common.config import cfg
 
 
 class GotoInterface(GalleryInterface):
@@ -29,9 +30,9 @@ class GotoInterface(GalleryInterface):
             widget.setParent(None)  # Detach from the UI
             widget.deleteLater()
             
-    def removeWidgets(self, account):
+    def removeWidgets(self):
         """ Remove all widgets from the interface """
-        if not account.late_rides:
+        if not cfg.get(cfg.late_rides):
             self._remove(self.late_rides_title)
             self._remove(self.late_rides_table)
 

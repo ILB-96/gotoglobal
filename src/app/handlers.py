@@ -2,13 +2,12 @@ from pathlib import Path
 from services.fluent.qfluentwidgets.components.settings.setting_card import SettingCard
 from src.frontend import Input
 from services import PopupWindow
-from src.shared import utils, User
+from src.shared import utils
 import settings
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QWidget, QLabel, QHBoxLayout, QSizePolicy, QFrame
 from .view.settings_interface import SettingsPopup
-
-def handle_settings_input(account: User):
-    dialog = SettingsPopup(account)
+def handle_settings_input():
+    dialog = SettingsPopup()
     dialog.exec()
 
 def handle_code_input(worker):

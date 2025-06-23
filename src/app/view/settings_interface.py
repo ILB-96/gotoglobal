@@ -1,11 +1,12 @@
 from services.fluent.qfluentwidgets import (ScrollArea, LineEditSettingCard,
-    SettingCardGroup, SwitchSettingCard, FluentWindow, PrimaryPushSettingCard, ExpandLayout, FluentIcon as FIF, NavigationItemPosition
+    SettingCardGroup, SwitchSettingCard, FluentWindow, PrimaryPushSettingCard, ExpandLayout, FluentIcon as FIF
     
 )
+from PyQt6.QtGui import QKeySequence, QShortcut
+
 from PyQt6.QtCore import Qt, pyqtSignal, QEventLoop
 from src.app.common.style_sheet import StyleSheet
-import settings
-from src.shared import User
+from ..common.config import cfg
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QWidget
 class TwoColumnSettingCard(QFrame):
     def __init__(self, card1: QWidget, card2: QWidget, parent=None):
@@ -28,10 +29,8 @@ class TwoColumnSettingCard(QFrame):
 class SettingsInterface(ScrollArea):
     confirmed = pyqtSignal()  # Signal to notify when user confirms 
 
-    def __init__(self, user: User, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-
-        self.user = user
 
         # Central widget and layout
         self.scrollWidget = QWidget(self)
@@ -41,27 +40,33 @@ class SettingsInterface(ScrollArea):
         # Group 1: Ride settings
         self.gotoGroup = SettingCardGroup("Goto", self.scrollWidget)
         self.lateRidesCard = SwitchSettingCard(
-            FIF.CAR, "Late Rides", "Enable alerts for late rides", user.late_rides, self.gotoGroup
+            FIF.CAR, "Late Rides", "Enable alerts for late rides", cfg.late_rides, self.gotoGroup
+        )
+        self.createGotoTabsCard = SwitchSettingCard(
+            FIF.QUICK_NOTE, "Create Goto pages", "Create Goto BO & CRM (if don't already exists)", cfg.create_goto_tabs, self.gotoGroup
         )
 
         self.autotelGroup = SettingCardGroup("AutoTel", self.scrollWidget)
         self.longRidesCard = SwitchSettingCard(
-            FIF.DATE_TIME, "Long Rides", "Enable alerts for long rides", user.long_rides, self.autotelGroup
+            FIF.DATE_TIME, "Long Rides", "Enable alerts for long rides", cfg.long_rides, self.autotelGroup
         )
         self.batteriesCard = SwitchSettingCard(
-            FIF.SPEED_OFF, "Battery Alerts", "Enable alerts for low battery", user.batteries, self.autotelGroup
+            FIF.SPEED_OFF, "Battery Alerts", "Enable alerts for low battery", cfg.batteries, self.autotelGroup
+        )
+        self.createAutotelTabsCard = SwitchSettingCard(
+            FIF.QUICK_NOTE, "Create Autotel pages", "Create Autotel BO & CRM tabs (if don't already exists)", cfg.create_autotel_tabs, self.autotelGroup
         )
 
         self.othersGroup = SettingCardGroup("Others", self.scrollWidget)
         self.pointerCard = SwitchSettingCard(
             FIF.GLOBE, "Pointer (Required for Autotel)", "Enable Pointer location integration", 
-            user.pointer, self.othersGroup
+            cfg.pointer, self.othersGroup
         )
         self.pointerUserCard = LineEditSettingCard(
-            '', "Username", '', user.pointer_user, self.othersGroup
+            '', "Username", '', cfg.pointer_user, self.othersGroup
         )
         self.pointerPhoneCard = LineEditSettingCard(
-            '', "Phone", '', user.phone, self.othersGroup
+            '', "Phone", '', cfg.phone, self.othersGroup
         )
 
         self.pointerRowCard = TwoColumnSettingCard(self.pointerUserCard, self.pointerPhoneCard, self.othersGroup)
@@ -73,14 +78,14 @@ class SettingsInterface(ScrollArea):
             content="Click to apply and close the window",
             parent=self.scrollWidget
         )
+        return_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Return), self)
+        enter_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Enter), self)
+        return_shortcut.activated.connect(self.saveBtn.clicked)
+        enter_shortcut.activated.connect(self.saveBtn.clicked)
         self.saveBtn.clicked.connect(self._on_save_clicked)
         self.__initWidget()
         self.__initLayout()
 
-        # # Use layout in this widget
-        # wrapper = QVBoxLayout(self)
-        # wrapper.addWidget(self.scrollWidget)
-        
     def __initWidget(self):
             self.resize(1000, 800)
             self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -99,8 +104,10 @@ class SettingsInterface(ScrollArea):
 
         # Add cards to groups
         self.gotoGroup.addSettingCard(self.lateRidesCard)
+        self.gotoGroup.addSettingCard(self.createGotoTabsCard)
         self.autotelGroup.addSettingCard(self.longRidesCard)
         self.autotelGroup.addSettingCard(self.batteriesCard)
+        self.autotelGroup.addSettingCard(self.createAutotelTabsCard)
         self.othersGroup.addSettingCard(self.pointerCard)
         self.othersGroup.addSettingCard(self.pointerRowCard)
 
@@ -122,7 +129,6 @@ class SettingsInterface(ScrollArea):
         batt_on = self.batteriesCard.isChecked()
 
         if not is_enabled and (long_on or batt_on):
-            # Not allowed to disable pointerCard while dependencies are active
             self.pointerCard.setChecked(True)
             return
 
@@ -148,38 +154,30 @@ class SettingsInterface(ScrollArea):
 
 
 class SettingsPopup(FluentWindow):
-    def __init__(self, user: User, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.user = user
         self.setWindowTitle("Settings")
         self.setFixedSize(560, 600)
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        self.settingsPage = SettingsInterface(user, self)
+        self.titleBar.maxBtn.setParent(None)
+        self.titleBar.maxBtn.deleteLater()
+        self.titleBar.closeBtn.setParent(None)
+        self.titleBar.closeBtn.deleteLater()
+
+        self.setWindowIcon(FIF.SETTING.icon())
+        self.settingsPage = SettingsInterface(self)
         self.hBoxLayout.removeWidget(self.navigationInterface)
         self.navigationInterface.hide()
-        self.addSubInterface(self.settingsPage, FIF.SETTING, "Settings", position=NavigationItemPosition.TOP)
+        self.addSubInterface(self.settingsPage, '', "")
         self.loop = QEventLoop()
-        # Connect confirmed signal to handler
         self.settingsPage.confirmed.connect(self.on_settings_confirmed)
         
     def exec(self):
         """ Mimic modal behavior like QDialog.exec() """
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.show()
-        self.loop.exec()  # blocks here
+        self.loop.exec()
 
     def on_settings_confirmed(self):
-        updated_user = self.get_updated_user()
-        updated_user.to_json(settings.user_json_path)
         self.loop.quit()
         self.close()
-        
-    def get_updated_user(self) -> User:
-        sp = self.settingsPage
-        self.user.late_rides = sp.lateRidesCard.isChecked()
-        self.user.long_rides = sp.longRidesCard.isChecked()
-        self.user.batteries = sp.batteriesCard.isChecked()
-        self.user.pointer = sp.pointerCard.isChecked()
-        self.user.pointer_user = sp.pointerUserCard.geValue()
-        self.user.phone = sp.pointerPhoneCard.geValue()
-        return self.user

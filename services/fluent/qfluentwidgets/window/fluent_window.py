@@ -190,7 +190,7 @@ class FluentTitleBar(TitleBar):
         self.titleLabel.adjustSize()
 
     def setIcon(self, icon):
-        self.iconLabel.setPixmap(QIcon(icon).pixmap(18, 18))
+        self.iconLabel.setPixmap(QIcon(icon).pixmap(16, 16))
 
 
 class FluentWindow(FluentWindowBase):

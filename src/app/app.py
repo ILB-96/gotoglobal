@@ -2,7 +2,6 @@ from pathlib import Path
 from src.workers import WebDataWorker, WebAutomationWorker
 import settings
 from src.shared import utils
-from src.shared.user import User
 
 from .handlers import (
     handle_settings_input,
@@ -18,17 +17,11 @@ def start_app(app):
     # create main window
     main_win = MainWindow(title="GotoGlobal", app_icon=utils.resource_path(settings.app_icon))
     
-    # tables = setup_tabs_and_tables(main_win)
 
-    
-    if (path := Path(settings.user_json_path)).exists():
-        account = User.from_json(path)
-    else:
-        account = User()
-    handle_settings_input(account)
-    # account.to_json(settings.user_json_path)
-    web_data_worker = WebDataWorker(account=account)
-    web_automation_worker = WebAutomationWorker(account=account)
+    handle_settings_input()
+
+    web_data_worker = WebDataWorker()
+    web_automation_worker = WebAutomationWorker()
     
     create_web_data_worker(web_data_worker, web_automation_worker)
 
@@ -44,7 +37,7 @@ def create_web_data_worker(worker, web_automation_worker):
     worker.start()
     worker.request_otp_input.connect(lambda: handle_code_input(worker))
     worker.input_send.connect(lambda data: web_automation_worker.set_location_data(data))
-    worker.input_received.connect(worker.set_account_data)
+    worker.input_received.connect(worker.set_pointer_code)
     worker.page_loaded.connect(web_automation_worker.stop_event.set)
 
 

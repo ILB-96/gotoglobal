@@ -6,28 +6,25 @@ from services import WebAccess
 import settings
 from src.autotel import BatteriesAlert, LongRides
 from src.goto import LateAlert
-from src.shared import User
 import time
-
+from ..app.common.config import cfg
 class WebAutomationWorker(QThread):
     toast_signal = pyqtSignal(str, str, str)
 
     late_table_row = pyqtSignal(object, tuple)
     batteries_table_row = pyqtSignal(object)
     long_rides_table_row = pyqtSignal(object)
-    request_delete_table = pyqtSignal(object)
-    request_delete_tab = pyqtSignal(str)
+    request_delete_table = pyqtSignal()
     request_connection = pyqtSignal(str)
 
     open_url_requested = pyqtSignal(str)
     request_pointer_location = pyqtSignal(str)
 
-    def __init__(self, account: User, parent=None):
+    def __init__(self,  parent=None):
         super(WebAutomationWorker, self).__init__(parent)
         self.stop_event = threading.Event()
         self.running = True
 
-        self.account = account
         self._location_condition = threading.Condition()
         self._location_response = None
 
@@ -62,19 +59,13 @@ class WebAutomationWorker(QThread):
         
     def _init_pages(self):
         pages_data = {}
-        if self.account.late_rides:
+        if cfg.get(cfg.late_rides):
             pages_data['goto_bo'] = settings.goto_url
-        # else:
-        #     self.request_delete_tab.emit('Goto')
-        if self.account.long_rides or self.account.batteries:
+
+        if cfg.get(cfg.long_rides ) or cfg.get(cfg.batteries):
             pages_data['autotel_bo'] = settings.autotel_url
-            # if not self.account.long_rides:
-            #     self.request_delete_table.emit('Autotel', 'Long Rides')
-            # if not self.account.batteries:
-            #     self.request_delete_table.emit('Autotel', 'Batteries')
-        # else:
-        #     self.request_delete_tab.emit('Autotel')
-        self.request_delete_table.emit(self.account)
+
+        self.request_delete_table.emit()
         self.web_access.create_pages(pages_data)
 
     def request_pointer_location_sync(self, car_license: str) -> object:
@@ -91,7 +82,7 @@ class WebAutomationWorker(QThread):
         late = None
         batteries_alert = None
         long_rides_alert = None
-        if self.account.late_rides:
+        if cfg.get(cfg.late_rides):
             late = LateAlert(
                 show_toast=lambda title, message, icon: self.toast_signal.emit(title, message, icon),
                 gui_table_row=lambda row, btn_colors: self.late_table_row.emit(row, btn_colors),
@@ -99,7 +90,7 @@ class WebAutomationWorker(QThread):
                 open_ride=self.open_url_requested
             )
     
-        if self.account.batteries:
+        if cfg.get(cfg.batteries):
             batteries_alert = BatteriesAlert(
                 show_toast=lambda title, message, icon: self.toast_signal.emit(title, message, icon),
                 gui_table_row=lambda row: self.batteries_table_row.emit(row),
@@ -107,7 +98,7 @@ class WebAutomationWorker(QThread):
                 pointer=self.request_pointer_location_sync,
                 open_ride=self.open_url_requested
             )
-        if self.account.long_rides:
+        if cfg.get(cfg.long_rides):
             long_rides_alert = LongRides(
                 show_toast=lambda title, message, icon: self.toast_signal.emit(title, message, icon),
                 gui_table_row=lambda row: self.long_rides_table_row.emit(row),
@@ -125,11 +116,6 @@ class WebAutomationWorker(QThread):
             long_rides_alert.start_requests()
         if batteries_alert is not None:
             batteries_alert.start_requests()
-
-    def set_account_data(self, data):
-        self.account.update(**data)
-        self.account.to_json(settings.user_json_path)
-        self.stop_event.set()
         
     @pyqtSlot(object)
     def set_location_data(self, data):

@@ -20,8 +20,10 @@ class Config(QConfig):
     long_rides = ConfigItem("MainWindow", "longRidesEnabled", True, BoolValidator())
     batteries = ConfigItem("MainWindow", "batteriesEnabled", True, BoolValidator())
     pointer = ConfigItem("MainWindow", "pointerEnabled", True, BoolValidator())
-    pointerUsername = ConfigItem("MainWindow", "pointerUsername", Path.home().name, ConfigValidator())
-    phoneNumber = ConfigItem("MainWindow", "phoneNumber", "", ConfigValidator())
+    pointer_user = ConfigItem("MainWindow", "pointerUsername", Path.home().name, ConfigValidator())
+    phone = ConfigItem("MainWindow", "phoneNumber", "", ConfigValidator())
+    create_goto_tabs = ConfigItem("MainWindow", "createGotoTabs", True, BoolValidator())
+    create_autotel_tabs = ConfigItem("MainWindow", "createAutotelTabs", True, BoolValidator())
 
     # software update
     checkUpdateAtStartUp = ConfigItem("Update", "CheckUpdateAtStartUp", True, BoolValidator())

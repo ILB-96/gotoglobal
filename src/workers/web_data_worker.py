@@ -5,12 +5,12 @@ from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
 from playwright.async_api import async_playwright
 from services import AsyncWebAccess
 import settings
-from src.shared import PointerLocation, User
+from src.shared import PointerLocation
 import time
 import asyncio
 import subprocess
 import socket
-
+from ..app.common.config import cfg
 class WebDataWorker(QThread):
     page_loaded = pyqtSignal()
 
@@ -19,14 +19,14 @@ class WebDataWorker(QThread):
     input_received = pyqtSignal(object)
     pointer_location_requested = pyqtSignal(str)
 
-    def __init__(self, account: User, parent=None):
+    def __init__(self, parent=None):
         super(WebDataWorker, self).__init__(parent)
         self.stop_event = threading.Event()
         self.running = True
         self.url_queue = Queue()
         self.pointer_queue = Queue()
         self.pointer_location_requested.connect(self.enqueue_pointer_location)
-        self.account = account
+        self.code = None
 
     @pyqtSlot()
     def run(self):
@@ -49,12 +49,11 @@ class WebDataWorker(QThread):
             subprocess.call([
                 'start', 'msedge', '--remote-debugging-port=9222'
             ], shell=True)
-        else:
-            print("Edge is already running with debugging port.")
+
         async with async_playwright() as playwright:
             async with AsyncWebAccess(playwright, False, 'edge', 'Default') as self.web_access:
                 await self._init_pages()
-                pointer = await self._handle_pointer_login() if self.account.pointer else None
+                pointer = await self._handle_pointer_login() if cfg.get(cfg.pointer) else None
             
                 self.page_loaded.emit()
                 start_time = 0
@@ -74,7 +73,7 @@ class WebDataWorker(QThread):
                     self.stop_event.clear()
                     
     async def _init_pages(self):
-        if self.account.pointer:
+        if cfg.get(cfg.pointer):
             await self.web_access.create_pages({
                 'pointer': 'https://fleet.pointer4u.co.il/iservices/fleet2015/login'
             })
@@ -119,22 +118,23 @@ class WebDataWorker(QThread):
         
     async def _handle_pointer_login(self):
         pointer = PointerLocation(self.web_access)
-        await pointer.login(self.account.pointer_user, self.account.phone)
+        await pointer.login(cfg.get(cfg.pointer_user), cfg.get(cfg.phone))
         while True:
             try:
                 await self.web_access.pages["pointer"].wait_for_selector('textarea.realInput', timeout=7000)
                 self.request_otp_input.emit()
                 self.stop_event.wait()
                 self.stop_event.clear()
-                await pointer.fill_otp(self.account.code)
+                await pointer.fill_otp(self.code)
                 time.sleep(2)
             except Exception:
+                del self.code
                 break
 
         return pointer
     
-    def set_account_data(self, data):
-        self.account.update(**data)
+    def set_pointer_code(self, data):
+        self.code = data.get('code', None)
         self.stop_event.set()
     
     def stop(self):
