@@ -2,16 +2,17 @@
 import threading
 from PyQt6.QtCore import Qt, pyqtSignal, QEasingCurve, QUrl, QSize, QTimer
 from PyQt6.QtGui import QIcon, QDesktopServices, QColor
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QFrame, QWidget
+from PyQt6.QtWidgets import QApplication
 
 from services.fluent.qfluentwidgets import (FluentWindow,
-                            SplashScreen, SystemThemeListener, isDarkTheme)
+                            SplashScreen, SystemThemeListener, isDarkTheme, NavigationItemPosition)
+import settings
+from src.shared import utils
 
-from .gallery_interface import GalleryInterface
 
-from .view_interface import ViewInterface
+from .goto_interface import GotoInterface
+from .autotel_interface import AutotelInterface
 
-from ..common.icon import Icon
 from win11toast import toast
 
 class MainWindow(FluentWindow):
@@ -23,9 +24,14 @@ class MainWindow(FluentWindow):
         # create system theme listener
         self.themeListener = SystemThemeListener(self)
 
-        self.viewInterface = ViewInterface(self)
-        self.addSubInterface(self.viewInterface, Icon.GRID, "")
-        self.navigationInterface.hide()
+        self.gotoInterface = GotoInterface(self)
+        self.autotelInterface = AutotelInterface(self)
+        self.navigationInterface.setAcrylicEnabled(True)
+
+        pos = NavigationItemPosition.SCROLL
+        self.addSubInterface(self.gotoInterface, QIcon(utils.resource_path(settings.app_icon)), "Goto", pos)
+        self.addSubInterface(self.autotelInterface, QIcon(utils.resource_path(settings.autotel_icon)), "Autotel", pos)
+        # self.navigationInterface.hide()
 
 
         self.splashScreen.finish()
@@ -52,7 +58,21 @@ class MainWindow(FluentWindow):
         self.move(w//2 - self.width()//2, h//2 - self.height()//2)
         self.show()
         QApplication.processEvents()
+    def __remove(self, widget):
+        if widget is not None:
+            self.navigationInterface.removeWidget(widget)
+            widget.setParent(None)
+            widget.deleteLater()
+    def removeWidgets(self, account):
+        self.gotoInterface.removeWidgets(account)
+        self.autotelInterface.removeWidgets(account)
+        if not account.long_rides and not account.batteries:
+            self.__remove(self.autotelInterface)
+        if not account.late_rides:
+            self.__remove(self.gotoInterface)
 
+        if (not account.long_rides and not account.batteries) or not account.late_rides:
+            self.navigationInterface.hide()
     def resizeEvent(self, e):
         super().resizeEvent(e)
         if hasattr(self, 'splashScreen'):

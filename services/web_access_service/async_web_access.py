@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from playwright.async_api import BrowserContext, Page, async_playwright, Error as PlaywrightError
+from playwright.async_api import BrowserContext, Page, Playwright, Error as PlaywrightError
 from typing import Optional
 
 class AsyncWebAccess:
@@ -14,7 +14,7 @@ class AsyncWebAccess:
 
     def __init__(
         self,
-        playwright,                  # the result of `async with async_playwright()`
+        playwright: Playwright,                  # the result of `async with async_playwright()`
         headless: bool = True,
         browser_name: Optional[Path] = 'edge',
         profile: Optional[str] = "Default",
@@ -27,57 +27,57 @@ class AsyncWebAccess:
         self.pages: dict[str, Page] = {}
 
     async def __aenter__(self):
-        if self._browser_name == 'edge':
-            BROWSER_PATH = Path(
-                "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
-            )
-        elif self._browser_name == 'chrome':
-            BROWSER_PATH = Path(
-                "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
-            )
+        # if self._browser_name == 'edge':
+        #     BROWSER_PATH = Path(
+        #         "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
+        #     )
+        # elif self._browser_name == 'chrome':
+        #     BROWSER_PATH = Path(
+        #         "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
+        #     )
         if self._profile:
-            if self._browser_name == 'edge':
-                user_data_dir = (
-                    Path.home()
-                    / "AppData"
-                    / "Local"
-                    / "Microsoft"
-                    / "Edge"
-                    / self._profile
-                )
-            else:
-                user_data_dir = (
-                    Path.home()
-                    / "AppData"
-                    / "Local"
-                    / "Google"
-                    / "Chrome"
-                    / "User Data"
-                    / self._profile
-                )
+            browser = await self._playwright.chromium.connect_over_cdp('http://localhost:9222')
+            self.context = browser.contexts[0] if browser.contexts else await browser.new_context()
+            # if self._browser_name == 'edge':
+            #     user_data_dir = (
+            #         Path.home()
+            #         / "AppData"
+            #         / "Local"
+            #         / "Microsoft"
+            #         / "Edge"
+            #         / "User Data"
+            #         / self._profile
+            #     )
+            # else:
+            #     user_data_dir = (
+            #         Path.home()
+            #         / "AppData"
+            #         / "Local"
+            #         / "Google"
+            #         / "Chrome"
+            #         / "User Data"
+            #         / self._profile
+            #     )
 
-            assert os.path.exists(user_data_dir)
-
-            try:
-                self.context = await self._playwright.chromium.launch_persistent_context(
-                    user_data_dir=user_data_dir.parent,  # <- this must be the full "User Data" dir
-                    headless=self._headless,
-                    executable_path=BROWSER_PATH,
-                    args=["--profile-directory=" + self._profile],
-                    no_viewport=True
-                )
-                await self.context.storage_state(path='storage_state.json')
-            except PlaywrightError as e:
-                # Fallback to a fresh context if persistent failed (e.g. profile in use)
-                print(f"[AsyncWebAccess] persistent context failed: {e!r}\n– falling back to fresh context")
-        # If no profile or persistent failed, launch a normal browser+context
-
-        else:
-            browser = await self._playwright.chromium.launch(
-                headless=self._headless,
-                executable_path=BROWSER_PATH,
-            )
-            self.context = await browser.new_context()
+        #     assert os.path.exists(user_data_dir)
+        #     try:
+        #         self.context = await self._playwright.chromium.launch_persistent_context(
+        #             user_data_dir=user_data_dir.parent,
+        #             headless=self._headless,
+        #             executable_path=BROWSER_PATH,
+        #             args=["--profile-directory=" + self._profile],
+        #             no_viewport=True
+        #         )
+        #     except PlaywrightError as e:
+        #         # Fallback to a fresh context if persistent failed (e.g. profile in use)
+        #         print(f"[AsyncWebAccess] persistent context failed: {e!r}\n– falling back to fresh context")
+                
+        # else:
+        #     browser = await self._playwright.chromium.launch(
+        #         headless=self._headless,
+        #         executable_path=BROWSER_PATH,
+        #     )
+        #     self.context = await browser.new_context()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -96,10 +96,8 @@ class AsyncWebAccess:
             raise RuntimeError("Context not initialized")
         for name, url in pages.items():
             await self.create_new_page(name, url)
-        # close any leftover blank tabs
-        for p in list(self.context.pages):
-            if p.url == "about:blank":
-                await p.close()
+
+        self.pages['blank'] = await self.create_new_page('blank', 'about:blank', open_mode='reuse')
 
     async def create_new_page(
         self,

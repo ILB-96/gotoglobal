@@ -131,19 +131,4 @@ class RidesPage:
         return row.locator('[ng-if="ordersCtrl.pageType === \'current\'"]')
     
     def get_late_rides(self):
-        # grouped_data = []
-        # for h3 in self.late_rides_entries():
-            # h3_text = str(h3.text_content()).strip()
-
-        #     p_text = h3.evaluate("""
-        #         node => {
-        #             const p = node.nextElementSibling;
-        #             if (p && p.tagName === 'P') {
-        #                 const match = p.textContent.match(/Next (\\d+)/);
-        #                 return match ? match[1] : null;
-        #             }
-        #             return null;
-        #         }
-        #     """)
-        #     grouped_data.append((h3_text, p_text))
-        return [h3_text := str(h3.text_content()).strip() for h3 in self.late_rides_entries() if h3_text]
+        return [str(h3.text_content()).strip() for h3 in self.late_rides_entries() if h3.text_content()]

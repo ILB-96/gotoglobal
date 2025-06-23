@@ -3,34 +3,27 @@ from typing import Callable
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QTableWidgetItem, QHeaderView, QWidget
 from services.fluent.qfluentwidgets import  TableWidget, PushButton, TitleLabel
+from services.fluent.qfluentwidgets.components.widgets.label import StrongBodyLabel, SubtitleLabel
 
 from .gallery_interface import GalleryInterface
-from ..common.translator import Translator
 from ..common.style_sheet import StyleSheet
 
 
-class ViewInterface(GalleryInterface):
+class AutotelInterface(GalleryInterface):
     """ View interface """
 
     def __init__(self, parent=None):
-        t = Translator()
         super().__init__(
-            title=t.view,
-            subtitle="",
             parent=parent
         )
-        self.setObjectName('viewInterface')
-        late_rides_columns=[self.tr("Ride ID"), self.tr("End Time"), self.tr("Future Ride"), self.tr("Future Ride Time"), self.tr("Comment")]
+        self.setObjectName('AutotelInterface')
         long_rides_columns=[self.tr("Ride ID"), self.tr("Driver ID"), self.tr("Duration"), self.tr("Location"), self.tr("Comment")]
         batteries_columns=[self.tr("Ride ID"), self.tr("License Plate"), self.tr("Battery"), self.tr("Location"), self.tr("Comment")]
-        self.late_rides_table = TableFrame(columns=late_rides_columns, parent=self)
         self.long_rides_table = TableFrame(columns=long_rides_columns, parent=self)
         self.batteries_table = TableFrame(columns=batteries_columns, parent=self)
-        self.late_rides_title = TitleLabel('Goto Late Rides', self)
-        self.long_rides_title = TitleLabel('Autotel Long Rides', self)
-        self.batteries_title = TitleLabel('Autotel Batteries', self)
-        self.vBoxLayout.addWidget(self.late_rides_title)
-        self.vBoxLayout.addWidget(self.late_rides_table)
+        self.long_rides_title = SubtitleLabel('Autotel Long Rides', self)
+        self.batteries_title = SubtitleLabel('Autotel Batteries', self)
+        
         self.vBoxLayout.addWidget(self.long_rides_title)
         self.vBoxLayout.addWidget(self.long_rides_table)
         self.vBoxLayout.addWidget(self.batteries_title)
@@ -44,15 +37,13 @@ class ViewInterface(GalleryInterface):
             
     def removeWidgets(self, account):
         """ Remove all widgets from the interface """
-        if not account.late_rides:
-            self._remove(self.late_rides_title)
-            self._remove(self.late_rides_table)
         if not account.long_rides:
             self._remove(self.long_rides_title)
             self._remove(self.long_rides_table)
         if not account.batteries:
             self._remove(self.batteries_title)
             self._remove(self.batteries_table)
+            
 
 class Frame(QFrame):
 
@@ -98,25 +89,7 @@ class TableFrame(TableWidget):
             for col_index, data in enumerate(row_data):
                 if isinstance(data, tuple) and callable(data[1]):
                     button = PushButton(data[0])
-                    button.setStyleSheet(f"""
-                        QPushButton {{
-                            min-height: 24px;
-                            padding: 6px 14px;
-                            background-color: {btn_colors[0]};
-                            color: white;
-                            border: none;
-                            border-radius: 4px;
-                            font-size: 15px;
-                            font-weight: 700;
-                            font-family: 'Tahoma', 'Arial';
-                        }}
-                        QPushButton:hover {{
-                            background-color: {btn_colors[1]};
-                        }}
-                        QPushButton:pressed {{
-                            background-color: {btn_colors[2]};
-                        }}
-                    """)
+
 
                     button.clicked.connect(data[1])
                     button.setCursor(Qt.CursorShape.PointingHandCursor)

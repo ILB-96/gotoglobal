@@ -8,6 +8,8 @@ import settings
 from src.shared import PointerLocation, User
 import time
 import asyncio
+import subprocess
+import socket
 
 class WebDataWorker(QThread):
     page_loaded = pyqtSignal()
@@ -28,9 +30,27 @@ class WebDataWorker(QThread):
 
     @pyqtSlot()
     def run(self):
-        asyncio.run(self._async_main())
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self._async_main())
+        loop.close()
+    def is_debug_port_open(self, port=9222):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(1)  # short timeout
+            result = sock.connect_ex(('localhost', port))
+            return result == 0
+
 
     async def _async_main(self):
+        # close all edge instances
+
+        if not self.is_debug_port_open():
+            subprocess.call(['taskkill', '/F', '/IM', 'msedge.exe'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.call([
+                'start', 'msedge', '--remote-debugging-port=9222'
+            ], shell=True)
+        else:
+            print("Edge is already running with debugging port.")
         async with async_playwright() as playwright:
             async with AsyncWebAccess(playwright, False, 'edge', 'Default') as self.web_access:
                 await self._init_pages()
@@ -41,11 +61,16 @@ class WebDataWorker(QThread):
                 while self.running:
                     await self._handle_url_queue()
                     await self._handle_pointer_location_queue(pointer)
+                    
+                    if 'blank' in self.web_access.pages.keys() and not self.web_access.pages['blank'].is_closed():
+                        await self.web_access.pages['blank'].reload()
+                    else:
+                        await self.web_access.create_new_page({'blank','about:blank'}, 'reuse')
                     now = time.time()
                     if now - start_time >= settings.interval and pointer:
                         start_time = now
                         await self.web_access.pages["pointer"].reload()
-                    self.stop_event.wait(5*60)
+                    self.stop_event.wait(5)
                     self.stop_event.clear()
                     
     async def _init_pages(self):
@@ -53,6 +78,8 @@ class WebDataWorker(QThread):
             await self.web_access.create_pages({
                 'pointer': 'https://fleet.pointer4u.co.il/iservices/fleet2015/login'
             })
+        else:
+            await self.web_access.create_pages({})
             
     async def _handle_url_queue(self):
         while not self.url_queue.empty() and self.running:

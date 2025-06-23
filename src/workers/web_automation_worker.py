@@ -1,7 +1,7 @@
 import threading
 from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, Page
 from services import WebAccess
 import settings
 from src.autotel import BatteriesAlert, LongRides
@@ -17,6 +17,7 @@ class WebAutomationWorker(QThread):
     long_rides_table_row = pyqtSignal(object)
     request_delete_table = pyqtSignal(object)
     request_delete_tab = pyqtSignal(str)
+    request_connection = pyqtSignal(str)
 
     open_url_requested = pyqtSignal(str)
     request_pointer_location = pyqtSignal(str)
@@ -138,6 +139,12 @@ class WebAutomationWorker(QThread):
             self._location_response = data
             self._location_condition.notify()
 
+    def establish_connection(self, page: Page, cta: str):
+        while page.url.contains('login'):
+            self.request_connection.emit(cta)
+            self.stop_event.wait()
+            self.stop_event.clear()
+            page.wait_for_load_state('domcontentloaded')
     def stop(self):
         self.running = False
         self.stop_event.set()

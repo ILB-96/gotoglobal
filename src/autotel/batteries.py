@@ -35,12 +35,12 @@ class BatteriesAlert:
         for row in rows:
             _, car_license, car_battery, location, _ = row
             self.notify_battery_condition(car_license, car_battery, location)
-
+    @utils.retry(allow_falsy=False)
     def extract_car_details(self, row):
         car_license = str(row.locator('//*[contains(@ng-click, "carsTableCtrl.showCarDetails(row)")]').text_content()).strip()
         car_battery = str(row.locator('td', has_text='%').text_content()).strip()
         active_ride = str(row.locator("//*[contains(@ng-if, \"::$root.matchProject('ATL')||($root.matchProject('E2E'))\")][4]").text_content()).strip()
-        location = self.pointer.search_location(car_license.replace("-", "")) if self.pointer else "Unknown Location"
+        location = self.pointer(car_license.replace('-', '')) if self.pointer else "Unknown Location"
         url = f"{settings.autotel_url}/index.html#/orders/{active_ride}/details"
         open_ride_url = partial(self.open_ride.emit, url) if self.open_ride else None
         return [(active_ride, open_ride_url), car_license, car_battery, location, url]
@@ -67,7 +67,7 @@ class BatteriesAlert:
                     f"Electric Car {car_id} has low battery: {car_battery}",
                     icon=utils.resource_path(settings.autotel_icon)
                 )
-
+    @utils.retry(allow_falsy=True)
     def select_car_options(self, cars_page: CarsPage):
         self.web_access.pages['autotel_bo'].wait_for_timeout(3000)
         cars_page.car_status_select.select_option("number:60")

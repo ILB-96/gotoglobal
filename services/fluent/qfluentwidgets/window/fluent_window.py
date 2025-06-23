@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QApplicat
 from ..common.config import qconfig
 from ..common.icon import FluentIconBase
 from ..common.router import qrouter
-from ..common.style_sheet import FluentStyleSheet, isDarkTheme, setTheme, Theme
+from ..common.style_sheet import FluentStyleSheet, isDarkTheme
 from ..common.animation import BackgroundAnimationWidget
 from ..components.widgets.frameless_window import FramelessWindow
 from ..components.navigation import (NavigationInterface, NavigationBar, NavigationItemPosition,

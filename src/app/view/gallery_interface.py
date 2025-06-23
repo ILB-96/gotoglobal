@@ -1,15 +1,12 @@
 # coding:utf-8
-from PyQt6.QtCore import Qt, pyqtSignal, QUrl, QEvent
+from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QDesktopServices, QPainter, QPen, QColor
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QFrame
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 
-from services.fluent.qfluentwidgets import (ScrollArea, PushButton, ToolButton, FluentIcon,
-                            isDarkTheme, IconWidget, Theme, ToolTipFilter, TitleLabel, CaptionLabel,
-                            StrongBodyLabel, BodyLabel, toggleTheme)
+from services.fluent.qfluentwidgets import (ScrollArea, ToolButton, FluentIcon,
+                            isDarkTheme,ToolTipFilter, toggleTheme)
 from ..common.config import FEEDBACK_URL
-from ..common.icon import Icon
 from ..common.style_sheet import StyleSheet
-from ..common.signal_bus import signalBus
 
 
 class SeparatorWidget(QWidget):
@@ -34,9 +31,8 @@ class SeparatorWidget(QWidget):
 class ToolBar(QWidget):
     """ Tool bar """
 
-    def __init__(self, title, subtitle, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent=parent)
-        # self.subtitleLabel = CaptionLabel(subtitle, self)
 
         self.themeButton = ToolButton(FluentIcon.CONSTRACT, self)
         self.separator = SeparatorWidget(self)
@@ -76,7 +72,7 @@ class ToolBar(QWidget):
 class GalleryInterface(ScrollArea):
     """ Gallery interface """
 
-    def __init__(self, title: str, subtitle: str, parent=None):
+    def __init__(self, parent=None):
         """
         Parameters
         ----------
@@ -91,7 +87,7 @@ class GalleryInterface(ScrollArea):
         """
         super().__init__(parent=parent)
         self.view = QWidget(self)
-        self.toolBar = ToolBar(title, subtitle, self)
+        self.toolBar = ToolBar(self)
         self.vBoxLayout = QVBoxLayout(self.view)
 
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -105,11 +101,6 @@ class GalleryInterface(ScrollArea):
         # self.vBoxLayout.addWidget(self.toolBar, 0, Qt.AlignmentFlag.AlignTop)
         self.view.setObjectName('view')
         StyleSheet.GALLERY_INTERFACE.apply(self)
-
-    def scrollToCard(self, index: int):
-        """ scroll to example card """
-        w = self.vBoxLayout.itemAt(index).widget()
-        self.verticalScrollBar().setValue(w.y())
 
     def resizeEvent(self, e):
         super().resizeEvent(e)

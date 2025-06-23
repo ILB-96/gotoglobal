@@ -74,9 +74,7 @@ class LateAlert:
                 end_time_dt = self._parse_time(end_time)
                 return end_time_dt <= dt.now() - timedelta(minutes=30)
             except Exception as e:
-                pass
-        return False
-
+                return False
     def _retrieve_ride_details(self, ride: str):
         ride_url = self._build_ride_url(ride)
         self._open_ride_page(ride_url)
@@ -91,18 +89,21 @@ class LateAlert:
     def _build_ride_url(self, ride):
         return f'{settings.goto_url}/index.html#/orders/{ride}/details'
     
+    @utils.retry(retries=settings.retry_count, delay=500, allow_falsy=True)
     def _get_ride_comment(self, page):
         try:
             return RidePage(page).ride_comment.input_value().strip()
         except Exception as e:
             return None
-        
+    
+    @utils.retry(retries=settings.retry_count, delay=500)
     def _get_car_license(self, page):
         try:
             return RidePage(page).car_license.text_content()
         except Exception as e:
             return None
-        
+    
+    @utils.retry(retries=settings.retry_count, delay=500)
     def _open_ride_page(self, ride_url: str):
         # self.web_access.create_new_page("ride", str(settings.goto_url), open_mode="reuse")
         self.web_access.create_new_page("goto_bo", ride_url, open_mode="replace")
@@ -112,8 +113,7 @@ class LateAlert:
         try:
             return dt.strptime(time_str, dt_format) if time_str else None
         except Exception as e:
-            pass
-        return None
+            return None
 
     def _notify_late_ride(self, ride, end_time, future_ride_time):
         msg = f"Ride {ride} ended at {end_time}."
@@ -123,11 +123,13 @@ class LateAlert:
             msg,
             icon=utils.resource_path(settings.app_icon)
         )
-
+    
+    @utils.retry(retries=settings.retry_count, delay=500, allow_falsy=False)
     def fetch_end_time(self, page):
         page.wait_for_timeout(1000)
         return RidePage(page).ride_end_time.text_content()
 
+    @utils.retry(retries=settings.retry_count, delay=500, allow_falsy=False)
     def fetch_start_time(self, page):
         page.wait_for_timeout(1000)
         return RidePage(page).ride_start_time.text_content()
