@@ -1,7 +1,12 @@
 import os
 from pathlib import Path
-from playwright.async_api import BrowserContext, Page, Playwright, Error as PlaywrightError
+import subprocess
+from time import sleep
+from playwright.async_api import BrowserContext, Page, Playwright, Error as PlaywrightError, Browser
 from typing import Optional
+import ctypes
+from ctypes import wintypes, byref
+from uuid import UUID
 
 class AsyncWebAccess:
     """
@@ -25,6 +30,7 @@ class AsyncWebAccess:
         self._profile = profile or None
         self.context: Optional[BrowserContext] = None
         self.pages: dict[str, Page] = {}
+        self.browser: Optional[Browser] = None
 
     async def __aenter__(self):
         # if self._browser_name == 'edge':
@@ -36,55 +42,36 @@ class AsyncWebAccess:
         #         "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
         #     )
         if self._profile:
-            browser = await self._playwright.chromium.connect_over_cdp('http://localhost:9222')
-            self.context = browser.contexts[0] if browser.contexts else await browser.new_context()
-            # if self._browser_name == 'edge':
-            #     user_data_dir = (
-            #         Path.home()
-            #         / "AppData"
-            #         / "Local"
-            #         / "Microsoft"
-            #         / "Edge"
-            #         / "User Data"
-            #         / self._profile
-            #     )
-            # else:
-            #     user_data_dir = (
-            #         Path.home()
-            #         / "AppData"
-            #         / "Local"
-            #         / "Google"
-            #         / "Chrome"
-            #         / "User Data"
-            #         / self._profile
-            #     )
-
-        #     assert os.path.exists(user_data_dir)
-        #     try:
-        #         self.context = await self._playwright.chromium.launch_persistent_context(
-        #             user_data_dir=user_data_dir.parent,
-        #             headless=self._headless,
-        #             executable_path=BROWSER_PATH,
-        #             args=["--profile-directory=" + self._profile],
-        #             no_viewport=True
-        #         )
-        #     except PlaywrightError as e:
-        #         # Fallback to a fresh context if persistent failed (e.g. profile in use)
-        #         print(f"[AsyncWebAccess] persistent context failed: {e!r}\n– falling back to fresh context")
-                
-        # else:
-        #     browser = await self._playwright.chromium.launch(
-        #         headless=self._headless,
-        #         executable_path=BROWSER_PATH,
-        #     )
-        #     self.context = await browser.new_context()
+            try:
+                self.browser = await self._playwright.chromium.connect_over_cdp('http://localhost:9222')
+                self.context = self.browser.contexts[0] if self.browser.contexts else await self.browser.new_context()
+            except Exception:
+                subprocess.call(['taskkill', '/F', '/IM', 'msedge.exe'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.call([
+                    'start', 'msedge', '--remote-debugging-port=9222', '--no-first-run'
+                ], shell=True)
+                sleep(5)
+                self.browser = await self._playwright.chromium.connect_over_cdp('http://localhost:9222')
+                self.context = self.browser.contexts[0] if self.browser.contexts else await self.browser.new_context()
         return self
+    
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self.context:
-            await self.context.close()
-        # don't suppress exceptions
+        try:
+            if self.context:
+                await self.context.close()
+        except Exception as e:
+            print(f"[WARN] Failed to close context: {e}")
+
+        try:
+            if self.browser:
+                await self.browser.close()
+        except Exception as e:
+            print(f"[WARN] Failed to close browser: {e}")
+
+        # Do not suppress exceptions from the `with` block
         return False
+
 
     async def start_context(self, ignore_patterns: str = "**/*.{png,jpg,jpeg,css,svg}"):
         if not self.context:
@@ -94,10 +81,14 @@ class AsyncWebAccess:
     async def create_pages(self, pages: dict[str, str]):
         if not self.context:
             raise RuntimeError("Context not initialized")
+        
         for name, url in pages.items():
-            await self.create_new_page(name, url)
+            try:
+                await self.create_new_page(name, url, wait_until="domcontentloaded")
+            except Exception:
+                self.pages[name] = self.context.new_page()
 
-        self.pages['blank'] = await self.create_new_page('blank', 'about:blank', open_mode='reuse')
+        # self.pages['blank'] = await self.create_new_page('blank', 'about:blank', open_mode='reuse')
 
     async def create_new_page(
         self,

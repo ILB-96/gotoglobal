@@ -40,15 +40,15 @@ class WebDataWorker(QThread):
             result = sock.connect_ex(('localhost', port))
             return result == 0
 
-
     async def _async_main(self):
         # close all edge instances
 
         if not self.is_debug_port_open():
             subprocess.call(['taskkill', '/F', '/IM', 'msedge.exe'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             subprocess.call([
-                'start', 'msedge', '--remote-debugging-port=9222'
+                'start', 'msedge', '--remote-debugging-port=9222', '--no-first-run'
             ], shell=True)
+
 
         async with async_playwright() as playwright:
             async with AsyncWebAccess(playwright, False, 'edge', 'Default') as self.web_access:
@@ -73,12 +73,51 @@ class WebDataWorker(QThread):
                     self.stop_event.clear()
                     
     async def _init_pages(self):
+        pages_data = {}
         if cfg.get(cfg.pointer):
-            await self.web_access.create_pages({
-                'pointer': 'https://fleet.pointer4u.co.il/iservices/fleet2015/login'
-            })
-        else:
-            await self.web_access.create_pages({})
+            for page in list(self.web_access.context.pages):
+                if page.url == 'https://fleet.pointer4u.co.il/iservices/fleet2015/login':
+                    self.web_access.pages['pointer'] = page
+                    break
+                if 'login' in page.url:
+                    await page.close()
+            if 'pointer' not in self.web_access.pages.keys():
+                pages_data['pointer'] = 'https://fleet.pointer4u.co.il/iservices/fleet2015/login'
+                
+        if cfg.get(cfg.create_goto_tabs):
+            goto_bo = False
+            goto_crm = False
+            for page in list(self.web_access.context.pages):
+                if settings.goto_url in page.url:
+                    goto_bo = True
+                if settings.goto_crm_url in page.url:
+                    goto_crm = True
+            if not goto_bo:
+                pages_data['goto_bo'] = settings.goto_url
+            if not goto_crm:
+                pages_data['goto_crm'] = settings.goto_crm_url
+        if cfg.get(cfg.create_goto_tabs):
+            autotel_bo = False
+            autotel_crm = False
+            for page in list(self.web_access.context.pages):
+                if settings.autotel_url in page.url:
+                    autotel_bo = True
+                if settings.autotel_crm_url in page.url:
+                    autotel_crm = True
+            if not autotel_bo:
+                pages_data['autotel_bo'] = settings.autotel_url
+            if not autotel_crm:
+                pages_data['autotel_crm'] = settings.autotel_crm_url
+        
+        for page in list(self.web_access.context.pages):
+            if page.url == 'about:blank':
+                self.web_access.pages['blank'] = page
+                break
+        if 'blank' not in self.web_access.pages.keys():
+            pages_data['blank'] = 'about:blank'
+                
+            
+        await self.web_access.create_pages(pages_data)
             
     async def _handle_url_queue(self):
         while not self.url_queue.empty() and self.running:
@@ -122,6 +161,8 @@ class WebDataWorker(QThread):
         while True:
             try:
                 await self.web_access.pages["pointer"].wait_for_selector('textarea.realInput', timeout=7000)
+                if await self.web_access.pages["pointer"].locator('.confirm').is_visible():
+                    await self.web_access.pages["pointer"].locator('.confirm').click()
                 self.request_otp_input.emit()
                 self.stop_event.wait()
                 self.stop_event.clear()

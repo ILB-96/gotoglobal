@@ -83,6 +83,7 @@ class SettingsInterface(ScrollArea):
         return_shortcut.activated.connect(self.saveBtn.clicked)
         enter_shortcut.activated.connect(self.saveBtn.clicked)
         self.saveBtn.clicked.connect(self._on_save_clicked)
+
         self.__initWidget()
         self.__initLayout()
 
@@ -159,10 +160,6 @@ class SettingsPopup(FluentWindow):
         self.setWindowTitle("Settings")
         self.setFixedSize(560, 600)
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        self.titleBar.maxBtn.setParent(None)
-        self.titleBar.maxBtn.deleteLater()
-        self.titleBar.closeBtn.setParent(None)
-        self.titleBar.closeBtn.deleteLater()
 
         self.setWindowIcon(FIF.SETTING.icon())
         self.settingsPage = SettingsInterface(self)
@@ -177,6 +174,10 @@ class SettingsPopup(FluentWindow):
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.show()
         self.loop.exec()
+    def closeEvent(self, event):
+        """Called when user clicks the 'X' close button."""
+        self.settingsPage._on_save_clicked()  # trigger save/emit/close manually
+        super().closeEvent(event)
 
     def on_settings_confirmed(self):
         self.loop.quit()
