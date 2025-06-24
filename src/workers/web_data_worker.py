@@ -94,7 +94,7 @@ class WebDataWorker(QThread):
             elif targets['blank'] and page.url == targets['blank']:
                 self.web_access.pages['blank'] = page
                 targets['blank'] = None
-            elif 'login' in page.url or 'about:blank' in page.url:
+            elif 'login' in page.url or 'about:blank' in page.url or 'pointer4u' in page.url:
                 await page.close()
             elif targets['goto_bo'] and targets['goto_bo'] in page.url:
                 self.web_access.pages['goto_bo'] = page
