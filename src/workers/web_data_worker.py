@@ -73,51 +73,43 @@ class WebDataWorker(QThread):
                     self.stop_event.clear()
                     
     async def _init_pages(self):
-        pages_data = {}
-        if cfg.get(cfg.pointer):
-            for page in list(self.web_access.context.pages):
-                if page.url == 'https://fleet.pointer4u.co.il/iservices/fleet2015/login':
-                    self.web_access.pages['pointer'] = page
-                    break
-                if 'login' in page.url:
-                    await page.close()
-            if 'pointer' not in self.web_access.pages.keys():
-                pages_data['pointer'] = 'https://fleet.pointer4u.co.il/iservices/fleet2015/login'
-                
-        if cfg.get(cfg.create_goto_tabs):
-            goto_bo = False
-            goto_crm = False
-            for page in list(self.web_access.context.pages):
-                if settings.goto_url in page.url:
-                    goto_bo = True
-                if settings.goto_crm_url in page.url:
-                    goto_crm = True
-            if not goto_bo:
-                pages_data['goto_bo'] = settings.goto_url
-            if not goto_crm:
-                pages_data['goto_crm'] = settings.goto_crm_url
-        if cfg.get(cfg.create_goto_tabs):
-            autotel_bo = False
-            autotel_crm = False
-            for page in list(self.web_access.context.pages):
-                if settings.autotel_url in page.url:
-                    autotel_bo = True
-                if settings.autotel_crm_url in page.url:
-                    autotel_crm = True
-            if not autotel_bo:
-                pages_data['autotel_bo'] = settings.autotel_url
-            if not autotel_crm:
-                pages_data['autotel_crm'] = settings.autotel_crm_url
+        pages_to_create = {}
+        pointer_url = 'https://fleet.pointer4u.co.il/iservices/fleet2015/login'
+        autotel_crm_url = 'https://autotel.crm4.dynamics.com'
+        goto_crm_url = 'https://goto.crm4.dynamics.com'
+        targets = {'pointer': pointer_url if cfg.get(cfg.pointer) else None,
+                'goto_bo': settings.goto_url if cfg.get(cfg.create_goto_tabs) else None,
+                'goto_crm': goto_crm_url if cfg.get(cfg.create_goto_tabs) else None,
+                'autotel_bo': settings.autotel_url if cfg.get(cfg.create_autotel_tabs) else None,
+                'autotel_crm': autotel_crm_url if cfg.get(cfg.create_autotel_tabs) else None,
+                'blank': 'about:blank'}
         
         for page in list(self.web_access.context.pages):
-            if page.url == 'about:blank':
+            if targets['pointer'] and page.url == targets['pointer']:
+                self.web_access.pages['pointer'] = page
+                targets['pointer'] = None
+            elif targets['blank'] and page.url == targets['blank']:
                 self.web_access.pages['blank'] = page
-                break
-        if 'blank' not in self.web_access.pages.keys():
-            pages_data['blank'] = 'about:blank'
-                
-            
-        await self.web_access.create_pages(pages_data)
+                targets['blank'] = None
+            elif 'login' in page.url or 'about:blank' in page.url:
+                await page.close()
+            elif targets['goto_bo'] and targets['goto_bo'] in page.url:
+                self.web_access.pages['goto_bo'] = page
+                targets['goto_bo'] = None
+            elif targets['goto_crm'] and targets['goto_crm'] in page.url:
+                self.web_access.pages['goto_crm'] = page
+                targets['goto_crm'] = None
+            elif targets['autotel_bo'] and targets['autotel_bo'] in page.url:
+                self.web_access.pages['autotel_bo'] = page
+                targets['autotel_bo'] = None
+            elif targets['autotel_crm'] and targets['autotel_crm'] in page.url:
+                self.web_access.pages['autotel_crm'] = page
+                targets['autotel_crm'] = None
+
+
+        pages_to_create = {key: url for key, url in targets.items() if url}
+
+        await self.web_access.create_pages(pages_to_create)
             
     async def _handle_url_queue(self):
         while not self.url_queue.empty() and self.running:
