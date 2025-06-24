@@ -86,8 +86,11 @@ class WebDataWorker(QThread):
         
         for page in list(self.web_access.context.pages):
             if targets['pointer'] and page.url == targets['pointer']:
-                self.web_access.pages['pointer'] = page
-                targets['pointer'] = None
+                if await page.locator('textarea.realInput').is_visible():
+                    await page.close()
+                else:
+                    self.web_access.pages['pointer'] = page
+                    targets['pointer'] = None
             elif targets['blank'] and page.url == targets['blank']:
                 self.web_access.pages['blank'] = page
                 targets['blank'] = None
