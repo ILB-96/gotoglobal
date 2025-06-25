@@ -7,7 +7,6 @@ from PyQt6.QtWidgets import (QAbstractItemView, QStyledItemDelegate, QApplicatio
                              QTableView, QTableWidget, QWidget, QTableWidgetItem, QStyle,
                              QStyleOptionButton)
 
-from .check_box import CheckBoxIcon
 from ...common.font import getFont
 from ...common.color import autoFallbackThemeColor
 from ...common.style_sheet import isDarkTheme, FluentStyleSheet, themeColor, setCustomStyleSheet
@@ -162,39 +161,9 @@ class TableItemDelegate(QStyledItemDelegate):
         if index.row() in self.selectedRows and index.column() == 0 and self.parent().horizontalScrollBar().value() == 0:
             self._drawIndicator(painter, option, index)
 
-        if index.data(Qt.ItemDataRole.CheckStateRole) is not None:
-            self._drawCheckBox(painter, option, index)
 
         painter.restore()
         super().paint(painter, option, index)
-
-    def _drawCheckBox(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
-        painter.save()
-        checkState = Qt.CheckState(index.data(Qt.ItemDataRole.CheckStateRole))
-
-        isDark = isDarkTheme()
-
-        r = 4.5
-        x = option.rect.x() + 15
-        y = option.rect.center().y() - 9.5
-        rect = QRectF(x, y, 19, 19)
-
-        if checkState == Qt.CheckState.Unchecked:
-            painter.setBrush(QColor(0, 0, 0, 26) if isDark else QColor(0, 0, 0, 6))
-            painter.setPen(QColor(255, 255, 255, 142) if isDark else QColor(0, 0, 0, 122))
-            painter.drawRoundedRect(rect, r, r)
-        else:
-            color = autoFallbackThemeColor(self.lightCheckedColor, self.darkCheckedColor)
-            painter.setPen(color)
-            painter.setBrush(color)
-            painter.drawRoundedRect(rect, r, r)
-
-            if checkState == Qt.CheckState.Checked:
-                CheckBoxIcon.ACCEPT.render(painter, rect)
-            else:
-                CheckBoxIcon.PARTIAL_ACCEPT.render(painter, rect)
-
-        painter.restore()
 
     def helpEvent(self, event: QHelpEvent, view: QAbstractItemView, option: QStyleOptionViewItem, index: QModelIndex) -> bool:
         return self.tooltipDelegate.helpEvent(event, view, option, index)
