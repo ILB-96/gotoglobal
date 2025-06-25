@@ -16,7 +16,7 @@ autotel_icon =  os.path.abspath("autoFav.ico")
 
 # Main analysis
 a = Analysis(
-    ['app.py'],
+    ['main.py'],
     pathex=['.', 'services', 'src'],
     binaries=[
         python_dll_tuple
