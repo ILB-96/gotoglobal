@@ -19,7 +19,6 @@ from .menu import (DWMMenu, LineEditMenu, RoundMenu, MenuAnimationManager, MenuA
 from .info_bar import InfoBar, InfoBarIcon, InfoBarPosition, InfoBarManager
 from .info_badge import InfoBadge, InfoLevel, DotInfoBadge, IconInfoBadge, InfoBadgePosition, InfoBadgeManager
 from .scroll_area import SingleDirectionScrollArea, SmoothMode, SmoothScrollArea, ScrollArea
-from .slider import Slider, HollowHandleStyle, ClickableSlider
 from .stacked_widget import PopUpAniStackedWidget, OpacityAniStackedWidget
 from .state_tool_tip import StateToolTip
 from .switch_button import SwitchButton, IndicatorPosition

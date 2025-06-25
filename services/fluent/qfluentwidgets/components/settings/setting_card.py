@@ -6,13 +6,10 @@ from PyQt6.QtGui import QColor, QIcon, QPainter
 from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QToolButton,
                              QVBoxLayout, QPushButton)
 
-from ..dialog_box.color_dialog import ColorDialog
 from ..widgets.combo_box import ComboBox
 from ..widgets.line_edit import LineEdit
 from ..widgets.switch_button import SwitchButton, IndicatorPosition
-from ..widgets.slider import Slider
 from ..widgets.icon_widget import IconWidget
-from ..widgets.button import HyperlinkButton
 from ...common.style_sheet import FluentStyleSheet
 from ...common.config import qconfig, isDarkTheme, ConfigItem, OptionsConfigItem
 from ...common.icon import FluentIconBase, drawIcon
