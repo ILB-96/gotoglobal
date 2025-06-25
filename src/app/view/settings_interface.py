@@ -58,6 +58,9 @@ class SettingsInterface(ScrollArea):
         )
 
         self.othersGroup = SettingCardGroup("Others", self.scrollWidget)
+        self.whatsappCard = SwitchSettingCard(
+            FIF.MESSAGE, "Create Whatsapp page", "Create Whatsapp page for (if not already exists)", cfg.create_whatsapp_page, self.othersGroup
+        )
         self.pointerCard = SwitchSettingCard(
             FIF.GLOBE, "Pointer (Required for Autotel)", "Enable Pointer location integration", 
             cfg.pointer, self.othersGroup
@@ -109,6 +112,7 @@ class SettingsInterface(ScrollArea):
         self.autotelGroup.addSettingCard(self.longRidesCard)
         self.autotelGroup.addSettingCard(self.batteriesCard)
         self.autotelGroup.addSettingCard(self.createAutotelTabsCard)
+        self.othersGroup.addSettingCard(self.whatsappCard)
         self.othersGroup.addSettingCard(self.pointerCard)
         self.othersGroup.addSettingCard(self.pointerRowCard)
 

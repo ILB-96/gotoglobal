@@ -16,7 +16,10 @@ class LateAlert:
         
         for _ in range(settings.retry_count):
             self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/current/', 'reuse')
-            self.web_access.pages['goto_bo'].wait_for_timeout(5000)
+            try:
+                self.web_access.pages['goto_bo'].wait_for_timeout(5000)
+            except Exception as e:
+                pass
             late_rides = self.fetch_late_ride()
             if late_rides:
                 break

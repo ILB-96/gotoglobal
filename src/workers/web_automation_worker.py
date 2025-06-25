@@ -31,7 +31,7 @@ class WebAutomationWorker(QThread):
     @pyqtSlot()
     def run(self):
         with sync_playwright() as playwright:
-            with WebAccess(playwright, settings.playwright_headless, 'chrome', 'Default') as self.web_access:
+            with WebAccess(playwright, settings.playwright_headless, 'edge', 'Default') as self.web_access:
                 self._init_pages()
                 
                 self.stop_event.wait()
@@ -120,13 +120,12 @@ class WebAutomationWorker(QThread):
     @pyqtSlot(object)
     def set_location_data(self, data):
         """Receives location data from WebDataWorker."""
-        print(f"Received location data: {data}")
         with self._location_condition:
             self._location_response = data
             self._location_condition.notify()
 
     def establish_connection(self, page: Page, cta: str):
-        while page.url.contains('login'):
+        while 'login' in page.url:
             self.request_connection.emit(cta)
             self.stop_event.wait()
             self.stop_event.clear()

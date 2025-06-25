@@ -7,7 +7,7 @@ from src.pages.ride_page import RidePage
 from src.shared import PointerLocation, utils
 
 class BatteriesAlert:
-    def __init__(self, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None, open_ride):
+    def __init__(self, show_toast, gui_table_row, web_access: WebAccess, pointer, open_ride):
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row
         self.web_access = web_access
@@ -27,14 +27,23 @@ class BatteriesAlert:
             rows.append(data)
         
         for row in rows:
-            page = self.web_access.create_new_page('autotel_bo', row[-1])
-            row[-1] = RidePage(page).ride_comment.input_value().strip()
+            self.process_car_data(row)
             
         self.gui_table_row(rows)
 
         for row in rows:
             _, car_license, car_battery, location, _ = row
             self.notify_battery_condition(car_license, car_battery, location)
+
+    @utils.retry(allow_falsy=True)
+    def process_car_data(self, row):
+        page = self.web_access.create_new_page('autotel_bo', row[-1], 'reuse')
+        if 'login' in page.url:
+            self.web_access.create_new_page('autotel_bo', settings.autotel_url)
+            page = self.web_access.create_new_page('autotel_bo', row[-1], 'reuse')
+        page.wait_for_timeout(2000)
+        row[-1] = RidePage(page).ride_comment.input_value().strip()
+        
     @utils.retry(allow_falsy=False)
     def extract_car_details(self, row):
         car_license = str(row.locator('//*[contains(@ng-click, "carsTableCtrl.showCarDetails(row)")]').text_content()).strip()
@@ -47,6 +56,7 @@ class BatteriesAlert:
 
     def notify_battery_condition(self, car_id, car_battery, location):
         is_low_battery = int(car_battery.replace("%", "")) <= 30
+        is_very_low_battery = int(car_battery.replace("%", "")) <= 15
         is_not_service_location ='תל אביב' not in location
                                       
         if is_low_battery and is_not_service_location:
@@ -55,13 +65,13 @@ class BatteriesAlert:
                     f"Electric Car {car_id} has low battery: {car_battery} Outside of Tel Aviv",
                     icon=utils.resource_path(settings.autotel_icon)
                 )
-        elif is_not_service_location:
-            self.show_toast(
-                    "Autotel ~ Batteries Alert!",
-                    f"Electric Car {car_id}\nwith {car_battery} battery\nis not in Tel Aviv: {location}",
-                    icon=utils.resource_path(settings.autotel_icon)
-                )
-        elif is_low_battery:
+        # elif is_not_service_location:
+        #     self.show_toast(
+        #             "Autotel ~ Batteries Alert!",
+        #             f"Electric Car {car_id}\nwith {car_battery} battery\nis not in Tel Aviv: {location}",
+        #             icon=utils.resource_path(settings.autotel_icon)
+        # )
+        elif is_very_low_battery:
             self.show_toast(
                     "Autotel ~ Batteries Alert!",
                     f"Electric Car {car_id} has low battery: {car_battery}",

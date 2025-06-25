@@ -19,6 +19,7 @@ class Config(QConfig):
     late_rides = ConfigItem("MainWindow", "lateRidesEnabled", True, BoolValidator())
     long_rides = ConfigItem("MainWindow", "longRidesEnabled", True, BoolValidator())
     batteries = ConfigItem("MainWindow", "batteriesEnabled", True, BoolValidator())
+    create_whatsapp_page = ConfigItem("MainWindow", "whatsappEnabled", True, BoolValidator())
     pointer = ConfigItem("MainWindow", "pointerEnabled", True, BoolValidator())
     pointer_user = ConfigItem("MainWindow", "pointerUsername", Path.home().name, ConfigValidator())
     phone = ConfigItem("MainWindow", "phoneNumber", "", ConfigValidator())

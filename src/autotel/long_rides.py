@@ -11,7 +11,7 @@ class LongRides:
     This class is responsible for managing long rides, including
     their creation, updates, and any other related operations.
     """
-    def __init__(self, show_toast, gui_table_row, web_access: WebAccess, pointer: PointerLocation | None, open_ride):
+    def __init__(self, show_toast, gui_table_row, web_access: WebAccess, pointer, open_ride):
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row
         self.web_access = web_access
@@ -24,8 +24,11 @@ class LongRides:
         This method will create a new page for long rides and fetch
         the relevant data.
         """
+
         self.web_access.create_new_page("autotel_ride", settings.autotel_url, "reuse")
-        
+
+        if 'login' in self.web_access.pages["autotel_ride"].url:
+            self.web_access.create_new_page("autotel_ride", settings.autotel_url)        
         
         rows = []
         for _ in range(3):
@@ -43,6 +46,7 @@ class LongRides:
 
     def collect_rides_information(self, rows):
         page = self.web_access.create_new_page("autotel_bo", f'{settings.autotel_url}/index.html#/orders/current', "reuse")
+        page.wait_for_timeout(2000)
         rides_page = pages.RidesPage(page)
         rides_page.set_ride_duration_sort("asc")
         for row in rides_page.orders_table_rows:
@@ -90,7 +94,7 @@ class LongRides:
             str: The ride comment if available, otherwise an empty string.
         """
         page = self.web_access.create_new_page("autotel_ride", url, "reuse", wait_until='domcontentloaded')
-        page.wait_for_timeout(1000)
+        page.wait_for_timeout(2000)
         ride_comment = pages.RidePage(page).ride_comment.input_value().strip()
         
         return ride_comment if ride_comment else "No comment"

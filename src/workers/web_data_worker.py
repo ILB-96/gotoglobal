@@ -41,7 +41,6 @@ class WebDataWorker(QThread):
             return result == 0
 
     async def _async_main(self):
-        # close all edge instances
 
         if not self.is_debug_port_open():
             subprocess.call(['taskkill', '/F', '/IM', 'msedge.exe'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -64,7 +63,7 @@ class WebDataWorker(QThread):
                     if 'blank' in self.web_access.pages.keys() and not self.web_access.pages['blank'].is_closed():
                         await self.web_access.pages['blank'].reload()
                     else:
-                        await self.web_access.create_new_page({'blank','about:blank'}, 'reuse')
+                        await self.web_access.create_new_page('blank','about:blank', 'reuse')
                     now = time.time()
                     if now - start_time >= settings.interval and pointer:
                         start_time = now
@@ -77,12 +76,15 @@ class WebDataWorker(QThread):
         pointer_url = 'https://fleet.pointer4u.co.il/iservices/fleet2015/login'
         autotel_crm_url = 'https://autotel.crm4.dynamics.com'
         goto_crm_url = 'https://goto.crm4.dynamics.com'
-        targets = {'pointer': pointer_url if cfg.get(cfg.pointer) else None,
+        whatsapp_url = 'https://web.whatsapp.com'
+        targets = {'blank': 'about:blank',
+                'pointer': pointer_url if cfg.get(cfg.pointer) else None,
                 'goto_bo': settings.goto_url if cfg.get(cfg.create_goto_tabs) else None,
                 'goto_crm': goto_crm_url if cfg.get(cfg.create_goto_tabs) else None,
                 'autotel_bo': settings.autotel_url if cfg.get(cfg.create_autotel_tabs) else None,
                 'autotel_crm': autotel_crm_url if cfg.get(cfg.create_autotel_tabs) else None,
-                'blank': 'about:blank'}
+                'whatsapp':  whatsapp_url if cfg.get(cfg.create_whatsapp_page) else None,
+                }
         
         for page in list(self.web_access.context.pages):
             if targets['pointer'] and page.url == targets['pointer']:
@@ -108,6 +110,9 @@ class WebDataWorker(QThread):
             elif targets['autotel_crm'] and targets['autotel_crm'] in page.url:
                 self.web_access.pages['autotel_crm'] = page
                 targets['autotel_crm'] = None
+            elif targets['whatsapp'] and targets['whatsapp'] in page.url:
+                self.web_access.pages['whatsapp'] = page
+                targets['whatsapp'] = None
 
 
         pages_to_create = {key: url for key, url in targets.items() if url}
@@ -128,6 +133,8 @@ class WebDataWorker(QThread):
                 pass
             
     async def _handle_pointer_location_queue(self, pointer: PointerLocation):
+        if not pointer:
+            return
         while not self.pointer_queue.empty() and self.running:
             try:
                 car_license = self.pointer_queue.get_nowait()
@@ -161,6 +168,8 @@ class WebDataWorker(QThread):
                 self.request_otp_input.emit()
                 self.stop_event.wait()
                 self.stop_event.clear()
+                if not self.code:
+                    break
                 await pointer.fill_otp(self.code)
                 time.sleep(2)
             except Exception:

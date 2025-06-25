@@ -32,7 +32,6 @@ class WebAccess:
                     / "Local"
                     / "Microsoft"
                     / "Edge"
-                    / "User Data"
                     / profile
                 )
             else:
@@ -42,16 +41,16 @@ class WebAccess:
                     / "Local"
                     / "Google"
                     / "Chrome"
+                    / "User Data"
                     / profile
                 )
-
-            assert os.path.exists(user_data_dir)
+                    
 
             self.context = playwright.chromium.launch_persistent_context(
                 user_data_dir=user_data_dir.parent,
                 headless=headless,
                 executable_path=BROWSER_PATH,
-                args=["--profile-directory=" + profile,
+                args=[
                 '--disable-blink-features=AutomationControlled',
                 '--disable-infobars'],
             )

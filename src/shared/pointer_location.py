@@ -1,5 +1,6 @@
 from services import AsyncWebAccess
 from src import pages
+from src.shared import utils
 
 
 class PointerLocation:
@@ -23,6 +24,7 @@ class PointerLocation:
         login_page = pages.PointerLoginPage(self.webaccess.pages['pointer'])
         await login_page.login(user, phone)
 
+    @utils.retry(allow_falsy=True, retries=1)
     async def fill_otp(self, otp: str):
         """
         Fills the OTP input field with the provided OTP.

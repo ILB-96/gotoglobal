@@ -21,16 +21,14 @@ class AsyncWebAccess:
         self,
         playwright: Playwright,                  # the result of `async with async_playwright()`
         headless: bool = True,
-        browser_name: Optional[Path] = 'edge',
-        profile: Optional[str] = "Default",
+        browser_name: str = 'edge',
+        profile: str = "Default",
     ):
         self._playwright = playwright
         self._headless = headless
         self._browser_name = browser_name
         self._profile = profile or None
-        self.context: Optional[BrowserContext] = None
         self.pages: dict[str, Page] = {}
-        self.browser: Optional[Browser] = None
 
     async def __aenter__(self):
         # if self._browser_name == 'edge':
@@ -86,7 +84,7 @@ class AsyncWebAccess:
             try:
                 await self.create_new_page(name, url, wait_until="domcontentloaded")
             except Exception:
-                self.pages[name] = self.context.new_page()
+                self.pages[name] = await self.context.new_page()
 
         # self.pages['blank'] = await self.create_new_page('blank', 'about:blank', open_mode='reuse')
 
