@@ -3,7 +3,7 @@ from typing import Union
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QIcon, QPainter
-from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QToolButton,
+from PyQt6.QtWidgets import (QFrame, QHBoxLayout, QLabel,
                              QVBoxLayout, QPushButton)
 
 from ..widgets.combo_box import ComboBox
