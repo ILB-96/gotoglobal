@@ -1,7 +1,4 @@
-from src.frontend import Input
-from services import PopupWindow
-from src.shared import utils
-import settings
+
 from .view.settings_interface import SettingsPopup
 
 from PyQt6.QtWidgets import QVBoxLayout, QLineEdit
@@ -10,7 +7,7 @@ from services.fluent.qfluentwidgets import PrimaryPushButton, InfoBar, FluentSty
 
 from qframelesswindow import FramelessDialog
 
-from PyQt6.QtWidgets import QVBoxLayout, QLineEdit, QWidget
+from PyQt6.QtWidgets import QVBoxLayout, QLineEdit
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer
 from qframelesswindow import FramelessDialog
 

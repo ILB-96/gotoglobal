@@ -18,6 +18,7 @@ if __name__ == "__main__":
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Critical)
         msg.setWindowTitle("Startup Error")
+        msg.setFixedSize(600, 400)
         msg.setText("An error occurred:")
         msg.setDetailedText(traceback.format_exc())
         msg.exec()

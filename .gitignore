@@ -7,3 +7,4 @@ dist
 .venv
 build
 .DS_Store
+.coverage
