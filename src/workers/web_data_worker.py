@@ -132,7 +132,7 @@ class WebDataWorker(QThread):
             except Exception:
                 pass
             
-    async def _handle_pointer_location_queue(self, pointer: PointerLocation):
+    async def _handle_pointer_location_queue(self, pointer: PointerLocation | None):
         if not pointer:
             return
         while not self.pointer_queue.empty() and self.running:
