@@ -14,48 +14,71 @@ class LateAlert:
     def start_requests(self):
         late_rides = None
         
-        for _ in range(settings.retry_count):
-            self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/current/', 'reuse')
-            try:
-                self.web_access.pages['goto_bo'].wait_for_timeout(5000)
-            except Exception as e:
-                pass
-            late_rides = self.fetch_late_ride()
-            if late_rides:
-                break
+        late_rides = self.fetch_late_rides()
+
+            
         
         if not late_rides:
-            self.gui_table_row([['No late reservations found', '0', '0', '0', '0']], btn_colors=("#1d5cd0", "#392890","#1f1f68"))
+            self.gui_table_row([['No late rides', '0', '0', '0', '0']])
             return self._notify_no_late_reservations()
         
-        self.rows = []
+        rows = []
         for ride in late_rides:
-            self._process_ride(ride)
+            self._process_ride(rows,ride)
         
+        page = self.create_future_orders_page()
+        for row in rows:
+            self.fetch_future_ride(page, row)
+                
+                
+        self.gui_table_row(rows)
+        
+        self.notify_late_rides(rows)
+
+    @utils.retry(allow_falsy=True)
+    def fetch_future_ride(self, page, row):
+        car_license = row[2]
+        if not car_license:
+            row[2] = row[3] = "No car license found"
+            return
+        RidesPage(page).search_by_car_license(car_license)
+        page.wait_for_timeout(2000)
+        for sorted_row in RidesPage(page).orders_table_rows:
+            start_time = self.fetch_row_start_time(page, sorted_row)
+            ride_id = self.fetch_row_ride_id(page, sorted_row)
+            if not row[3] or self._parse_time(start_time) < self._parse_time(row[3]):
+                row[2], row[3] = ride_id, start_time
+        if row[3]:
+            callback = partial(self.open_ride.emit, self._build_ride_url(row[2]))
+            row[2] = (row[2], callback)
+        else:
+            row[2] = row[3] = "No future ride found"
+
+    @utils.retry()
+    def fetch_row_ride_id(self, page, sorted_row):
+        return RidesPage(page).get_ride_id_from_row(sorted_row).text_content().strip()
+    
+    @utils.retry()
+    def fetch_row_start_time(self, page, sorted_row):
+        return RidesPage(page).row_start_time_cell(sorted_row).text_content().strip()
+
+    @utils.retry(allow_falsy=True)
+    def create_future_orders_page(self):
         page = self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/future/', 'reuse')
-        for row in self.rows:
-            car_license = row[2]
-            RidesPage(page).search_by_car_license(car_license)
-            page.wait_for_timeout(2000)
-            for sorted_row in RidesPage(page).orders_table_rows:
-                start_time = RidesPage(page).row_start_time_cell(sorted_row).text_content().strip()
-                ride_id = RidesPage(page).get_ride_id_from_row(sorted_row).text_content().strip()
-                if not row[3] or self._parse_time(start_time) < self._parse_time(row[3]):
-                    row[2], row[3] = ride_id, start_time
-            if row[3]:
-                callback = partial(self.open_ride.emit, self._build_ride_url(row[2]))
-                row[2] = (row[2], callback)
-            else:
-                row[2] = row[3] = "No future ride found"
-                
-                
-        self.gui_table_row(self.rows, btn_colors=('#1d5cd0', '#392890','#1f1f68'))
-        
-        for row in self.rows:
+        return page
+
+    def notify_late_rides(self, rows):
+        for row in rows:
             ride_id, end_time, _, future_ride_time, _ = row
             if self._should_skip_due_to_end_time(end_time):
                 continue
             self._notify_late_ride(ride_id[0], end_time, future_ride_time)
+
+    @utils.retry()
+    def fetch_late_rides(self):
+        self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/current/', 'reuse')
+        self.web_access.pages['goto_bo'].wait_for_timeout(5000)
+        return self.fetch_late_ride()
 
     def _notify_no_late_reservations(self):
         self.show_toast(
@@ -64,30 +87,30 @@ class LateAlert:
             icon=utils.resource_path(settings.app_icon)
         )
 
-    def _process_ride(self, ride: str):
-        end_time, car_license, ride_comment = self._retrieve_ride_details(ride)
+    def _process_ride(self, rows, ride: str):
+        self._retrieve_ride_details(ride)
+                
+        end_time = self.fetch_end_time(self.web_access.pages['goto_bo'])
+        car_license = self._get_car_license(self.web_access.pages['goto_bo'])
+        ride_comment = self._get_ride_comment(self.web_access.pages['goto_bo'])
+        
         url = self._build_ride_url(ride)
         open_ride_url = partial(self.open_ride.emit, url)
-        self.rows.append([(ride, open_ride_url), end_time, car_license, "", ride_comment])
+        rows.append([(ride, open_ride_url), end_time, car_license, "", ride_comment])
 
 
     def _should_skip_due_to_end_time(self, end_time):
         if end_time:
             try:
                 end_time_dt = self._parse_time(end_time)
-                return end_time_dt <= dt.now() - timedelta(minutes=30)
-            except Exception as e:
+                return end_time_dt and end_time_dt <= dt.now() - timedelta(minutes=30)
+            except Exception:
                 return False
+    
+    @utils.retry(allow_falsy=True)
     def _retrieve_ride_details(self, ride: str):
         ride_url = self._build_ride_url(ride)
         self._open_ride_page(ride_url)
-        
-        end_time = self.fetch_end_time(self.web_access.pages['goto_bo'])
-        car_license = self._get_car_license(self.web_access.pages['goto_bo'])
-        ride_comment = self._get_ride_comment(self.web_access.pages['goto_bo'])
-
-
-        return end_time, car_license, ride_comment
 
     def _build_ride_url(self, ride):
         return f'{settings.goto_url}/index.html#/orders/{ride}/details'
@@ -96,7 +119,7 @@ class LateAlert:
     def _get_ride_comment(self, page):
         try:
             return RidePage(page).ride_comment.input_value().strip()
-        except Exception as e:
+        except Exception:
             return None
     
     @utils.retry(retries=settings.retry_count, delay=500)
