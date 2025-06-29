@@ -1,6 +1,6 @@
 from time import sleep
 from typing import Literal
-from playwright.sync_api import Page
+from playwright.async_api import Page
 
 from .table_element import TableElement
 
@@ -23,9 +23,9 @@ class RidesPage:
         """
         return str(self.page.locator("th", has=self.table_duration_button()).get_attribute("class"))
     
-    @property
-    def orders_table_rows(self):
-        return TableElement(self.page).table_rows
+
+    async def orders_table_rows(self):
+        return await TableElement(self.page).table_rows()
     
     @property
     def car_license_input(self):
@@ -43,61 +43,61 @@ class RidesPage:
         """
         return TableElement(self.page).row_6th_cell(row)
     
-    def search_by_car_license(self, car_license: str):
+    async def search_by_car_license(self, car_license: str):
         """
         Searches for rides by car license.
         :param car_license: The car license to search for
         """
-        self.car_license_input.fill(car_license)
+        await self.car_license_input.fill(car_license)
 
-    def late_rides_frame(self):
+    async def late_rides_frame(self):
         """
         Finds the iframe that contains the late reservations section.
         :return: Playwright Frame object
         """
         # Find the iframe element (adjust selector if needed)
         iframe_element = self.page.locator("iframe").first
-        self.page.wait_for_timeout(500)
+        await self.page.wait_for_timeout(500)
 
 
-        iframe_element.wait_for()
+        await iframe_element.wait_for()
 
         # Get the actual frame object
-        frame = iframe_element.element_handle().content_frame()
+        frame = await (await iframe_element.element_handle()).content_frame()
 
         if frame is None:
             raise Exception("Late rides iframe not found")
 
         # Wait for some known content to appear inside the frame
-        frame.get_by_text("A2A - Late Reservations Reservation that customer is far from parking").wait_for()
+        await frame.get_by_text("A2A - Late Reservations Reservation that customer is far from parking").wait_for()
 
         return frame
 
 
-    def late_rides_entries(self):
+    async def late_rides_entries(self):
         """
         Fetches late rides entries from the late rides frame.
         :return: List of h3 elements under the late rides section
         """
 
         try:     
-            frame = self.late_rides_frame()
-            frame.wait_for_selector('#billingReceipetSpan h3',timeout=5000)
+            frame = await self.late_rides_frame()
+            await frame.wait_for_selector('#billingReceipetSpan h3',timeout=5000)
 
-            return frame.locator('#billingReceipetSpan h3').all()
+            return await frame.locator('#billingReceipetSpan h3').all()
         except Exception:
             return []
 
     
-    def set_ride_duration_sort(self, order: Literal["asc", "desc"]):
+    async def set_ride_duration_sort(self, order: Literal["asc", "desc"]):
         """
         Sets the duration sort order for the orders table.
         :param order: "asc" for ascending, "desc" for descending
         """
-        self.table_duration_button().click()
+        await self.table_duration_button().click()
         if order == 'desc':
-            self.page.wait_for_timeout(1000)
-            self.table_duration_button().click()
+            await self.page.wait_for_timeout(1000)
+            await self.table_duration_button().click()
             
     def get_ride_id_from_row(self, row):
         """
@@ -139,5 +139,10 @@ class RidesPage:
         """
         return row.locator('[ng-if="ordersCtrl.pageType === \'current\'"]')
     
-    def get_late_rides(self):
-        return [str(h3.text_content()).strip() for h3 in self.late_rides_entries() if h3.text_content()]
+    async def get_late_rides(self):
+        results = []
+        for h3 in await self.late_rides_entries():
+            text = await h3.text_content()
+            if text:
+                results.append(str(text).strip())
+        return results
