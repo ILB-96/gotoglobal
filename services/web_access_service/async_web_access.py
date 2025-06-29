@@ -119,13 +119,15 @@ class AsyncWebAccess:
 
         # self.pages['blank'] = await self.create_new_page('blank', 'about:blank', open_mode='reuse')
 
+    from typing import Literal
+
     async def create_new_page(
         self,
         page_name: str,
         url: str,
         open_mode: str = "close",
         timeout: int = 45_000,
-        wait_until: str = "networkidle",
+        wait_until: Literal['commit', 'domcontentloaded', 'load', 'networkidle'] = "networkidle",
     ) -> Page:
         if open_mode == "close" and page_name in self.pages:
             old = self.pages[page_name]
