@@ -153,6 +153,10 @@ class WebDataWorker(QThread):
             await page.bring_to_front()
             await page.wait_for_function("document.title.length > 0")
             title = await page.title()
+            if page.url != 'url':
+                await page.goto(url)
+            await page.wait_for_function("document.title.length > 0")
+            title = await page.title()
             self.bring_window_to_front(title)
         except Exception:
             pass

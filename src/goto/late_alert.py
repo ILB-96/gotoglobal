@@ -36,9 +36,7 @@ class LateAlert:
     def fetch_late_rides(self):
         self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/current/', 'reuse')
         self.web_access.pages['goto_bo'].wait_for_timeout(3000)
-        result = self.fetch_late_ride()
-        print(result)
-        return result
+        return self.fetch_late_ride()
     
     def fetch_late_ride(self):
         """
@@ -46,9 +44,7 @@ class LateAlert:
         :param web_access: WebAccess instance
         :return: List of late reservations
         """
-        result = RidesPage(self.web_access.pages['goto_bo']).get_late_rides()
-        print(f"Late rides fetched: {result}")
-        return result
+        return RidesPage(self.web_access.pages['goto_bo']).get_late_rides()
     
     @utils.retry(allow_falsy=True)
     def fetch_future_ride(self, page, row):

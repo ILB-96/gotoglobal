@@ -25,8 +25,7 @@ class LongRides:
         This method will create a new page for long rides and fetch
         the relevant data.
         """
-
-        self.init_ride_page()        
+        self.init_ride_page(settings.autotel_url)        
         
         rows = []
         for _ in range(3):
@@ -43,11 +42,14 @@ class LongRides:
         self.gui_table_row(rows)
 
     utils.retry(allow_falsy=True)
-    def init_ride_page(self):
-        self.web_access.create_new_page("autotel_ride", settings.autotel_url, "reuse")
+    def init_ride_page(self, url):
+        self.web_access.create_new_page("autotel_ride", url, "reuse")
 
         if 'login' in self.web_access.pages["autotel_ride"].url:
-            self.web_access.create_new_page("autotel_ride", settings.autotel_url)
+            self.web_access.create_new_page("autotel_ride", url, "reuse")
+            if url != settings.autotel_url:
+                self.web_access.pages["autotel_ride"].goto(url, wait_until="networkidle")
+        return self.web_access.pages["autotel_ride"]
 
     def collect_rides_information(self, rows: List[List[Any]]):
         try:
@@ -81,7 +83,7 @@ class LongRides:
                 open_ride_url = partial(self.open_ride.emit, url) if self.open_ride else None
                 rows.append([(ride_id, open_ride_url), driver_id, duration, location, url])
         except Exception:
-            return   
+            return rows.clear()
     def parse_duration(self, duration: str) -> timedelta:
         """
         Parses the duration string into total seconds.
@@ -100,6 +102,7 @@ class LongRides:
             return timedelta(hours=hours, minutes=minutes, seconds=seconds)
         except Exception:
             return timedelta(seconds=0)
+    utils.retry()
     def get_ride_comment(self, url: str) -> str:
         """
         Fetches the ride comment from the ride details page.
@@ -110,7 +113,7 @@ class LongRides:
         Returns:
             str: The ride comment if available, otherwise an empty string.
         """
-        page = self.web_access.create_new_page("autotel_ride", url, "reuse", wait_until='domcontentloaded')
+        page = self.init_ride_page(url)
         page.wait_for_timeout(2000)
         ride_comment = pages.RidePage(page).ride_comment.input_value().strip()
         
