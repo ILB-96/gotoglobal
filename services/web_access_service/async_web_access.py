@@ -31,15 +31,7 @@ class AsyncWebAccess:
         self.pages: dict[str, Page] = {}
 
     async def __aenter__(self):
-        # if self._browser_name == 'edge':
-        #     BROWSER_PATH = Path(
-        #         "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
-        #     )
-        # elif self._browser_name == 'chrome':
-        #     BROWSER_PATH = Path(
-        #         "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
-        #     )
-        if self._profile:
+        if self._profile == "Port":
             try:
                 self.browser = await self._playwright.chromium.connect_over_cdp('http://localhost:9222')
                 self.context = self.browser.contexts[0] if self.browser.contexts else await self.browser.new_context()
@@ -51,6 +43,45 @@ class AsyncWebAccess:
                 sleep(5)
                 self.browser = await self._playwright.chromium.connect_over_cdp('http://localhost:9222')
                 self.context = self.browser.contexts[0] if self.browser.contexts else await self.browser.new_context()
+        elif self._profile:
+            if self._browser_name == 'chrome':
+                BROWSER_PATH = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
+                user_data_dir = (
+                    Path.home()
+                    / "AppData"
+                    / "Local"
+                    / "Google"
+                    / "Chrome"
+                    / "User Data"
+                    / self._profile
+                )
+            else:    
+                BROWSER_PATH = Path("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe")
+                user_data_dir = (
+                    Path.home()
+                    / "AppData"
+                    / "Local"
+                    / "Microsoft"
+                    / "Edge"
+                    / self._profile
+                )
+                self.context = await self._playwright.chromium.launch_persistent_context(
+                    user_data_dir=user_data_dir.parent,
+                    headless=self._headless,
+                    executable_path=BROWSER_PATH,
+                    args=[
+                    '--disable-blink-features=AutomationControlled',
+                    '--disable-infobars'],
+                )
+        else:
+            browser = await self._playwright.chromium.launch(
+                headless=self._headless)
+            self.context: BrowserContext = await browser.new_context()
+
+                
+            
+        self.pages: dict[str, Page] = {}
+                
         return self
     
 

@@ -55,7 +55,7 @@ class WebDataWorker(QThread):
 
 
         async with async_playwright() as playwright:
-            async with AsyncWebAccess(playwright, False, 'edge', 'Default') as self.web_access:
+            async with AsyncWebAccess(playwright, False, 'edge', 'Port') as self.web_access:
                 await self._init_pages()
                 
                 asyncio.create_task(self._handle_pointer_login()) if cfg.get(cfg.pointer) else self.page_loaded.emit()
