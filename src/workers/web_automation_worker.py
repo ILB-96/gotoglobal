@@ -11,7 +11,7 @@ from ..app.common.config import cfg
 class WebAutomationWorker(QThread):
     toast_signal = pyqtSignal(str, str, str)
 
-    late_table_row = pyqtSignal(object, tuple)
+    late_table_row = pyqtSignal(object)
     batteries_table_row = pyqtSignal(object)
     long_rides_table_row = pyqtSignal(object)
     request_delete_table = pyqtSignal()
@@ -33,7 +33,6 @@ class WebAutomationWorker(QThread):
         with sync_playwright() as playwright:
             with WebAccess(playwright, settings.playwright_headless, 'edge', 'Default') as self.web_access:
                 self._init_pages()
-                
                 self.stop_event.wait()
                 self.stop_event.clear()
                 if not self.running:
@@ -85,7 +84,7 @@ class WebAutomationWorker(QThread):
         if cfg.get(cfg.late_rides):
             late = LateAlert(
                 show_toast=lambda title, message, icon: self.toast_signal.emit(title, message, icon),
-                gui_table_row=lambda row, btn_colors: self.late_table_row.emit(row, btn_colors),
+                gui_table_row=lambda row: self.late_table_row.emit(row),
                 web_access=self.web_access,
                 open_ride=self.open_url_requested
             )

@@ -37,7 +37,7 @@ class TableFrame(TableWidget):
         self.titleText = self.title.text()
         self.title.setText(self.titleText + " (Last updated: Loading...)")
 
-    def setRows(self, rows_data: list[list[str | tuple[str, Callable]]], btn_colors=("#4caf50", '#45a049', '#388e3c')):
+    def setRows(self, rows_data: list[list[str | tuple[str, Callable]]]):
         """ Add multiple rows to the table """
         self.setUpdatesEnabled(False)
         self.blockSignals(True)

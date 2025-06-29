@@ -1,7 +1,8 @@
 from functools import partial
+from typing import Any, List
 from services import WebAccess
 import settings
-from src.shared import PointerLocation
+from src.shared import PointerLocation, utils
 from src import pages
 from datetime import timedelta
 
@@ -25,10 +26,7 @@ class LongRides:
         the relevant data.
         """
 
-        self.web_access.create_new_page("autotel_ride", settings.autotel_url, "reuse")
-
-        if 'login' in self.web_access.pages["autotel_ride"].url:
-            self.web_access.create_new_page("autotel_ride", settings.autotel_url)        
+        self.init_ride_page()        
         
         rows = []
         for _ in range(3):
@@ -44,29 +42,46 @@ class LongRides:
         
         self.gui_table_row(rows)
 
-    def collect_rides_information(self, rows):
-        page = self.web_access.create_new_page("autotel_bo", f'{settings.autotel_url}/index.html#/orders/current', "reuse")
-        page.wait_for_timeout(2000)
-        rides_page = pages.RidesPage(page)
-        rides_page.set_ride_duration_sort("asc")
-        for row in rides_page.orders_table_rows:
-            duration = rides_page.get_duration_from_row(row).inner_text().strip()
-            parsed_duration = self.parse_duration(duration)
+    utils.retry(allow_falsy=True)
+    def init_ride_page(self):
+        self.web_access.create_new_page("autotel_ride", settings.autotel_url, "reuse")
 
-            if parsed_duration < timedelta(hours=3):
-                break
+        if 'login' in self.web_access.pages["autotel_ride"].url:
+            self.web_access.create_new_page("autotel_ride", settings.autotel_url)
+
+    def collect_rides_information(self, rows: List[List[Any]]):
+        try:
+            page = self.web_access.create_new_page("autotel_bo", f'{settings.autotel_url}/index.html#/orders/current', "reuse")
+            page.wait_for_timeout(1000)
+            rides_page = pages.RidesPage(page)
+            rides_page.set_ride_duration_sort("desc")
+            page.evaluate("""
+                            const observer = new MutationObserver(() => {});
+                            observer.observe(document, { childList: true, subtree: true });
+                            window.setInterval = () => {};
+                            window.setTimeout = () => {};
+                            window.requestAnimationFrame = () => {};
+                          """)
+            table_rows = rides_page.orders_table_rows
+            for row in table_rows:
+                duration = rides_page.get_duration_from_row(row).inner_text().strip()
+                parsed_duration = self.parse_duration(duration)
+
+                if parsed_duration < timedelta(hours=3):
+                    break
+                    
+                ride_id = rides_page.get_ride_id_from_row(row).inner_text().strip()
+                driver_id = rides_page.get_driver_id_from_row(row).inner_text().strip()
+                car_id = rides_page.get_car_id_from_row(row).inner_text().strip()
+                location = self.pointer(car_id.replace('-', '')) if self.pointer else "Unknown Location"
                 
-            ride_id = rides_page.get_ride_id_from_row(row).inner_text().strip()
-            driver_id = rides_page.get_driver_id_from_row(row).inner_text().strip()
-            car_id = rides_page.get_car_id_from_row(row).inner_text().strip()
-            location = self.pointer(car_id.replace('-', '')) if self.pointer else "Unknown Location"
-            
-            url = f"https://prodautotelbo.gototech.co/index.html#/orders/{ride_id}/details"
+                url = f"https://prodautotelbo.gototech.co/index.html#/orders/{ride_id}/details"
+                    
                 
-                
-            open_ride_url = partial(self.open_ride.emit, url) if self.open_ride else None
-            rows.append([(ride_id, open_ride_url), driver_id, duration, location, url])
-    
+                open_ride_url = partial(self.open_ride.emit, url) if self.open_ride else None
+                rows.append([(ride_id, open_ride_url), driver_id, duration, location, url])
+        except Exception:
+            return   
     def parse_duration(self, duration: str) -> timedelta:
         """
         Parses the duration string into total seconds.
@@ -77,12 +92,14 @@ class LongRides:
         Returns:
             timedelta: The duration as a timedelta object.
         """
-        if 'n/a' in duration:
+        try:
+            if 'n/a' in duration:
+                return timedelta(seconds=0)
+            
+            hours, minutes, seconds = map(int, duration.split(':'))
+            return timedelta(hours=hours, minutes=minutes, seconds=seconds)
+        except Exception:
             return timedelta(seconds=0)
-        
-        hours, minutes, seconds = map(int, duration.split(':'))
-        return timedelta(hours=hours, minutes=minutes, seconds=seconds)
-    
     def get_ride_comment(self, url: str) -> str:
         """
         Fetches the ride comment from the ride details page.

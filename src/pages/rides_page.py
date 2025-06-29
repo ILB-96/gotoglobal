@@ -95,8 +95,9 @@ class RidesPage:
         :param order: "asc" for ascending, "desc" for descending
         """
         self.table_duration_button().click()
-        sleep(0.5)
-        self.table_duration_button().click()
+        if order == 'desc':
+            self.page.wait_for_timeout(1000)
+            self.table_duration_button().click()
             
     def get_ride_id_from_row(self, row):
         """

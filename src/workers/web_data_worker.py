@@ -69,9 +69,9 @@ class WebDataWorker(QThread):
                     if self.pointer and now - start_time >= settings.interval: 
                         start_time = now
                         asyncio.create_task(self.reload_pointer_data())
-                    await self.wait(timeout=5)
+                    await self.wait_by(timeout=5)
                 
-    async def wait(self, timeout=None):
+    async def wait_by(self, timeout=None):
         try:
             await asyncio.wait_for(self.stop_event.wait(), timeout=timeout)
         except asyncio.TimeoutError:
@@ -165,7 +165,7 @@ class WebDataWorker(QThread):
                     win32gui.SetForegroundWindow(hwnd)
         win32gui.EnumWindows(enumHandler, None)
                     
-    async def _handle_pointer_location_queue(self,):
+    async def _handle_pointer_location_queue(self):
         async with self.pointer_lock:
             if not self.pointer:
                 return
@@ -203,13 +203,14 @@ class WebDataWorker(QThread):
                     await self.stop_event.wait()
                     self.stop_event.clear()
                     if not self.code:
-                        break
+                        raise Exception("No code provided")
                     await self.pointer.fill_otp(self.code)
                     await asyncio.sleep(2)
                 except Exception:
                     del self.code
+                    self.page_loaded.emit()
                     break
-            self.page_loaded.emit()
+
     
     def set_pointer_code(self, data):
         self.code = data.get('code', None)

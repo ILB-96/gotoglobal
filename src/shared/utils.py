@@ -16,7 +16,7 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-def retry(retries=3, delay=500, allow_falsy=False):
+def retry(retries=3, delay=1, allow_falsy=False):
     """
     Decorator to retry a function call with a specified number of retries and delay.
 
