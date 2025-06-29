@@ -115,6 +115,14 @@ class RidesPage:
         """
         return row.locator('[ng-click="ordersCtrl.editDriverDetails(row, $event)"]')
     
+    def get_driver_name_from_row(self, row):
+        """
+        Extracts the driver name from a table row.
+        :param row: The table row element
+        :return: Driver name as a string
+        """
+        return TableElement(self.page).row_3rd_cell(row)
+    
     def get_car_id_from_row(self, row):
         """
         Extracts the ride ID from a table row.

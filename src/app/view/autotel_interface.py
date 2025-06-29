@@ -16,7 +16,7 @@ class AutotelInterface(GalleryInterface):
         self.setObjectName('AutotelInterface')
         self.long_rides_title = SubtitleLabel('Autotel Long Rides', self)
         self.batteries_title = SubtitleLabel('Autotel Batteries', self)
-        long_rides_columns=[self.tr("Ride ID"), self.tr("Driver ID"), self.tr("Duration"), self.tr("Location"), self.tr("Comment")]
+        long_rides_columns=[self.tr("Ride ID"), self.tr("Driver Name"), self.tr("Duration"), self.tr("Location"), self.tr("Comment")]
         batteries_columns=[self.tr("Ride ID"), self.tr("License Plate"), self.tr("Battery"), self.tr("Location"), self.tr("Comment")]
         self.long_rides_table = TableFrame(columns=long_rides_columns, titleWidget=self.long_rides_title, parent=self)
         self.batteries_table = TableFrame(columns=batteries_columns, titleWidget=self.batteries_title, parent=self)

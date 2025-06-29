@@ -73,7 +73,7 @@ class LongRides:
                     break
                     
                 ride_id = rides_page.get_ride_id_from_row(row).inner_text().strip()
-                driver_id = rides_page.get_driver_id_from_row(row).inner_text().strip()
+                driver_name = rides_page.get_driver_name_from_row(row).inner_text().strip()
                 car_id = rides_page.get_car_id_from_row(row).inner_text().strip()
                 location = self.pointer(car_id.replace('-', '')) if self.pointer else "Unknown Location"
                 
@@ -81,7 +81,7 @@ class LongRides:
                     
                 
                 open_ride_url = partial(self.open_ride.emit, url) if self.open_ride else None
-                rows.append([(ride_id, open_ride_url), driver_id, duration, location, url])
+                rows.append([(ride_id, open_ride_url), driver_name, duration, location, url])
         except Exception:
             return rows.clear()
     def parse_duration(self, duration: str) -> timedelta:

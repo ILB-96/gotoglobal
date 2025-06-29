@@ -20,3 +20,11 @@ class TableElement:
         :return: Locator for the 6th cell in the row.
         """
         return row.locator('td:nth-child(6)')
+
+    def row_3rd_cell(self, row):
+        """
+        Returns the 3rd cell of a given row.
+        :param row: The row locator.
+        :return: Locator for the 3rd cell in the row.
+        """
+        return row.locator('td:nth-child(3)')
