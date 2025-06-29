@@ -5,11 +5,13 @@ from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
 from playwright.async_api import async_playwright
 from services import AsyncWebAccess
 import settings
-from src.shared import PointerLocation
+from src.shared import PointerLocation, utils
 import time
 import asyncio
 import subprocess
 import socket
+import win32gui
+import win32con
 from ..app.common.config import cfg
 class WebDataWorker(QThread):
     page_loaded = pyqtSignal()
@@ -21,12 +23,15 @@ class WebDataWorker(QThread):
 
     def __init__(self, parent=None):
         super(WebDataWorker, self).__init__(parent)
-        self.stop_event = threading.Event()
+        self.stop_event = asyncio.Event()
         self.running = True
         self.url_queue = Queue()
         self.pointer_queue = Queue()
         self.pointer_location_requested.connect(self.enqueue_pointer_location)
         self.code = None
+        self.pointer_lock = asyncio.Lock()
+        self.pointer = None
+
 
     @pyqtSlot()
     def run(self):
@@ -36,7 +41,7 @@ class WebDataWorker(QThread):
         loop.close()
     def is_debug_port_open(self, port=9222):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(1)  # short timeout
+            sock.settimeout(1)
             result = sock.connect_ex(('localhost', port))
             return result == 0
 
@@ -52,24 +57,37 @@ class WebDataWorker(QThread):
         async with async_playwright() as playwright:
             async with AsyncWebAccess(playwright, False, 'edge', 'Default') as self.web_access:
                 await self._init_pages()
-                pointer = await self._handle_pointer_login() if cfg.get(cfg.pointer) else None
-            
-                self.page_loaded.emit()
+                
+                asyncio.create_task(self._handle_pointer_login()) if cfg.get(cfg.pointer) else self.page_loaded.emit()
+                    
                 start_time = 0
                 while self.running:
-                    await self._handle_url_queue()
-                    await self._handle_pointer_location_queue(pointer)
-                    
-                    if 'blank' in self.web_access.pages.keys() and not self.web_access.pages['blank'].is_closed():
-                        await self.web_access.pages['blank'].reload()
-                    else:
-                        await self.web_access.create_new_page('blank','about:blank', 'reuse')
+                    asyncio.create_task(self._handle_url_queue())
+                    asyncio.create_task(self._handle_pointer_location_queue())
+                    asyncio.create_task(self.update_page_data())
                     now = time.time()
-                    if now - start_time >= settings.interval and pointer:
+                    if self.pointer and now - start_time >= settings.interval: 
                         start_time = now
-                        await self.web_access.pages["pointer"].reload()
-                    self.stop_event.wait(5)
-                    self.stop_event.clear()
+                        asyncio.create_task(self.reload_pointer_data())
+                    await self.wait(timeout=5)
+                
+    async def wait(self, timeout=None):
+        try:
+            await asyncio.wait_for(self.stop_event.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            pass
+        self.stop_event.clear()
+
+    async def reload_pointer_data(self):
+        async with self.pointer_lock:
+            await self.web_access.pages["pointer"].reload()
+
+    @utils.retry(allow_falsy=True)
+    async def update_page_data(self):
+        if 'blank' in self.web_access.pages.keys() and not self.web_access.pages['blank'].is_closed():
+            await self.web_access.pages['blank'].reload()
+        else:
+            await self.web_access.create_new_page('blank','about:blank', 'reuse')
                     
     async def _init_pages(self):
         pages_to_create = {}
@@ -121,28 +139,43 @@ class WebDataWorker(QThread):
             
     async def _handle_url_queue(self):
         while not self.url_queue.empty() and self.running:
-            try:
-                url = self.url_queue.get_nowait()
-                page = await self.web_access.context.new_page()
-                if settings.goto_url in url:
-                    await page.goto(settings.goto_url)
-                elif settings.autotel_url in url:
-                    await page.goto(settings.autotel_url)
-                await page.goto(url)
-            except Exception:
-                pass
-            
-    async def _handle_pointer_location_queue(self, pointer: PointerLocation | None):
-        if not pointer:
-            return
-        while not self.pointer_queue.empty() and self.running:
-            try:
-                car_license = self.pointer_queue.get_nowait()
-                data = await pointer.search_location(car_license)
-                self.input_send.emit(data.strip("").strip(","))
-            except Exception:
-                pass
+            url = self.url_queue.get_nowait()
+            asyncio.create_task(self.process_url(url))
 
+    async def process_url(self, url):
+        try:
+            page = await self.web_access.context.new_page()
+            if settings.goto_url in url:
+                await page.goto(settings.goto_url, wait_until='domcontentloaded')
+            elif settings.autotel_url in url:
+                await page.goto(settings.autotel_url, wait_until='domcontentloaded')
+            await page.goto(url, wait_until='domcontentloaded')
+            await page.bring_to_front()
+            await page.wait_for_function("document.title.length > 0")
+            title = await page.title()
+            self.bring_window_to_front(title)
+        except Exception:
+            pass
+        
+    def bring_window_to_front(self, window_title: str):
+        def enumHandler(hwnd, lParam):
+            if win32gui.IsWindowVisible(hwnd):
+                if window_title.lower() in win32gui.GetWindowText(hwnd).lower():
+                    win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                    win32gui.SetForegroundWindow(hwnd)
+        win32gui.EnumWindows(enumHandler, None)
+                    
+    async def _handle_pointer_location_queue(self,):
+        async with self.pointer_lock:
+            if not self.pointer:
+                return
+            while not self.pointer_queue.empty() and self.running:
+                try:
+                    car_license = self.pointer_queue.get_nowait()
+                    data = await self.pointer.search_location(car_license)
+                    self.input_send.emit(data.strip("").strip(","))
+                except Exception:
+                    pass
     def enqueue_url(self, url: str):
         """Enqueue a URL to be opened in the web access context."""
         if not self.running:
@@ -158,25 +191,25 @@ class WebDataWorker(QThread):
         self.stop_event.set()
         
     async def _handle_pointer_login(self):
-        pointer = PointerLocation(self.web_access)
-        await pointer.login(cfg.get(cfg.pointer_user), cfg.get(cfg.phone))
-        while True:
-            try:
-                await self.web_access.pages["pointer"].wait_for_selector('textarea.realInput', timeout=7000)
-                if await self.web_access.pages["pointer"].locator('.confirm').is_visible():
-                    await self.web_access.pages["pointer"].locator('.confirm').click()
-                self.request_otp_input.emit()
-                self.stop_event.wait()
-                self.stop_event.clear()
-                if not self.code:
+        async with self.pointer_lock:
+            self.pointer = PointerLocation(self.web_access)
+            await self.pointer.login(cfg.get(cfg.pointer_user), cfg.get(cfg.phone))
+            while self.running:
+                try:
+                    await self.web_access.pages["pointer"].wait_for_selector('textarea.realInput', timeout=7000)
+                    if await self.web_access.pages["pointer"].locator('.confirm').is_visible():
+                        await self.web_access.pages["pointer"].locator('.confirm').click()
+                    self.request_otp_input.emit()
+                    await self.stop_event.wait()
+                    self.stop_event.clear()
+                    if not self.code:
+                        break
+                    await self.pointer.fill_otp(self.code)
+                    await asyncio.sleep(2)
+                except Exception:
+                    del self.code
                     break
-                await pointer.fill_otp(self.code)
-                time.sleep(2)
-            except Exception:
-                del self.code
-                break
-
-        return pointer
+            self.page_loaded.emit()
     
     def set_pointer_code(self, data):
         self.code = data.get('code', None)
@@ -185,5 +218,3 @@ class WebDataWorker(QThread):
     def stop(self):
         self.running = False
         self.stop_event.set()
-    
-
