@@ -1,6 +1,6 @@
 from time import sleep
 from typing import Literal
-from playwright.async_api import Page
+from playwright.async_api import Page, Locator
 
 from .table_element import TableElement
 
@@ -35,7 +35,7 @@ class RidesPage:
         """
         return self.page.locator('[ng-model="ordersCtrl.filterFields.carLicencePlate"]')
 
-    def row_start_time_cell(self, row):
+    def row_start_time_cell(self, row: Locator):
         """
         Returns the start time cell of a given row.
         :param row: The row locator.
@@ -99,7 +99,7 @@ class RidesPage:
             await self.page.wait_for_timeout(1000)
             await self.table_duration_button().click()
             
-    def get_ride_id_from_row(self, row):
+    def get_ride_id_from_row(self, row: Locator):
         """
         Extracts the ride ID from a table row.
         :param row: The table row element
@@ -107,7 +107,7 @@ class RidesPage:
         """
         return row.locator('[ng-click*="ordersCtrl.goToDetailsNewTab(row, $event)"]')
     
-    def get_driver_id_from_row(self, row):
+    def get_driver_id_from_row(self, row: Locator):
         """
         Extracts the ride ID from a table row.
         :param row: The table row element
@@ -115,7 +115,7 @@ class RidesPage:
         """
         return row.locator('[ng-click="ordersCtrl.editDriverDetails(row, $event)"]')
     
-    def get_driver_name_from_row(self, row):
+    def get_driver_name_from_row(self, row: Locator):
         """
         Extracts the driver name from a table row.
         :param row: The table row element
@@ -123,7 +123,7 @@ class RidesPage:
         """
         return TableElement(self.page).row_3rd_cell(row)
     
-    def get_car_id_from_row(self, row):
+    def get_car_id_from_row(self, row: Locator):
         """
         Extracts the ride ID from a table row.
         :param row: The table row element
@@ -131,7 +131,7 @@ class RidesPage:
         """
         return row.locator('[ng-click="ordersCtrl.showCarDetails(row)"]')
     
-    def get_duration_from_row(self, row):
+    def get_duration_from_row(self, row: Locator):
         """
         Extracts the duration from a table row.
         :param row: The table row element

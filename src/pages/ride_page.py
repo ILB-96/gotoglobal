@@ -1,4 +1,4 @@
-from playwright.sync_api import Page
+from playwright.async_api import Page
 
 class RidePage:
     def __init__(self, page: Page):

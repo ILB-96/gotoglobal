@@ -38,7 +38,7 @@ def create_web_data_worker(worker, web_automation_worker):
     worker.request_otp_input.connect(lambda: handle_code_input(worker))
     worker.input_send.connect(lambda data: web_automation_worker.set_location_data(data))
     worker.input_received.connect(worker.set_pointer_code)
-    worker.page_loaded.connect(web_automation_worker.stop_event.set)
+    worker.page_loaded.connect(web_automation_worker.trigger_stop_event)
 
 
 

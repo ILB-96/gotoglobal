@@ -19,7 +19,7 @@ class AsyncWebAccess:
 
     def __init__(
         self,
-        playwright: Playwright,                  # the result of `async with async_playwright()`
+        playwright: Playwright,
         headless: bool = True,
         browser_name: str = 'edge',
         profile: str = "Default",
@@ -70,13 +70,14 @@ class AsyncWebAccess:
                     headless=self._headless,
                     executable_path=BROWSER_PATH,
                     args=[
-                    '--disable-blink-features=AutomationControlled',
-                    '--disable-infobars'],
+                        '--disable-blink-features=AutomationControlled',
+                        '--disable-infobars'],
                 )
+                self.browser = self.context.browser
         else:
-            browser = await self._playwright.chromium.launch(
+            self.browser = await self._playwright.chromium.launch(
                 headless=self._headless)
-            self.context: BrowserContext = await browser.new_context()
+            self.context: BrowserContext = await self.browser.new_context()
 
                 
             
@@ -129,7 +130,7 @@ class AsyncWebAccess:
         timeout: int = 45_000,
         wait_until: Literal['commit', 'domcontentloaded', 'load', 'networkidle'] = "networkidle",
     ) -> Page:
-        if open_mode == "close" and page_name in self.pages:
+        if open_mode == "close" and page_name in self.pages and not self.pages[page_name].is_closed():
             old = self.pages[page_name]
             if not old.is_closed():
                 await old.close()
@@ -137,13 +138,32 @@ class AsyncWebAccess:
         if page_name not in self.pages or self.pages[page_name].is_closed():
             page = await self.context.new_page()
             self.pages[page_name] = page
-        elif open_mode == "reuse" and self.pages[page_name].url.startswith(url):
-            return self.pages[page_name]
         else:
             page = self.pages[page_name]
 
         await page.goto(url, timeout=timeout, wait_until=wait_until)
         return page
+
+    def get_page(self, page_name: str) -> Optional[Page]:
+        """
+        Get a page by its name.
+        :param page_name: Name of the page to retrieve.
+        :return: Page object or None if not found.
+        """
+        return self.pages.get(page_name)
+    
+    async def close_page(self, page_name: str):
+        """
+        Close a page by its name.
+        :param page_name: Name of the page to close.
+        """
+        if page_name not in self.pages:
+            return
+        
+        page = self.pages[page_name]
+        if not page.is_closed():
+            await page.close()
+        del self.pages[page_name]
 
     async def cleanup(self):
         if self.context:

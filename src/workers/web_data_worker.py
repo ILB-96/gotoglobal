@@ -144,6 +144,7 @@ class WebDataWorker(QThread):
 
     async def process_url(self, url):
         try:
+            self.bring_window_to_front('Work')
             page = await self.web_access.context.new_page()
             if settings.goto_url in url:
                 await page.goto(settings.goto_url, wait_until='domcontentloaded')
@@ -151,22 +152,29 @@ class WebDataWorker(QThread):
                 await page.goto(settings.autotel_url, wait_until='domcontentloaded')
             await page.goto(url, wait_until='domcontentloaded')
             await page.bring_to_front()
-            await page.wait_for_function("document.title.length > 0")
+            await page.wait_for_function('document.title.length > 0')
             title = await page.title()
             if page.url != 'url':
                 await page.goto(url)
-            await page.wait_for_function("document.title.length > 0")
+            await page.wait_for_function('document.title.length > 0')
             title = await page.title()
             self.bring_window_to_front(title)
         except Exception:
             pass
         
+
     def bring_window_to_front(self, window_title: str):
         def enumHandler(hwnd, lParam):
             if win32gui.IsWindowVisible(hwnd):
                 if window_title.lower() in win32gui.GetWindowText(hwnd).lower():
-                    win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-                    win32gui.SetForegroundWindow(hwnd)
+                    placement = win32gui.GetWindowPlacement(hwnd)
+                    # Only restore if minimized
+                    if placement[1] == win32con.SW_SHOWMINIMIZED:
+                        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                    try:
+                        win32gui.SetForegroundWindow(hwnd)
+                    except Exception as e:
+                        print(f"Could not bring window to front: {e}")
         win32gui.EnumWindows(enumHandler, None)
                     
     async def _handle_pointer_location_queue(self):
@@ -212,6 +220,7 @@ class WebDataWorker(QThread):
                     await asyncio.sleep(2)
                 except Exception:
                     del self.code
+                    print("Pointer logged in successfully")
                     self.page_loaded.emit()
                     break
 

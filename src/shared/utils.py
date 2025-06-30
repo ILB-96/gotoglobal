@@ -15,6 +15,28 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+import asyncio
+import time
+from functools import wraps
+
+def async_retry(retries=3, delay=1, allow_falsy=False):
+    def decorator(func):
+        @wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            for attempt in range(retries):
+                try:
+                    result = await func(*args, **kwargs)
+                    if not allow_falsy and not result:
+                        raise ValueError("Function returned a falsy value")
+                    return result
+                except Exception:
+                    if attempt < retries - 1:
+                        await asyncio.sleep(delay)
+                        
+            return "No result"
+
+        return async_wrapper
+    return decorator
 
 def retry(retries=3, delay=1, allow_falsy=False):
     """

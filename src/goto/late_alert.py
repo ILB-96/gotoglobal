@@ -33,7 +33,7 @@ class LateAlert:
         
         self.notify_late_rides(rows)
         
-    @utils.retry()
+    @utils.async_retry()
     async def fetch_late_rides(self):
         await self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/current/', 'reuse')
         await self.web_access.pages['goto_bo'].wait_for_timeout(3000)
@@ -47,7 +47,7 @@ class LateAlert:
         """
         return await RidesPage(self.web_access.pages['goto_bo']).get_late_rides()
     
-    @utils.retry(allow_falsy=True)
+    @utils.async_retry(allow_falsy=True)
     async def fetch_future_ride(self, page, row):
         car_license = row[2]
         if not car_license or car_license == "No result":
@@ -56,8 +56,8 @@ class LateAlert:
         await RidesPage(page).search_by_car_license(car_license)
         await page.wait_for_timeout(2000)
         for sorted_row in await RidesPage(page).orders_table_rows():
-            start_time = self.fetch_row_start_time(page, sorted_row)
-            ride_id = self.fetch_row_ride_id(page, sorted_row)
+            start_time = await self.fetch_row_start_time(page, sorted_row)
+            ride_id = await self.fetch_row_ride_id(page, sorted_row)
             parsed_start_time = self._parse_time(start_time)
             parsed_row_time = self._parse_time(row[3])
             if not row[3] or (parsed_start_time is not None and parsed_row_time is not None and parsed_start_time < parsed_row_time):
@@ -68,15 +68,15 @@ class LateAlert:
         else:
             row[2] = row[3] = "No future ride found"
 
-    @utils.retry()
-    def fetch_row_ride_id(self, page, sorted_row):
-        return RidesPage(page).get_ride_id_from_row(sorted_row).text_content().strip()
+    @utils.async_retry()
+    async def fetch_row_ride_id(self, page, sorted_row):
+        return str(await RidesPage(page).get_ride_id_from_row(sorted_row).text_content()).strip()
 
-    @utils.retry()
-    def fetch_row_start_time(self, page, sorted_row):
-        return RidesPage(page).row_start_time_cell(sorted_row).text_content().strip()
+    @utils.async_retry()
+    async def fetch_row_start_time(self, page, sorted_row):
+        return str(await RidesPage(page).row_start_time_cell(sorted_row).text_content()).strip()
 
-    @utils.retry(allow_falsy=True)
+    @utils.async_retry(allow_falsy=True)
     async def create_future_orders_page(self):
         page = await self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/future/', 'reuse')
         return page
@@ -99,9 +99,9 @@ class LateAlert:
     async def _process_ride(self, rows, ride: str):
         await self._init_ride_page(ride)
                 
-        end_time = self.fetch_end_time(self.web_access.pages['goto_bo'])
-        car_license = self._get_car_license(self.web_access.pages['goto_bo'])
-        ride_comment = self._get_ride_comment(self.web_access.pages['goto_bo'])
+        end_time = await self.fetch_end_time(self.web_access.pages['goto_bo'])
+        car_license = await self._get_car_license(self.web_access.pages['goto_bo'])
+        ride_comment = await self._get_ride_comment(self.web_access.pages['goto_bo'])
         
         url = self._build_ride_url(ride)
         open_ride_url = partial(self.open_ride.emit, url)
@@ -116,7 +116,7 @@ class LateAlert:
             except Exception:
                 return False
     
-    @utils.retry(allow_falsy=True)
+    @utils.async_retry(allow_falsy=True)
     async def _init_ride_page(self, ride: str):
         ride_url = self._build_ride_url(ride)
         await self._open_ride_page(ride_url)
@@ -124,21 +124,21 @@ class LateAlert:
     def _build_ride_url(self, ride):
         return f'{settings.goto_url}/index.html#/orders/{ride}/details'
     
-    @utils.retry(allow_falsy=True)
-    def _get_ride_comment(self, page):
+    @utils.async_retry(allow_falsy=True)
+    async def _get_ride_comment(self, page):
         try:
-            return RidePage(page).ride_comment.input_value().strip()
+            return (await RidePage(page).ride_comment.input_value()).strip()
         except Exception:
             return None
     
-    @utils.retry()
-    def _get_car_license(self, page):
+    @utils.async_retry()
+    async def _get_car_license(self, page):
         try:
-            return RidePage(page).car_license.text_content()
+            return str(await RidePage(page).car_license.text_content()).strip()
         except Exception:
             return None
     
-    @utils.retry()
+    @utils.async_retry()
     async def _open_ride_page(self, ride_url: str):
         # self.web_access.create_new_page("ride", str(settings.goto_url), open_mode="reuse")
         await self.web_access.create_new_page("goto_bo", ride_url, open_mode="reuse")
@@ -159,15 +159,15 @@ class LateAlert:
             icon=utils.resource_path(settings.app_icon)
         )
     
-    @utils.retry(allow_falsy=False)
+    @utils.async_retry(allow_falsy=False)
     async def fetch_end_time(self, page):
         await page.wait_for_timeout(1000)
-        return RidePage(page).ride_end_time.text_content()
+        return str(await RidePage(page).ride_end_time.text_content()).strip()
 
-    @utils.retry(allow_falsy=False)
+    @utils.async_retry(allow_falsy=False)
     async def fetch_start_time(self, page):
         await page.wait_for_timeout(1000)
-        return RidePage(page).ride_start_time.text_content()
+        return str(await RidePage(page).ride_start_time.text_content()).strip()
     
 
         

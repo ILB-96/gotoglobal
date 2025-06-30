@@ -1,5 +1,5 @@
 
-from playwright.async_api import Page
+from playwright.async_api import Page, Locator
 
 class TableElement:
     def __init__(self, page: Page):
@@ -12,7 +12,7 @@ class TableElement:
         """
         return await self.page.locator('tr[ng-repeat*="row in $data"]').all()
     
-    def row_6th_cell(self, row):
+    def row_6th_cell(self, row: Locator):
         """
         Returns the 6th cell of a given row.
         :param row: The row locator.
@@ -20,7 +20,7 @@ class TableElement:
         """
         return row.locator('td:nth-child(6)')
 
-    def row_3rd_cell(self, row):
+    def row_3rd_cell(self, row: Locator):
         """
         Returns the 3rd cell of a given row.
         :param row: The row locator.

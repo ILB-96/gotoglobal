@@ -28,20 +28,23 @@ class WebAutomationWorker(QThread):
 
         self._location_condition = threading.Condition()
         self._location_response = None
+        self.lock = asyncio.Lock()
     
     @pyqtSlot()
     def run(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self._async_main())
-        loop.close()
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_until_complete(self._async_main())
+        self.loop.close()
     
     async def _async_main(self):
         async with async_playwright() as playwright:
             async with AsyncWebAccess(playwright, settings.playwright_headless, 'edge', 'Default') as self.web_access:
                 await self._init_pages()
+                print("WebAutomationWorker started")
                 await self.stop_event.wait()
                 self.stop_event.clear()
+                print("WebAutomationWorker initialized") # never reached
                 if not self.running:
                     return
 
@@ -51,8 +54,8 @@ class WebAutomationWorker(QThread):
                 while self.running:
                     now = time.time()
                     if now - last_run >= settings.interval:
-                        await self._run_alert_requests(late, batteries_alert, long_rides_alert)
                         last_run = now
+                        await self._run_alert_requests(late, batteries_alert, long_rides_alert)
                     timeout = max(1, settings.interval - (now - last_run))
                     await self.wait_by(timeout=timeout)
                     
@@ -62,12 +65,11 @@ class WebAutomationWorker(QThread):
         except asyncio.TimeoutError:
             pass
         self.stop_event.clear()
-            
-                    
-    def enqueue_pointer_location(self, query: str):
-        self.request_pointer_location.emit(query)
-        self.stop_event.wait()
-        self.stop_event.clear()
+        
+    def trigger_stop_event(self):
+        print("Triggering stop_event from signal...")
+        if self.loop:
+            self.loop.call_soon_threadsafe(self.stop_event.set)
         
     async def _init_pages(self):
         pages_data = {}
@@ -90,7 +92,7 @@ class WebAutomationWorker(QThread):
                 return None
             return self._location_response
             
-    def _init_alerts(self, pointer=None):
+    def _init_alerts(self):
         late = None
         batteries_alert = None
         long_rides_alert = None
@@ -121,13 +123,17 @@ class WebAutomationWorker(QThread):
         
         return late, batteries_alert, long_rides_alert
 
-    def _run_alert_requests(self, late, batteries_alert, long_rides_alert):
+    async def _run_alert_requests(self, late, batteries_alert, long_rides_alert):
+        tasks = []
         if late is not None:
-            await late.start_requests()
+            tasks.append(asyncio.create_task(late.start_requests()))
         if long_rides_alert is not None:
-            await long_rides_alert.start_requests()
+            print("Starting long rides alert requests")
+            tasks.append(asyncio.create_task(long_rides_alert.start_requests()))
         if batteries_alert is not None:
-            await batteries_alert.start_requests()
+            tasks.append(asyncio.create_task(batteries_alert.start_requests()))
+        if tasks:
+            await asyncio.gather(*tasks)
         
     @pyqtSlot(object)
     def set_location_data(self, data):
@@ -136,12 +142,12 @@ class WebAutomationWorker(QThread):
             self._location_response = data
             self._location_condition.notify()
 
-    def establish_connection(self, page: Page, cta: str):
+    async def establish_connection(self, page: Page, cta: str):
         while 'login' in page.url:
             self.request_connection.emit(cta)
-            self.stop_event.wait()
+            await self.stop_event.wait()
             self.stop_event.clear()
-            page.wait_for_load_state('domcontentloaded')
+            await page.wait_for_load_state('domcontentloaded')
     def stop(self):
         self.running = False
         self.stop_event.set()
