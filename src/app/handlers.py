@@ -13,14 +13,14 @@ from qframelesswindow import FramelessDialog
 
 
 class CodeInputDialog(FramelessDialog):
-    codeEntered = pyqtSignal(str)
+    # codeEntered = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
         self.setWindowTitle("Pointer Login")
         self.setResizeEnabled(False)
-        self.resize(420, 200)
+        self.resize(320, 200)
         self.titleBar.hide()
         FluentStyleSheet.DIALOG.apply(self)
 
@@ -37,12 +37,12 @@ class CodeInputDialog(FramelessDialog):
         self.layout.addWidget(self.ctaLabel)
 
         # --- Code input ---
-        self.codeInput = QLineEdit(self)
-        self.codeInput.setPlaceholderText("Enter 6-digit code")
-        self.codeInput.setMaxLength(6)
-        self.codeInput.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.codeInput.setFixedHeight(36)
-        self.layout.addWidget(self.codeInput)
+        # self.codeInput = QLineEdit(self)
+        # self.codeInput.setPlaceholderText("Enter 6-digit code")
+        # self.codeInput.setMaxLength(6)
+        # self.codeInput.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # self.codeInput.setFixedHeight(36)
+        # self.layout.addWidget(self.codeInput)
 
         # --- Submit button ---
         self.submitBtn = PrimaryPushButton("Submit", self)
@@ -50,21 +50,18 @@ class CodeInputDialog(FramelessDialog):
         self.layout.addWidget(self.submitBtn)
 
     def handle_submit(self):
-        code = self.codeInput.text()
-        if code.isdigit() and len(code) == 6:
-            self.codeEntered.emit(code)
-            self.accept()
-        else:
-            QTimer.singleShot(0, lambda: InfoBar.error(
-                "Invalid Code",
-                "Please enter a valid 6-digit code.",
-                parent=self  # or self.parent() if dialog hasn't been shown yet
-            ))
+        # code = self.codeInput.text()
+        # if code.isdigit() and len(code) == 6:
+            # self.codeEntered.emit(code)
+        self.accept()
+        # else:
+        #     QTimer.singleShot(0, lambda: InfoBar.error(
+        #         "Invalid Code",
+        #         "Please enter a valid 6-digit code.",
+        #         parent=self  # or self.parent() if dialog hasn't been shown yet
+        #     ))
     def get_code(self):
-        if self.exec() == self.DialogCode.Accepted:
-            return self.codeInput.text()
-        return None
-
+        self.exec()
 
 def handle_settings_input():
     dialog = SettingsPopup()
@@ -72,9 +69,9 @@ def handle_settings_input():
 
 def handle_code_input(worker):
     dialog = CodeInputDialog()
-    code = dialog.get_code()
-    if code:
-        worker.input_received.emit({"code": code})
+    dialog.get_code()
+    # if code:
+    worker.input_received.emit()
 
 
 def handle_start_loading(tables):

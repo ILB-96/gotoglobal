@@ -18,7 +18,7 @@ class WebDataWorker(QThread):
 
     request_otp_input = pyqtSignal()
     input_send = pyqtSignal(object)
-    input_received = pyqtSignal(object)
+    input_received = pyqtSignal()
     pointer_location_requested = pyqtSignal(str)
 
     def __init__(self, parent=None):
@@ -28,7 +28,6 @@ class WebDataWorker(QThread):
         self.url_queue = Queue()
         self.pointer_queue = Queue()
         self.pointer_location_requested.connect(self.enqueue_pointer_location)
-        self.code = None
         self.pointer_lock = asyncio.Lock()
         self.pointer = None
 
@@ -214,19 +213,18 @@ class WebDataWorker(QThread):
                     self.request_otp_input.emit()
                     await self.stop_event.wait()
                     self.stop_event.clear()
-                    if not self.code:
-                        raise Exception("No code provided")
-                    await self.pointer.fill_otp(self.code)
-                    await asyncio.sleep(2)
+                    # if not self.code:
+                    #     raise Exception("No code provided")
+                    # await self.pointer.fill_otp(self.code)
+                    # await asyncio.sleep(2)
                 except Exception:
-                    del self.code
+                    # del self.code
                     print("Pointer logged in successfully")
                     self.page_loaded.emit()
                     break
 
     
-    def set_pointer_code(self, data):
-        self.code = data.get('code', None)
+    def set_pointer_code(self):
         self.stop_event.set()
     
     def stop(self):
