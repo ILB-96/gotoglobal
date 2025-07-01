@@ -68,10 +68,15 @@ class LongRides:
         try:
             page = await self.web_access.create_new_page("autotel_bo", f'{settings.autotel_url}/index.html#/orders/current', "reuse")
             await page.wait_for_timeout(1000)
+            await page.evaluate("""
+            () => {
+                const elem = document.querySelector('.table-form');
+                const scope = angular.element(elem).scope();
+                scope.ordersCtrl.refreshTime = 0;
+            }
+        """)
             rides_page = pages.RidesPage(page)
             await rides_page.set_ride_duration_sort("desc")
-            page_snapshot = await page.content()
-            await page.set_content(page_snapshot, wait_until="networkidle")
             table_rows = await rides_page.orders_table_rows()
             for row in table_rows:
                 duration = str(await rides_page.get_duration_from_row(row).text_content()).strip()

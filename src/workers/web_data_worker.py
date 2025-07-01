@@ -105,6 +105,7 @@ class WebDataWorker(QThread):
                 }
         
         for page in list(self.web_access.context.pages):
+            self.bring_window_to_front('Work')
             if targets['pointer'] and page.url == targets['pointer']:
                 if await page.locator('textarea.realInput').is_visible():
                     await page.close()
@@ -136,6 +137,8 @@ class WebDataWorker(QThread):
         pages_to_create = {key: url for key, url in targets.items() if url}
 
         await self.web_access.create_pages(pages_to_create)
+        if 'pointer' in self.web_access.pages.keys():
+            await self.web_access.pages['pointer'].bring_to_front()
             
     async def _handle_url_queue(self):
         while not self.url_queue.empty() and self.running:
@@ -153,12 +156,9 @@ class WebDataWorker(QThread):
             await page.goto(url, wait_until='domcontentloaded')
             await page.bring_to_front()
             await page.wait_for_function('document.title.length > 0')
-            title = await page.title()
             if page.url != 'url':
                 await page.goto(url)
-            await page.wait_for_function('document.title.length > 0')
-            title = await page.title()
-            self.bring_window_to_front(title)
+
         except Exception:
             pass
         
