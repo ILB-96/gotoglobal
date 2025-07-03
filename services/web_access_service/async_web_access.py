@@ -7,6 +7,11 @@ from typing import Optional
 import ctypes
 from ctypes import wintypes, byref
 from uuid import UUID
+import os
+import os
+import shutil
+import time
+from pathlib import Path
 
 class AsyncWebAccess:
     """
@@ -29,7 +34,7 @@ class AsyncWebAccess:
         self._browser_name = browser_name
         self._profile = profile or None
         self.pages: dict[str, Page] = {}
-
+        
     async def __aenter__(self):
         if self._profile == "Port":
             try:
@@ -78,8 +83,10 @@ class AsyncWebAccess:
             self.browser = await self._playwright.chromium.launch(
                 headless=self._headless)
             self.context: BrowserContext = await self.browser.new_context()
+            
+        
+        
 
-                
             
         self.pages: dict[str, Page] = {}
                 
@@ -164,6 +171,7 @@ class AsyncWebAccess:
         if not page.is_closed():
             await page.close()
         del self.pages[page_name]
+
 
     async def cleanup(self):
         if self.context:

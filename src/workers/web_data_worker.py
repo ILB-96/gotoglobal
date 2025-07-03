@@ -4,6 +4,7 @@ from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
 
 from playwright.async_api import async_playwright
 from services import AsyncWebAccess
+from services.web_access_service.file_mover import FileMover
 import settings
 from src.shared import PointerLocation, utils
 import time
@@ -58,12 +59,13 @@ class WebDataWorker(QThread):
                 await self._init_pages()
                 
                 asyncio.create_task(self._handle_pointer_login()) if cfg.get(cfg.pointer) else self.page_loaded.emit()
-                    
+                file_mover = FileMover()
                 start_time = 0
                 while self.running:
-                    asyncio.create_task(self._handle_url_queue())
-                    asyncio.create_task(self._handle_pointer_location_queue())
+                    await self._handle_url_queue()
+                    await self._handle_pointer_location_queue()
                     asyncio.create_task(self.update_page_data())
+                    file_mover.move_files()
                     now = time.time()
                     if self.pointer and now - start_time >= settings.interval: 
                         start_time = now

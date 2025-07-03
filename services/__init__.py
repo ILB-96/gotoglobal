@@ -1,7 +1,6 @@
-from .web_access_service import WebAccess, AsyncWebAccess
+from .web_access_service import AsyncWebAccess
 from . import fluent
 __all__ = [
-    "WebAccess",
     "AsyncWebAccess",
     "fluent"
 ]
