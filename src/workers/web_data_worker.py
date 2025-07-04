@@ -1,10 +1,8 @@
 from queue import Queue
-import threading
 from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
 
 from playwright.async_api import async_playwright
 from services import AsyncWebAccess
-from services.web_access_service.file_mover import FileMover
 import settings
 from src.shared import PointerLocation, utils
 import time
@@ -59,13 +57,12 @@ class WebDataWorker(QThread):
                 await self._init_pages()
                 
                 asyncio.create_task(self._handle_pointer_login()) if cfg.get(cfg.pointer) else self.page_loaded.emit()
-                file_mover = FileMover()
                 start_time = 0
                 while self.running:
                     await self._handle_url_queue()
                     await self._handle_pointer_location_queue()
                     asyncio.create_task(self.update_page_data())
-                    file_mover.move_files()
+                    # file_mover.move_files()
                     now = time.time()
                     if self.pointer and now - start_time >= settings.interval: 
                         start_time = now
@@ -140,15 +137,18 @@ class WebDataWorker(QThread):
         await self.web_access.create_pages(pages_to_create)
         if 'pointer' in self.web_access.pages.keys():
             await self.web_access.pages['pointer'].bring_to_front()
+
             
     async def _handle_url_queue(self):
         while not self.url_queue.empty() and self.running:
             url = self.url_queue.get_nowait()
             asyncio.create_task(self.process_url(url))
+            
 
     async def process_url(self, url):
         try:
-            self.bring_window_to_front('Work')
+            self.bring_window_to_front('Work - ')
+            await asyncio.sleep(0.25)
             page = await self.web_access.context.new_page()
             if settings.goto_url in url:
                 await page.goto(settings.goto_url, wait_until='domcontentloaded')

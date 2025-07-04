@@ -1,3 +1,4 @@
+import asyncio
 from functools import partial
 import settings
 from services import AsyncWebAccess
@@ -20,9 +21,8 @@ class LateAlert:
             self.gui_table_row([['No late rides', '0', '0', '0', '0']])
             return self._notify_no_late_reservations()
         
-        rows = []
-        for ride in late_rides:
-            await self._process_ride(rows, ride)
+        tasks = [asyncio.create_task(self._process_ride(ride)) for ride in late_rides]
+        rows = await asyncio.gather(*tasks)
         
         page = await self.create_future_orders_page()
         for row in rows:
@@ -96,16 +96,16 @@ class LateAlert:
             icon=utils.resource_path(settings.app_icon)
         )
 
-    async def _process_ride(self, rows, ride: str):
-        await self._init_ride_page(ride)
+    async def _process_ride(self, ride: str):
+        page = await self._init_ride_page(ride)
                 
-        end_time = await self.fetch_end_time(self.web_access.pages['goto_bo'])
-        car_license = await self._get_car_license(self.web_access.pages['goto_bo'])
-        ride_comment = await self._get_ride_comment(self.web_access.pages['goto_bo'])
+        end_time = await self.fetch_end_time(page)
+        car_license = await self._get_car_license(page)
+        ride_comment = await self._get_ride_comment(page)
         
         url = self._build_ride_url(ride)
         open_ride_url = partial(self.open_ride.emit, url)
-        rows.append([(ride, open_ride_url), end_time, car_license, "", ride_comment])
+        return [(ride, open_ride_url), end_time, car_license, "", ride_comment]
 
 
     def _should_skip_due_to_end_time(self, end_time):
@@ -119,7 +119,7 @@ class LateAlert:
     @utils.async_retry(allow_falsy=True)
     async def _init_ride_page(self, ride: str):
         ride_url = self._build_ride_url(ride)
-        await self._open_ride_page(ride_url)
+        return await self._open_ride_page(ride, ride_url)
 
     def _build_ride_url(self, ride):
         return f'{settings.goto_url}/index.html#/orders/{ride}/details'
@@ -139,10 +139,10 @@ class LateAlert:
             return None
     
     @utils.async_retry()
-    async def _open_ride_page(self, ride_url: str):
+    async def _open_ride_page(self, ride, ride_url: str):
         # self.web_access.create_new_page("ride", str(settings.goto_url), open_mode="reuse")
-        await self.web_access.create_new_page("goto_bo", ride_url, open_mode="reuse")
-        return self.web_access.pages['goto_bo']
+        page = await self.web_access.create_new_page(f"goto_ride{ride}", ride_url, open_mode="reuse")
+        return page
 
     def _parse_time(self, time_str: str, dt_format: str = "%d/%m/%Y %H:%M") -> dt | None:
         try:

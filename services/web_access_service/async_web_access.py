@@ -1,16 +1,8 @@
-import os
 from pathlib import Path
 import subprocess
 from time import sleep
-from playwright.async_api import BrowserContext, Page, Playwright, Error as PlaywrightError, Browser
+from playwright.async_api import BrowserContext, Page, Playwright, Download
 from typing import Optional
-import ctypes
-from ctypes import wintypes, byref
-from uuid import UUID
-import os
-import os
-import shutil
-import time
 from pathlib import Path
 
 class AsyncWebAccess:
@@ -83,6 +75,8 @@ class AsyncWebAccess:
             self.browser = await self._playwright.chromium.launch(
                 headless=self._headless)
             self.context: BrowserContext = await self.browser.new_context()
+        
+        await self.add_download_event_handler()
             
         
         
@@ -92,6 +86,25 @@ class AsyncWebAccess:
                 
         return self
     
+    async def add_download_event_handler(self):
+        """
+        Attach download event handlers only once per page,
+        including future pages created in this browser context.
+        """
+        if not self.context:
+            return
+
+        async def handle_download(download: Download):
+            await download.save_as(Path.home() / "Downloads" / download.suggested_filename)
+
+        def attach_listener(page):
+            page.on("download", handle_download)
+
+        for page in self.context.pages:
+            attach_listener(page)
+
+        self.context.on("page", attach_listener)
+
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         try:

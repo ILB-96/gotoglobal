@@ -31,14 +31,10 @@ class BatteriesAlert:
             await self.process_car_data(index, row)
             
         self.gui_table_row(rows)
-        
-
 
         for row in rows:
             _, car_license, car_battery, location, _ = row
-            self.notify_battery_condition(car_license, car_battery, location)
-        
-        
+            self.notify_battery_condition(car_license, car_battery, location) 
             
     @utils.async_retry(allow_falsy=True)
     async def init_ride_page(self, url):
