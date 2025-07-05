@@ -40,6 +40,8 @@ class AsyncWebAccess:
                 sleep(5)
                 self.browser = await self._playwright.chromium.connect_over_cdp('http://localhost:9222')
                 self.context = self.browser.contexts[0] if self.browser.contexts else await self.browser.new_context()
+            self.context2 = await self.browser.new_context()
+            await self.context2.new_page()
         elif self._profile:
             if self._browser_name == 'chrome':
                 BROWSER_PATH = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
@@ -77,10 +79,6 @@ class AsyncWebAccess:
             self.context: BrowserContext = await self.browser.new_context()
         
         await self.add_download_event_handler()
-            
-        
-        
-
             
         self.pages: dict[str, Page] = {}
                 

@@ -95,7 +95,7 @@ class RidesPage:
         :param order: "asc" for ascending, "desc" for descending
         """
         await self.table_duration_button().click()
-        if order == 'desc':
+        if order == 'asc':
             await self.page.wait_for_timeout(1000)
             await self.table_duration_button().click()
             

@@ -27,16 +27,16 @@ class LongRides:
         This method will create a new page for long rides and fetch
         the relevant data.
         """  
-        print("Long rides started")
 
         rows = []
         for _ in range(3):
-            
             await self.collect_rides_information(rows)
             if rows:
                 break
 
-        print(f"Collected {len(rows)} long rides")
+        if not rows:
+            return self.gui_table_row([['No long rides', '0', '0', '0', '0']])
+        
         tasks = [asyncio.create_task(self.process_long_ride(i, row)) for i, row in enumerate(rows)]
         rows = await asyncio.gather(*tasks)
             
@@ -66,8 +66,8 @@ class LongRides:
 
     async def collect_rides_information(self, rows: List[List[Any]]):
         try:
-            page = await self.web_access.create_new_page("autotel_bo", f'{settings.autotel_url}/index.html#/orders/current', "reuse")
-            await page.wait_for_timeout(1000)
+            
+            page = await self._init_page()
             await page.evaluate("""
             () => {
                 const elem = document.querySelector('.table-form');
@@ -97,6 +97,13 @@ class LongRides:
                 rows.append([(ride_id, open_ride_url), driver_name, duration, location, url])
         except Exception:
             return rows.clear()
+
+    async def _init_page(self):
+        page = await self.web_access.create_new_page("autotel_bo", f'{settings.autotel_url}/index.html#/orders/current', "reuse")
+        if 'login' in page.url:
+            await page.goto(settings.autotel_url, wait_until="networkidle")
+        await page.wait_for_timeout(1000)
+        return page
     def parse_duration(self, duration: str) -> timedelta:
         """
         Parses the duration string into total seconds.

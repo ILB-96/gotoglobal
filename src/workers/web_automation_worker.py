@@ -38,13 +38,11 @@ class WebAutomationWorker(QThread):
         self.loop.close()
     
     async def _async_main(self):
+        self.request_delete_table.emit()
+        await self.stop_event.wait()
+        self.stop_event.clear()
         async with async_playwright() as playwright:
             async with AsyncWebAccess(playwright, settings.playwright_headless, 'edge', 'Default') as self.web_access:
-                await self._init_pages()
-                print("WebAutomationWorker started")
-                await self.stop_event.wait()
-                self.stop_event.clear()
-                print("WebAutomationWorker initialized") # never reached
                 if not self.running:
                     return
 
@@ -67,7 +65,6 @@ class WebAutomationWorker(QThread):
         self.stop_event.clear()
         
     def trigger_stop_event(self):
-        print("Triggering stop_event from signal...")
         if self.loop:
             self.loop.call_soon_threadsafe(self.stop_event.set)
         
@@ -79,7 +76,6 @@ class WebAutomationWorker(QThread):
         if cfg.get(cfg.long_rides ) or cfg.get(cfg.batteries):
             pages_data['autotel_bo'] = settings.autotel_url
 
-        self.request_delete_table.emit()
         await self.web_access.create_pages(pages_data)
 
     def request_pointer_location_sync(self, car_license: str) -> object:
@@ -128,7 +124,6 @@ class WebAutomationWorker(QThread):
         if late is not None:
             tasks.append(asyncio.create_task(late.start_requests()))
         if long_rides_alert is not None:
-            print("Starting long rides alert requests")
             tasks.append(asyncio.create_task(long_rides_alert.start_requests()))
         if batteries_alert is not None:
             tasks.append(asyncio.create_task(batteries_alert.start_requests()))

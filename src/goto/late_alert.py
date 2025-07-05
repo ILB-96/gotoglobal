@@ -5,12 +5,10 @@ from services import AsyncWebAccess
 from datetime import datetime as dt, timedelta
 from src.pages import RidesPage, RidePage
 from src.shared import utils
-class LateAlert:
+from src.shared import BaseAlert
+class LateAlert(BaseAlert):
     def __init__(self, show_toast, gui_table_row, web_access: AsyncWebAccess, open_ride):
-        self.show_toast = show_toast
-        self.gui_table_row = gui_table_row
-        self.web_access = web_access
-        self.open_ride = open_ride
+        super().__init__(show_toast, gui_table_row, web_access, open_ride)
         
     async def start_requests(self):
         late_rides = None
@@ -20,7 +18,7 @@ class LateAlert:
         if not late_rides or late_rides == "No result":
             self.gui_table_row([['No late rides', '0', '0', '0', '0']])
             return self._notify_no_late_reservations()
-        
+        print('Late rides found:', late_rides)
         tasks = [asyncio.create_task(self._process_ride(ride)) for ride in late_rides]
         rows = await asyncio.gather(*tasks)
         
@@ -35,9 +33,9 @@ class LateAlert:
         
     @utils.async_retry()
     async def fetch_late_rides(self):
-        await self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/current/', 'reuse')
-        await self.web_access.pages['goto_bo'].wait_for_timeout(3000)
+        await self.init_page('goto_bo', settings.goto_url, settings.goto_url, timeout=2000)
         return await self.fetch_late_ride()
+
     
     async def fetch_late_ride(self):
         """
@@ -63,7 +61,7 @@ class LateAlert:
             if not row[3] or (parsed_start_time is not None and parsed_row_time is not None and parsed_start_time < parsed_row_time):
                 row[2], row[3] = ride_id, start_time
         if row[3]:
-            callback = partial(self.open_ride.emit, self._build_ride_url(row[2]))
+            callback = partial(self.open_ride.emit, self.build_ride_url(row[2], settings.goto_url))
             row[2] = (row[2], callback)
         else:
             row[2] = row[3] = "No future ride found"
@@ -76,9 +74,9 @@ class LateAlert:
     async def fetch_row_start_time(self, page, sorted_row):
         return str(await RidesPage(page).row_start_time_cell(sorted_row).text_content()).strip()
 
-    @utils.async_retry(allow_falsy=True)
+    @utils.async_retry()
     async def create_future_orders_page(self):
-        page = await self.web_access.create_new_page('goto_bo', f'{settings.goto_url}/index.html#/orders/future/', 'reuse')
+        page = await self.init_page('goto_bo', f'{settings.goto_url}/index.html#/orders/future/', settings.goto_url, timeout=1000)
         return page
 
     def notify_late_rides(self, rows):
@@ -98,12 +96,13 @@ class LateAlert:
 
     async def _process_ride(self, ride: str):
         page = await self._init_ride_page(ride)
+        print(f"Processing ride: {ride}")
                 
-        end_time = await self.fetch_end_time(page)
+        end_time = await self._fetch_end_time(page)
         car_license = await self._get_car_license(page)
         ride_comment = await self._get_ride_comment(page)
-        
-        url = self._build_ride_url(ride)
+        await self.web_access.close_page(f'goto_ride{ride}')
+        url = self.build_ride_url(ride, settings.goto_url)
         open_ride_url = partial(self.open_ride.emit, url)
         return [(ride, open_ride_url), end_time, car_license, "", ride_comment]
 
@@ -116,13 +115,11 @@ class LateAlert:
             except Exception:
                 return False
     
-    @utils.async_retry(allow_falsy=True)
+    @utils.async_retry()
     async def _init_ride_page(self, ride: str):
-        ride_url = self._build_ride_url(ride)
-        return await self._open_ride_page(ride, ride_url)
-
-    def _build_ride_url(self, ride):
-        return f'{settings.goto_url}/index.html#/orders/{ride}/details'
+        ride_url = self.build_ride_url(ride, settings.goto_url)
+        print(f"Initializing ride page for ride: {ride} with URL: {ride_url}")
+        return await self.init_page(f'goto_ride{ride}', ride_url, settings.goto_url, 1000)
     
     @utils.async_retry(allow_falsy=True)
     async def _get_ride_comment(self, page):
@@ -140,8 +137,11 @@ class LateAlert:
     
     @utils.async_retry()
     async def _open_ride_page(self, ride, ride_url: str):
-        # self.web_access.create_new_page("ride", str(settings.goto_url), open_mode="reuse")
         page = await self.web_access.create_new_page(f"goto_ride{ride}", ride_url, open_mode="reuse")
+        if 'login' in page.url:
+            await page.goto(settings.goto_url, wait_until="networkidle")
+            if ride_url != settings.goto_url:
+                await page.goto(ride_url, wait_until="networkidle")
         return page
 
     def _parse_time(self, time_str: str, dt_format: str = "%d/%m/%Y %H:%M") -> dt | None:
@@ -159,16 +159,11 @@ class LateAlert:
             icon=utils.resource_path(settings.app_icon)
         )
     
-    @utils.async_retry(allow_falsy=False)
-    async def fetch_end_time(self, page):
+    @utils.async_retry()
+    async def _fetch_end_time(self, page):
         await page.wait_for_timeout(1000)
-        return str(await RidePage(page).ride_end_time.text_content()).strip()
+        element = RidePage(page).ride_end_time
+        content = await element.text_content()
+        return str(content).strip()
 
-    @utils.async_retry(allow_falsy=False)
-    async def fetch_start_time(self, page):
-        await page.wait_for_timeout(1000)
-        return str(await RidePage(page).ride_start_time.text_content()).strip()
-    
 
-        
-    

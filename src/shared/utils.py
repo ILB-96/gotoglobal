@@ -29,9 +29,13 @@ def async_retry(retries=3, delay=1, allow_falsy=False):
                     if not allow_falsy and not result:
                         raise ValueError("Function returned a falsy value")
                     return result
-                except Exception:
+                except Exception as e:
                     if attempt < retries - 1:
                         await asyncio.sleep(delay)
+                    else:
+                        print(f"Function {func.__name__} failed after {retries} attempts")
+                        # Optionally log the exception
+                        print(f"Last exception: {e}")
                         
             return "No result"
 

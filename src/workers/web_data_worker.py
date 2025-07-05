@@ -11,6 +11,8 @@ import subprocess
 import socket
 import win32gui
 import win32con
+import win32api
+import ctypes
 from ..app.common.config import cfg
 class WebDataWorker(QThread):
     page_loaded = pyqtSignal()
@@ -62,6 +64,7 @@ class WebDataWorker(QThread):
                     await self._handle_url_queue()
                     await self._handle_pointer_location_queue()
                     asyncio.create_task(self.update_page_data())
+                    print("contexts counts:", len(self.web_access.browser.contexts))
                     # file_mover.move_files()
                     now = time.time()
                     if self.pointer and now - start_time >= settings.interval: 
@@ -103,7 +106,6 @@ class WebDataWorker(QThread):
                 }
         
         for page in list(self.web_access.context.pages):
-            self.bring_window_to_front('Work')
             if targets['pointer'] and page.url == targets['pointer']:
                 if await page.locator('textarea.realInput').is_visible():
                     await page.close()
@@ -133,18 +135,17 @@ class WebDataWorker(QThread):
 
 
         pages_to_create = {key: url for key, url in targets.items() if url}
-
+        self.bring_window_to_front('Work - ')
         await self.web_access.create_pages(pages_to_create)
         if 'pointer' in self.web_access.pages.keys():
             await self.web_access.pages['pointer'].bring_to_front()
-
+        
             
     async def _handle_url_queue(self):
         while not self.url_queue.empty() and self.running:
             url = self.url_queue.get_nowait()
             asyncio.create_task(self.process_url(url))
             
-
     async def process_url(self, url):
         try:
             self.bring_window_to_front('Work - ')
@@ -159,24 +160,24 @@ class WebDataWorker(QThread):
             await page.wait_for_function('document.title.length > 0')
             if page.url != 'url':
                 await page.goto(url)
-
         except Exception:
             pass
-        
 
     def bring_window_to_front(self, window_title: str):
         def enumHandler(hwnd, lParam):
             if win32gui.IsWindowVisible(hwnd):
                 if window_title.lower() in win32gui.GetWindowText(hwnd).lower():
                     placement = win32gui.GetWindowPlacement(hwnd)
-                    # Only restore if minimized
                     if placement[1] == win32con.SW_SHOWMINIMIZED:
                         win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
                     try:
+                        ctypes.windll.user32.AllowSetForegroundWindow(-1)
+                        win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
                         win32gui.SetForegroundWindow(hwnd)
                     except Exception as e:
                         print(f"Could not bring window to front: {e}")
         win32gui.EnumWindows(enumHandler, None)
+        
                     
     async def _handle_pointer_location_queue(self):
         async with self.pointer_lock:
