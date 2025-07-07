@@ -85,7 +85,10 @@ class AsyncWebAccess:
         return self
     async def block_unwanted_requests(self, context):
         urls_to_block = {"https://car2govisibility.gototech.co/API/RT/reservationIssues",
+                         'content.powerapps.com/resource/webplayerbus/hashedresources/2jc6enofp9rqe/js/webplayer-authflow.js',
+                         'content.powerapps.com/resource/webplayerbus/hashedresources/2jc6enofp9rqe/js/webplayer-authflow.js',
                          "chrome-extension://hokifickgkhplphjiodbggjmoafhignh/fonts/fabric-icons.woff",
+                         'autotel.crm4.dynamics.com/%7b000000520173284%7d/webresources/cc_MscrmControls.Grid.PCFGridControl/PCFGridControl.js',
                          "goto.crm4.dynamics.com/%7b638872608630000206%7d/webresources/cc_MscrmControls.FieldControls.TimerControl/css/TimerIcon.css",
                          }
         async def handle_route(route, request):

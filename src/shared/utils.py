@@ -50,6 +50,7 @@ async def fetch_data(request_url: str, x_token: str, payload: Dict) -> Dict:
             return response.json()
     except Exception as e:
         print(f"Request error: {e}")
+        return {}
 
 def async_retry(retries=3, delay=1, allow_falsy=False):
     def decorator(func):
