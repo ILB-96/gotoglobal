@@ -1,34 +1,38 @@
 from queue import Queue
 from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
 
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Request, Page
 from services import AsyncWebAccess
 import settings
 from src.shared import PointerLocation, utils
 import time
 import asyncio
-import subprocess
-import socket
+
 import win32gui
 import win32con
-import win32api
 import ctypes
 from ..app.common.config import cfg
+from dataclasses import dataclass
+from typing import Literal, Union
+
+@dataclass
+class WebTask:
+    mode: Literal["url", "pointer", "x_token"]
+    payload: Union[str, int]
+    
 class WebDataWorker(QThread):
     page_loaded = pyqtSignal()
 
     request_otp_input = pyqtSignal()
-    input_send = pyqtSignal(object)
+    pointer_location_send = pyqtSignal(object)
+    x_token_send = pyqtSignal(str, str)
     input_received = pyqtSignal()
-    pointer_location_requested = pyqtSignal(str)
-
+    
     def __init__(self, parent=None):
         super(WebDataWorker, self).__init__(parent)
         self.stop_event = asyncio.Event()
         self.running = True
-        self.url_queue = Queue()
-        self.pointer_queue = Queue()
-        self.pointer_location_requested.connect(self.enqueue_pointer_location)
+        self.task_queue = Queue()
         self.pointer_lock = asyncio.Lock()
         self.pointer = None
 
@@ -39,35 +43,22 @@ class WebDataWorker(QThread):
         asyncio.set_event_loop(loop)
         loop.run_until_complete(self._async_main())
         loop.close()
-    def is_debug_port_open(self, port=9222):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(1)
-            result = sock.connect_ex(('localhost', port))
-            return result == 0
-
+        
     async def _async_main(self):
-
-        if not self.is_debug_port_open():
-            subprocess.call(['taskkill', '/F', '/IM', 'msedge.exe'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            subprocess.call([
-                'start', 'msedge', '--remote-debugging-port=9222', '--no-first-run'
-            ], shell=True)
 
 
         async with async_playwright() as playwright:
             async with AsyncWebAccess(playwright, False, 'edge', 'Port') as self.web_access:
+                
                 await self._init_pages()
                 
                 asyncio.create_task(self._handle_pointer_login()) if cfg.get(cfg.pointer) else self.page_loaded.emit()
                 start_time = 0
                 while self.running:
-                    await self._handle_url_queue()
-                    await self._handle_pointer_location_queue()
+                    await self._handle_queue()
                     asyncio.create_task(self.update_page_data())
-                    print("contexts counts:", len(self.web_access.browser.contexts))
-                    # file_mover.move_files()
                     now = time.time()
-                    if self.pointer and now - start_time >= settings.interval: 
+                    if self.pointer and now - start_time >= settings.interval:
                         start_time = now
                         asyncio.create_task(self.reload_pointer_data())
                     await self.wait_by(timeout=5)
@@ -140,13 +131,17 @@ class WebDataWorker(QThread):
         if 'pointer' in self.web_access.pages.keys():
             await self.web_access.pages['pointer'].bring_to_front()
         
+    async def _handle_queue(self):
+        while not self.task_queue.empty() and self.running:
+            task: WebTask = self.task_queue.get_nowait()
+            if task.mode == "url":
+                asyncio.create_task(self._handle_open_url_request(task.payload))
+            elif task.mode == "pointer":
+                await self._handle_pointer_location_request(task.payload)
+            elif task.mode == "x_token":
+                asyncio.create_task(self._handle_x_token_request(task.payload))
             
-    async def _handle_url_queue(self):
-        while not self.url_queue.empty() and self.running:
-            url = self.url_queue.get_nowait()
-            asyncio.create_task(self.process_url(url))
-            
-    async def process_url(self, url):
+    async def _handle_open_url_request(self, url):
         try:
             self.bring_window_to_front('Work - ')
             await asyncio.sleep(0.25)
@@ -179,29 +174,62 @@ class WebDataWorker(QThread):
         win32gui.EnumWindows(enumHandler, None)
         
                     
-    async def _handle_pointer_location_queue(self):
+    async def _handle_x_token_request(self, mode: Literal['goto', 'autotel']):
+        try:
+            if mode == 'goto':
+                request_url = "https://car2gopublicapi.gototech.co/API/SEND"
+                request_page = await self.get_goto_bo_page()
+            elif mode == 'autotel':
+                request_url = "https://autotelpublicapiprod.gototech.co/API/SEND"
+                request_page = await self.get_autotel_bo_page()
+            else:
+                return
+            print(f"Requesting X-Token for {mode} from URL: {request_url}, Page: {request_page.url}")
+            x_token = await self.get_x_token_from_request(request_page, request_url)
+            print(f"X-Token for {mode} is: {x_token}")
+            self.x_token_send.emit(mode, x_token)
+        except Exception:
+            self.x_token_send.emit(mode, None)
+
+    async def get_goto_bo_page(self) -> Page:
+        for page in self.web_access.context.pages:
+            if 'login' not in page.url and settings.goto_url in page.url:
+                return page
+        return await self.web_access.create_new_page('goto_bo', settings.goto_url, open_mode='reuse')
+    
+    async def get_autotel_bo_page(self) -> Page:
+        for page in self.web_access.context.pages:
+            if 'login' not in page.url and settings.autotel_url in page.url:
+                return page
+        return await self.web_access.create_new_page('autotel_bo', settings.autotel_url, open_mode='reuse')
+
+    async def _handle_pointer_location_request(self, car_license: str):
         async with self.pointer_lock:
             if not self.pointer:
                 return
-            while not self.pointer_queue.empty() and self.running:
-                try:
-                    car_license = self.pointer_queue.get_nowait()
-                    data = await self.pointer.search_location(car_license)
-                    self.input_send.emit(data.strip("").strip(","))
-                except Exception:
-                    pass
+            try:
+                data = await self.pointer.search_location(car_license)
+                self.pointer_location_send.emit(data.strip("").strip(","))
+            except Exception:
+                self.pointer_location_send.emit("Error: Manually reload Pointer")
+                
     def enqueue_url(self, url: str):
         """Enqueue a URL to be opened in the web access context."""
-        if not self.running:
-            return
-        self.url_queue.put(url)
+        task = WebTask(mode="url", payload=url)
+        self.task_queue.put(task)
+        self.stop_event.set()
+        
+    def enqueue_x_token(self, mode: Literal['goto', 'autotel']):
+        """Enqueue a pointer location request."""
+        print(f"Enqueuing x_token request for mode: {mode}")
+        task = WebTask(mode="x_token", payload=mode)
+        self.task_queue.put(task)
         self.stop_event.set()
 
-    def enqueue_pointer_location(self, location: str):
+    def enqueue_pointer_location(self, car_license: str):
         """Enqueue a pointer location request."""
-        if not self.running:
-            return
-        self.pointer_queue.put(location)
+        task = WebTask(mode="pointer", payload=car_license)
+        self.task_queue.put(task)
         self.stop_event.set()
         
     async def _handle_pointer_login(self):
@@ -226,6 +254,30 @@ class WebDataWorker(QThread):
                     self.page_loaded.emit()
                     break
 
+
+    async def get_x_token_from_request(self, page: Page, request_url: str):
+        x_token_value = None
+
+        def handle_request(request: Request):
+            nonlocal x_token_value
+            # print("Handling request:", request.url, "Method:", request.method, "Headers:", request.headers)
+            if x_token_value is None and request.method == "POST":
+                token = request.headers.get("X-Token", request.headers.get("x-token"))
+                print("x-token found:", token)
+                if token:
+                    x_token_value = token
+                    self.stop_event.set()
+
+        page.on("request", handle_request)
+
+        # await page.goto(settings.goto_url)
+        
+        await self.stop_event.wait()
+        self.stop_event.clear()
+        
+        page.remove_listener("request", handle_request)
+        
+        return x_token_value
     
     def set_pointer_code(self):
         self.stop_event.set()

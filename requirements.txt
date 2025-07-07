@@ -7,3 +7,4 @@ darkdetect
 colorthief
 scipy
 pillow
+httpx

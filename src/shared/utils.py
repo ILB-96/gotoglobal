@@ -1,7 +1,8 @@
 import os
 import sys
 import time
-
+from typing import Dict
+from datetime import datetime as dt
 
 def resource_path(relative_path):
     """
@@ -18,7 +19,36 @@ def resource_path(relative_path):
 import asyncio
 import time
 from functools import wraps
+import httpx
+def parse_time(time_str: str, dt_format: str = "%Y-%m-%dT%H:%M:%S.%f") -> dt | None:
+    try:
+        if "." in time_str:
+            # Normalize to microseconds (6 digits)
+            base, frac = time_str.split(".")
+            frac = (frac + "000000")[:6]  # pad to 6 digits
+            time_str = f"{base}.{frac}"
+        else:
+            dt_format = "%Y-%m-%dT%H:%M:%S"
+        return dt.strptime(time_str, dt_format)
+    except ValueError:
+        print('Error parsing time:', time_str)
+        return None
 
+    
+async def fetch_data(request_url: str, x_token: str, payload: Dict) -> Dict:
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "X-Token": x_token
+    }
+
+    print("Fetching reservation data with payload:", headers, payload, request_url)
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(request_url, json=payload, headers=headers)
+        response.raise_for_status()  # Optional: raises if HTTP status is 4xx or 5xx
+        return response.json()
+    
 def async_retry(retries=3, delay=1, allow_falsy=False):
     def decorator(func):
         @wraps(func)

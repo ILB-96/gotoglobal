@@ -1,6 +1,5 @@
 import asyncio
 import threading
-from typing import Literal
 from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
 
 from playwright.async_api import async_playwright, Page
@@ -21,7 +20,6 @@ class WebAutomationWorker(QThread):
 
     open_url_requested = pyqtSignal(str)
     request_pointer_location = pyqtSignal(str)
-    request_x_token = pyqtSignal(str)
 
     def __init__(self,  parent=None):
         super(WebAutomationWorker, self).__init__(parent)
@@ -30,11 +28,8 @@ class WebAutomationWorker(QThread):
 
         self._location_condition = threading.Condition()
         self._location_response = None
-
-        self._x_token_condition = threading.Condition()
-        self._goto_x_token = None
-        self._autotel_x_token = None
-
+        self.lock = asyncio.Lock()
+    
     @pyqtSlot()
     def run(self):
         self.loop = asyncio.new_event_loop()
@@ -83,19 +78,6 @@ class WebAutomationWorker(QThread):
 
         await self.web_access.create_pages(pages_data)
 
-    def request_x_token_sync(self, mode: Literal['goto', 'autotel']) -> object:
-        """Emit signal and wait for location data."""
-        if mode == 'goto':
-            self._goto_x_token = None
-        elif mode == 'autotel':
-            self._autotel_x_token = None
-        with self._x_token_condition:
-            self.request_x_token.emit(mode)
-            if not self._x_token_condition.wait(timeout=40):
-                return None
-        
-        return self._goto_x_token if mode == 'goto' else self._autotel_x_token
-        
     def request_pointer_location_sync(self, car_license: str) -> object:
         """Emit signal and wait for location data."""
         self._location_response = None
@@ -115,8 +97,7 @@ class WebAutomationWorker(QThread):
                 show_toast=lambda title, message, icon: self.toast_signal.emit(title, message, icon),
                 gui_table_row=lambda row: self.late_table_row.emit(row),
                 web_access=self.web_access,
-                open_ride=self.open_url_requested,
-                x_token_request=self.request_x_token_sync,
+                open_ride=self.open_url_requested
             )
     
         if cfg.get(cfg.batteries):
@@ -134,7 +115,6 @@ class WebAutomationWorker(QThread):
                 web_access=self.web_access,
                 pointer=self.request_pointer_location_sync,
                 open_ride=self.open_url_requested,
-                x_token_request=self.request_x_token_sync
             )
         
         return late, batteries_alert, long_rides_alert
@@ -142,25 +122,14 @@ class WebAutomationWorker(QThread):
     async def _run_alert_requests(self, late, batteries_alert, long_rides_alert):
         tasks = []
         if late is not None:
-            tasks.append(asyncio.create_task(late.start_requests(self._goto_x_token)))
+            tasks.append(asyncio.create_task(late.start_requests()))
         if long_rides_alert is not None:
-            tasks.append(asyncio.create_task(long_rides_alert.start_requests(self._autotel_x_token)))
+            tasks.append(asyncio.create_task(long_rides_alert.start_requests()))
         if batteries_alert is not None:
             tasks.append(asyncio.create_task(batteries_alert.start_requests()))
         if tasks:
             await asyncio.gather(*tasks)
-    
-    
-    @pyqtSlot(object)
-    def set_x_token_data(self, mode, data):
-        """Receives location data from WebDataWorker."""
-        with self._x_token_condition:
-            if mode == 'goto':
-                self._goto_x_token = data
-            elif mode == 'autotel':
-                self._autotel_x_token = data
-            self._x_token_condition.notify()
-            
+        
     @pyqtSlot(object)
     def set_location_data(self, data):
         """Receives location data from WebDataWorker."""

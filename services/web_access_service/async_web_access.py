@@ -30,7 +30,7 @@ class AsyncWebAccess:
     async def __aenter__(self):
         if self._profile == "Port":
             try:
-                self.browser = await self._playwright.chromium.connect_over_cdp('http://localhost:9222')
+                self.browser = await self._playwright.chromium.connect_over_cdp('http://localhost:9222', timeout=10000)
                 self.context = self.browser.contexts[0] if self.browser.contexts else await self.browser.new_context()
             except Exception:
                 subprocess.call(['taskkill', '/F', '/IM', 'msedge.exe'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -40,8 +40,7 @@ class AsyncWebAccess:
                 sleep(5)
                 self.browser = await self._playwright.chromium.connect_over_cdp('http://localhost:9222')
                 self.context = self.browser.contexts[0] if self.browser.contexts else await self.browser.new_context()
-            self.context2 = await self.browser.new_context()
-            await self.context2.new_page()
+
         elif self._profile:
             if self._browser_name == 'chrome':
                 BROWSER_PATH = Path("C:/Program Files/Google/Chrome/Application/chrome.exe")
@@ -81,9 +80,22 @@ class AsyncWebAccess:
         await self.add_download_event_handler()
             
         self.pages: dict[str, Page] = {}
+        await self.block_unwanted_requests(self.context)
                 
         return self
-    
+    async def block_unwanted_requests(self, context):
+        urls_to_block = {"https://car2govisibility.gototech.co/API/RT/reservationIssues",
+                         "chrome-extension://hokifickgkhplphjiodbggjmoafhignh/fonts/fabric-icons.woff",
+                         "goto.crm4.dynamics.com/%7b638872608630000206%7d/webresources/cc_MscrmControls.FieldControls.TimerControl/css/TimerIcon.css",
+                         }
+        async def handle_route(route, request):
+            if request.url in urls_to_block or 'goto.crm4.dynamics.com/apc/100k.gif' in request.url or 'goto.crm4.dynamics.com/api/data/v9.0/activitypointers/Microsoft.Dynamics.CRM.RetrieveTimelineWallRecords' in request.url or 'apps.powerapps.com/apphost/e/' in request.url:
+                print(f"[INFO] Blocking request to {request.url}")
+                await route.abort()
+            else:
+                await route.continue_()
+        
+        await context.route("**/*", handle_route)
     async def add_download_event_handler(self):
         """
         Attach download event handlers only once per page,
@@ -124,7 +136,7 @@ class AsyncWebAccess:
     async def start_context(self, ignore_patterns: str = "**/*.{png,jpg,jpeg,css,svg}"):
         if not self.context:
             raise RuntimeError("Context not initialized")
-        await self.context.route(ignore_patterns, lambda route: route.abort())
+        await self.context.route(ignore_patterns, lambda route: route.abort())  
 
     async def create_pages(self, pages: dict[str, str]):
         if not self.context:
