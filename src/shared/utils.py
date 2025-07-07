@@ -43,12 +43,14 @@ async def fetch_data(request_url: str, x_token: str, payload: Dict) -> Dict:
     }
 
     print("Fetching reservation data with payload:", headers, payload, request_url)
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(request_url, json=payload, headers=headers)
+            response.raise_for_status()  # Optional: raises if HTTP status is 4xx or 5xx
+            return response.json()
+    except Exception as e:
+        print(f"Request error: {e}")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(request_url, json=payload, headers=headers)
-        response.raise_for_status()  # Optional: raises if HTTP status is 4xx or 5xx
-        return response.json()
-    
 def async_retry(retries=3, delay=1, allow_falsy=False):
     def decorator(func):
         @wraps(func)

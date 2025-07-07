@@ -6,14 +6,13 @@ class BaseAlert:
     """
     Base class for alerts.
     """
-    def __init__(self, show_toast, gui_table_row, web_access: AsyncWebAccess, open_ride, x_token_request):
+    def __init__(self, show_toast, gui_table_row, open_ride, x_token_request):
         self.show_toast = show_toast
         self.gui_table_row = gui_table_row
-        self.web_access = web_access
         self.open_ride = open_ride
         self.x_token_request = x_token_request
 
-    async def start_requests(self):
+    async def start_requests(self, x_token: str):
         """
         Starts the requests to fetch alerts.
         This method should be overridden in subclasses.

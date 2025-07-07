@@ -8,9 +8,9 @@ from src.pages import RidesPage, RidePage
 from src.shared import utils
 from src.shared import BaseAlert
 class LateAlert(BaseAlert):
-    def __init__(self, show_toast, gui_table_row, web_access: AsyncWebAccess, open_ride, x_token_request):
+    def __init__(self, show_toast, gui_table_row, open_ride, x_token_request):
 
-        super().__init__(show_toast, gui_table_row, web_access, open_ride, x_token_request)
+        super().__init__(show_toast, gui_table_row, open_ride, x_token_request)
         
     async def start_requests(self, x_token):
         late_rides = None
