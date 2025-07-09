@@ -1,4 +1,5 @@
 from functools import partial
+import json
 import settings
 from services import AsyncWebAccess
 
@@ -8,7 +9,7 @@ from src.shared import utils
 from src.shared import BaseAlert
 
 class BatteriesAlert(BaseAlert):
-    def __init__(self, show_toast, gui_table_row, web_access: AsyncWebAccess, pointer, open_ride, x_token_request):
+    def __init__(self, show_toast, gui_table_row, pointer, open_ride, x_token_request):
         super().__init__(
             show_toast=show_toast,
             gui_table_row=gui_table_row,
@@ -19,4 +20,87 @@ class BatteriesAlert(BaseAlert):
         
     async def start_requests(self, x_token: str):
         self.x_token = x_token
+        
+        rows = []
+        self.get_batteries_data(rows)
+        
+        if not rows:
+            return self.gui_table_row([['No batteries rides', '0', '0', '0', '0']])
+        
+        self.gui_table_row(rows)
+        
+    async def get_batteries_data(self, rows):
+        url = 'https://autotelpublicapiprod.gototech.co/API/SEND/GetAllCars'
+        payload = {
+            'Data': 'null/null/1/false',
+            'Opcode': 'GetAllCars',
+            'Username': 'x',
+            'Password': 'x'
+        }
+        try:
+            if not self.x_token:
+                self.x_token = self.x_token_request('autotel')
+            print(f"fetching data with x_token: {self.x_token}")
+            data = await utils.fetch_data(url, self.x_token, payload)
+            if not data or 'Data' not in data or not data.get('Data') or data.get('Data') == '[]':
+                raise RuntimeError("No data received from Autotel API")
+
+        except Exception:
+            self.x_token = self.x_token_request('autotel')
+            data = await utils.fetch_data(url, self.x_token, payload)
+        if not data or 'Data' not in data or not data.get('Data') or data.get('Data') == '[]':
+            return
+        data = json.loads(data.get('Data'))
+        print(f"batteries data: {data}")
+        return await self.process_batteries_data(data, rows)
+    
+    async def process_batteries_data(self, data, rows):
+        for car in data:
+            ride_id = car.get('activeReservationNum')
+            category = car.get('categoryId')
+            if not ride_id or not category or category != 1:
+                continue
+            license_plate = car.get('licensePlate')
+            battery = car.get('lastFuelPercentage', '0') + '%'
+            location = self.pointer(license_plate.replace('-', ''))
+            
+            url = f"https://prodautotelbo.gototech.co/index.html#/orders/{ride_id}/details"
+            open_ride_url = partial(self.open_ride.emit, url) if self.open_ride else None
+            
+            comment = await self.get_ride_comment(ride_id)
+            row = [(ride_id, open_ride_url), license_plate, battery, location, comment]
+            rows.append(row)
+            
+        
+        return rows
+    
+    async def get_ride_comment(self, ride_id: str) -> str:
+        """
+        Fetches the ride comment from the Autotel API.
+        
+        Args:
+            ride_id (str): The ID of the ride.
+            x_token (str): The authentication token for the Autotel API.
+        
+        Returns:
+            str: The ride comment if available, otherwise an empty string.
+        """
+        url = 'https://autotelpublicapiprod.gototech.co/API/SEND'
+        payload = {
+            'Data': f'/{ride_id}',
+            'Opcode': 'GetReservation',
+            'Username': 'x',
+            'Password': 'x'
+        }
+        try:
+            data = await utils.fetch_data(url, self.x_token, payload)
+            if not data or 'Data' not in data or not data.get('Data'):
+                raise RuntimeError(f"No data received for ride ID: {ride_id}")
+        except Exception:
+            self.x_token = self.x_token_request('autotel')
+            data = await utils.fetch_data(url, self.x_token, payload)
+        if not data or 'Data' not in data or not data.get('Data'):
+            return "No comment"
+        
+        return json.loads(data.get('Data', '{}')).get('comment', 'No comment')
         

@@ -13,24 +13,25 @@ class LateAlert(BaseAlert):
         super().__init__(show_toast, gui_table_row, open_ride, x_token_request)
         
     async def start_requests(self, x_token):
+        self.x_token = x_token
         late_rides = None
         
-        late_rides = await self.fetch_late_rides(x_token)
+        late_rides = await self.fetch_late_rides()
         
         if not late_rides or late_rides == "No result":
             self.gui_table_row([['No late rides', '0', '0', '0', '0']])
             return self._notify_no_late_reservations()
         
-    async def fetch_late_rides(self, x_token):
+    async def fetch_late_rides(self):
         """
         This function checks for late reservations.
         :param x_token: X-Token for authentication
         :return: List of late reservations
         """
         print('Fetching late rides...')
-        if x_token is None:
-            x_token = self.x_token_request('goto')
-        print('Fetching late rides with x_token:', x_token)
+        if self.x_token is None:
+            self.x_token = self.x_token_request('goto')
+        print('Fetching late rides with x_token:', self.x_token)
         url = 'https://car2gopublicapi.gototech.co/API/SEND'
         payload = {
             "Opcode": "getCurrentReservations",
@@ -39,23 +40,24 @@ class LateAlert(BaseAlert):
             "password": "x"
         }
         try:
-            data = await utils.fetch_data(url, x_token, payload)
+            data = await utils.fetch_data(url, self.x_token, payload)
             if not data or not data.get('Data'):
                 print('No data found for late rides:', data)
                 raise ValueError("No data found for late rides")
         except Exception as e:
             print('Error fetching late rides:', e)
-            x_token = self.x_token_request('goto')
-            if not x_token:
+            self.x_token = self.x_token_request('goto')
+            if not self.x_token:
                 return
-            data = await utils.fetch_data(url, x_token, payload)
+            data = await utils.fetch_data(url, self.x_token, payload)
         # print(data)
         if not data or not data.get('Data'):
             return
         parsed_data = json.loads(data.get('Data', '[]'))
         # print(parsed_data)
-        return await self.get_late_rides(parsed_data, x_token)
-    async def get_late_rides(self, data, x_token):
+        return await self.get_late_rides(parsed_data)
+    
+    async def get_late_rides(self, data):
         """
         This function processes the fetched data to find late rides.
         :param data: Fetched data from the API
@@ -78,7 +80,7 @@ class LateAlert(BaseAlert):
             row = [ride_id, parsed_end_date, "", "", ""]
             if parsed_end_date and parsed_end_date <= dt.now():
                 comment = await self.get_ride_comment(ride_id)
-                future_ride_id, future_ride_time = self.get_future_ride_info(car_license, x_token)
+                future_ride_id, future_ride_time = self.get_future_ride_info(car_license)
                 row[3] = future_ride_id
                 row[4] = future_ride_time
                 row[5] = comment
@@ -86,7 +88,7 @@ class LateAlert(BaseAlert):
             # print(row)
                 
         return late_rides
-    async def get_future_ride_info(self, car_license: str, x_token: str):
+    async def get_future_ride_info(self, car_license: str):
         """
         Fetches the future ride information based on the car license.
         :param car_license: The license plate of the car
@@ -104,18 +106,18 @@ class LateAlert(BaseAlert):
         }
         
         try:
-            if not x_token:
-                x_token = self.x_token_request('goto')
+            if not self.x_token:
+                self.x_token = self.x_token_request('goto')
 
-            data = await utils.fetch_data(url, x_token, payload)
+            data = await utils.fetch_data(url, self.x_token, payload)
             if not data or not data.get('Data'):
                 raise ValueError("No data found for future ride info")
         except Exception as e:
-            if not x_token:
-                x_token = self.x_token_request('goto')
-            
-            data = await utils.fetch_data(url, x_token, payload)
-        
+            if not self.x_token:
+                self.x_token = self.x_token_request('goto')
+
+            data = await utils.fetch_data(url, self.x_token, payload)
+
         parsed_data = json.loads(data.get('Data', '[]'))
         if not parsed_data:
             return "No future ride found", ""
@@ -131,7 +133,7 @@ class LateAlert(BaseAlert):
                 future_ride_date = parsed_date
 
         return future_ride_id, future_ride_date.strftime("%d/%m/%Y %H:%M") if future_ride_date else "No future ride found"
-    async def get_ride_comment(self, ride_id: str, x_token: str) -> str:
+    async def get_ride_comment(self, ride_id: str) -> str:
         """
         Fetches the ride comment for a given ride ID.
         :param ride_id: The ID of the ride
@@ -145,18 +147,18 @@ class LateAlert(BaseAlert):
                 "Data": f"/{ride_id}"
         }
         try:
-            if not x_token:
-                x_token = self.x_token_request('goto')
+            if not self.x_token:
+                self.x_token = self.x_token_request('goto')
 
-            data = await utils.fetch_data(url, x_token, payload)
+            data = await utils.fetch_data(url, self.x_token, payload)
             if not data or not data.get('Data') or data.get('Data') == '{}':
                 raise ValueError("No data found for ride comment")
         except Exception as e:
-            if not x_token:
-                x_token = self.x_token_request('goto')
-            
-            data = await utils.fetch_data(url, x_token, payload)
-        
+            if not self.x_token:
+                self.x_token = self.x_token_request('goto')
+
+            data = await utils.fetch_data(url, self.x_token, payload)
+
         return json.loads(data.get('Data', '{}')).get('comment', 'No comment found')
 
 
