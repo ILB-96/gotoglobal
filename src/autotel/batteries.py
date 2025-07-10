@@ -1,9 +1,6 @@
 from functools import partial
 import json
 import settings
-from services import AsyncWebAccess
-
-from src.pages import CarsPage, RidePage
 
 from src.shared import utils
 from src.shared import BaseAlert
@@ -21,15 +18,23 @@ class BatteriesAlert(BaseAlert):
     async def start_requests(self, x_token: str):
         self.x_token = x_token
         
-        rows = []
-        self.get_batteries_data(rows)
+        
+        rows = await self.get_batteries_data()
         
         if not rows:
             return self.gui_table_row([['No batteries rides', '0', '0', '0', '0']])
         
         self.gui_table_row(rows)
         
-    async def get_batteries_data(self, rows):
+        for row in rows:
+            if float(row[2].strip('%')) <= 30 and 'תל אביב' not in row[3]:
+                self.show_toast(
+                    'Autotel - Battery Alert!',
+                    f"Low battery for ride {row[0]}: {row[2]}",
+                    icon=utils.resource_path(settings.autotel_icon)
+                )
+        
+    async def get_batteries_data(self):
         url = 'https://autotelpublicapiprod.gototech.co/API/SEND/GetAllCars'
         payload = {
             'Data': 'null/null/1/false',
@@ -51,17 +56,17 @@ class BatteriesAlert(BaseAlert):
         if not data or 'Data' not in data or not data.get('Data') or data.get('Data') == '[]':
             return
         data = json.loads(data.get('Data'))
-        print(f"batteries data: {data}")
-        return await self.process_batteries_data(data, rows)
+        return await self.process_batteries_data(data)
     
-    async def process_batteries_data(self, data, rows):
+    async def process_batteries_data(self, data):
+        rows = []
         for car in data:
             ride_id = car.get('activeReservationNum')
             category = car.get('categoryId')
             if not ride_id or not category or category != 1:
                 continue
-            license_plate = car.get('licensePlate')
-            battery = car.get('lastFuelPercentage', '0') + '%'
+            license_plate = car.get('licencePlate', '')
+            battery = str(car.get('lastFuelPercentage', 0)) + '%'
             location = self.pointer(license_plate.replace('-', ''))
             
             url = f"https://prodautotelbo.gototech.co/index.html#/orders/{ride_id}/details"

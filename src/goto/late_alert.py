@@ -19,8 +19,20 @@ class LateAlert(BaseAlert):
         late_rides = await self.fetch_late_rides()
         
         if not late_rides or late_rides == "No result":
-            self.gui_table_row([['No late rides', '0', '0', '0', '0']])
-            return self._notify_no_late_reservations()
+            return self.gui_table_row([['No late rides', '0', '0', '0', '0']])
+        
+        self.gui_table_row(late_rides)
+        
+        self.notify_late_ride_endings(late_rides)
+
+    def notify_late_ride_endings(self, late_rides):
+        for row in late_rides:
+            self.show_toast(
+                'Goto ~ Late Alert!',
+                f"Ride {row[0]} ended at {row[1]}. Next ride at {row[3]}",
+                icon=utils.resource_path(settings.goto_icon)
+            )
+        
         
     async def fetch_late_rides(self):
         """
@@ -85,7 +97,7 @@ class LateAlert(BaseAlert):
                 row[4] = future_ride_time
                 row[5] = comment
                 late_rides.append(row)
-            # print(row)
+
                 
         return late_rides
     async def get_future_ride_info(self, car_license: str):
@@ -120,7 +132,8 @@ class LateAlert(BaseAlert):
 
         parsed_data = json.loads(data.get('Data', '[]'))
         if not parsed_data:
-            return "No future ride found", ""
+            return "No future ride", "No future ride"
+        
         future_ride_id = None
         future_ride_date = None
         for ride in parsed_data:
@@ -132,7 +145,7 @@ class LateAlert(BaseAlert):
                 future_ride_id = id
                 future_ride_date = parsed_date
 
-        return future_ride_id, future_ride_date.strftime("%d/%m/%Y %H:%M") if future_ride_date else "No future ride found"
+        return future_ride_id, future_ride_date.strftime("%d/%m/%Y %H:%M") if future_ride_date else "No future ride", ""
     async def get_ride_comment(self, ride_id: str) -> str:
         """
         Fetches the ride comment for a given ride ID.
@@ -231,12 +244,12 @@ class LateAlert(BaseAlert):
     #         self._notify_late_ride(ride_id[0], end_time, future_ride_time)
 
 
-    def _notify_no_late_reservations(self):
-        self.show_toast(
-            'Goto ~ Late Alert!',
-            'No late reservations found',
-            icon=utils.resource_path(settings.app_icon)
-        )
+    # def _notify_no_late_reservations(self):
+    #     self.show_toast(
+    #         'Goto ~ Late Alert!',
+    #         'No late reservations found',
+    #         icon=utils.resource_path(settings.app_icon)
+    #     )
 
     # async def _process_ride(self, ride: str):
     #     page = await self._init_ride_page(ride)

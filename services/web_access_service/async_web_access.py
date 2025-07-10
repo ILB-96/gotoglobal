@@ -30,7 +30,7 @@ class AsyncWebAccess:
     async def __aenter__(self):
         if self._profile == "Port":
             try:
-                self.browser = await self._playwright.chromium.connect_over_cdp('http://localhost:9222', timeout=10000)
+                self.browser = await self._playwright.chromium.connect_over_cdp('http://127.0.0.1:9222', timeout=10000)
                 self.context = self.browser.contexts[0] if self.browser.contexts else await self.browser.new_context()
             except Exception:
                 subprocess.call(['taskkill', '/F', '/IM', 'msedge.exe'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -38,7 +38,7 @@ class AsyncWebAccess:
                     'start', 'msedge', '--remote-debugging-port=9222', '--no-first-run'
                 ], shell=True)
                 sleep(5)
-                self.browser = await self._playwright.chromium.connect_over_cdp('http://localhost:9222')
+                self.browser = await self._playwright.chromium.connect_over_cdp('http://127.0.0.1:9222')
                 self.context = self.browser.contexts[0] if self.browser.contexts else await self.browser.new_context()
 
         elif self._profile:
@@ -93,7 +93,6 @@ class AsyncWebAccess:
                          }
         async def handle_route(route, request):
             if request.url in urls_to_block or 'goto.crm4.dynamics.com/apc/100k.gif' in request.url or 'goto.crm4.dynamics.com/api/data/v9.0/activitypointers/Microsoft.Dynamics.CRM.RetrieveTimelineWallRecords' in request.url or 'apps.powerapps.com/apphost/e/' in request.url:
-                print(f"[INFO] Blocking request to {request.url}")
                 await route.abort()
             else:
                 await route.continue_()

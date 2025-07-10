@@ -52,7 +52,7 @@ class TableFrame(TableWidget):
             
             for col_index, data in enumerate(row_data):
                 if isinstance(data, tuple) and callable(data[1]):
-                    button = PushButton(data[0])
+                    button = PushButton(str(data[0]))
 
                     button.clicked.connect(data[1])
                     button.setCursor(Qt.CursorShape.PointingHandCursor)
