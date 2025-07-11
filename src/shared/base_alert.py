@@ -24,7 +24,6 @@ class BaseAlert:
     def build_ride_url(self, ride, default_url):
         return f'{default_url}/index.html#/orders/{ride}/details'
     
-    @utils.async_retry()
     async def get_ride_comment(self, ride_id: str, service_name: str, url: str) -> str:
         """
         Fetches the ride comment from the Autotel API.
