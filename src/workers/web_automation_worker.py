@@ -3,13 +3,15 @@ import threading
 from typing import Literal
 from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
 
-from playwright.async_api import async_playwright, Page
+from playwright.async_api import async_playwright
 import settings
 from src.autotel import BatteriesAlert, LongRides
 from src.goto import LateAlert
 import time
 from ..app.common.config import cfg
-class WebAutomationWorker(QThread):
+from .base_worker import BaseWorker
+
+class WebAutomationWorker(BaseWorker):
     toast_signal = pyqtSignal(str, str, str)
 
     late_table_row = pyqtSignal(object)
@@ -24,8 +26,6 @@ class WebAutomationWorker(QThread):
 
     def __init__(self,  parent=None):
         super(WebAutomationWorker, self).__init__(parent)
-        self.stop_event = asyncio.Event()
-        self.running = True
 
         self._location_condition = threading.Condition()
         self._location_response = None
@@ -34,12 +34,6 @@ class WebAutomationWorker(QThread):
         self._goto_x_token = None
         self._autotel_x_token = None
 
-    @pyqtSlot()
-    def run(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-        self.loop.run_until_complete(self._async_main())
-        self.loop.close()
     
     async def _async_main(self):
         self.request_delete_table.emit()
@@ -60,17 +54,7 @@ class WebAutomationWorker(QThread):
             timeout = max(1, settings.interval - (now - last_run))
             await self.wait_by(timeout=timeout)
                     
-    async def wait_by(self, timeout=None):
-        try:
-            await asyncio.wait_for(self.stop_event.wait(), timeout=timeout)
-        except asyncio.TimeoutError:
-            pass
-        self.stop_event.clear()
         
-    def trigger_stop_event(self):
-        if self.loop:
-            self.loop.call_soon_threadsafe(self.stop_event.set)
-
     def request_x_token_sync(self, mode: Literal['goto', 'autotel']) -> object:
         """Emit signal and wait for location data."""
         if mode == 'goto':
@@ -153,7 +137,4 @@ class WebAutomationWorker(QThread):
         with self._location_condition:
             self._location_response = data
             self._location_condition.notify()
-
-    def stop(self):
-        self.running = False
-        self.stop_event.set()
+            

@@ -51,7 +51,7 @@ class LateAlert(BaseAlert):
                 icon=utils.resource_path(settings.app_icon)
             )
             
-    @utils.async_retry()
+    @utils.async_retry(allow_falsy=True)
     async def fetch_late_rides(self):
         """
         This function checks for late reservations.

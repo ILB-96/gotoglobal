@@ -38,7 +38,7 @@ class LongRides(BaseAlert):
         
         self.gui_table_row(rows)
 
-    
+    @utils.async_retry(allow_falsy=True)
     async def collect_rides_information(self):
         url = 'https://autotelpublicapiprod.gototech.co/API/SEND'
         payload = {

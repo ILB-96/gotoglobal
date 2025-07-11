@@ -11,6 +11,8 @@ import asyncio
 import win32gui
 import win32con
 import ctypes
+
+from .base_worker import BaseWorker
 from ..app.common.config import cfg
 from dataclasses import dataclass
 from typing import Literal, Union
@@ -20,7 +22,7 @@ class WebTask:
     mode: Literal["url", "pointer", "x_token"]
     payload: Union[str, int]
     
-class WebDataWorker(QThread):
+class WebDataWorker(BaseWorker):
     page_loaded = pyqtSignal()
 
     request_otp_input = pyqtSignal()
@@ -30,23 +32,12 @@ class WebDataWorker(QThread):
     
     def __init__(self, parent=None):
         super(WebDataWorker, self).__init__(parent)
-        self.stop_event = asyncio.Event()
-        self.running = True
         self.task_queue = Queue()
         self.pointer_lock = asyncio.Lock()
         self.pointer = None
 
-
-    @pyqtSlot()
-    def run(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self._async_main())
-        loop.close()
-        
+ 
     async def _async_main(self):
-
-
         async with async_playwright() as playwright:
             async with AsyncWebAccess(playwright, False, 'edge', 'Port') as self.web_access:
                 
@@ -62,17 +53,6 @@ class WebDataWorker(QThread):
                         start_time = now
                         asyncio.create_task(self.reload_pointer_data())
                     await self.wait_by(timeout=5)
-                
-    async def wait_by(self, timeout=None):
-        """
-        Waits for the stop_event to be set, or until timeout (in seconds).
-        The timeout parameter is in seconds.
-        """
-        try:
-            await asyncio.wait_for(self.stop_event.wait(), timeout=timeout)
-        except asyncio.TimeoutError:
-            pass
-        self.stop_event.clear()
 
     @utils.async_retry(allow_falsy=True)
     async def reload_pointer_data(self):
@@ -262,11 +242,9 @@ class WebDataWorker(QThread):
 
     async def get_x_token_from_request(self, page: Page, main_page_url: str):
         x_token_value = None
-        is_new_page = False
 
         def handle_request(request: Request):
             nonlocal x_token_value
-            # print("Handling request:", request.url, "Method:", request.method, "Headers:", request.headers)
             if x_token_value is None and request.method == "POST":
                 token = request.headers.get("X-Token", request.headers.get("x-token"))
                 print("x-token found:", token)
@@ -277,25 +255,13 @@ class WebDataWorker(QThread):
         page.on("request", handle_request)
         
         await self.wait_by(timeout=30)
-        page.remove_listener("request", handle_request)
         if not x_token_value:
-            is_new_page = True
-            page = await self.web_access.context.new_page()
-            await page.goto(main_page_url, wait_until='domcontentloaded')
-            page.on("request", handle_request)
+            await page.reload()
             await self.stop_event.wait()
             self.stop_event.clear()
-        if is_new_page:
+            
             page.remove_listener("request", handle_request)
 
 
         return x_token_value
-    
-    def set_pointer_code(self):
-        self.stop_event.set()
-    def trigger_stop_event(self):
-        if self.loop:
-            self.loop.call_soon_threadsafe(self.stop_event.set)
-    def stop(self):
-        self.running = False
-        self.stop_event.set()
+

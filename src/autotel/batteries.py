@@ -33,7 +33,7 @@ class BatteriesAlert(BaseAlert):
                     f"Low battery for ride {row[0]}: {row[2]}",
                     icon=utils.resource_path(settings.autotel_icon)
                 )
-        
+    @utils.async_retry(allow_falsy=True)
     async def get_batteries_data(self):
         url = 'https://autotelpublicapiprod.gototech.co/API/SEND/GetAllCars'
         payload = {
