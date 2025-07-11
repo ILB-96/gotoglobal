@@ -79,8 +79,8 @@ class WebAutomationWorker(QThread):
             self._autotel_x_token = None
         with self._x_token_condition:
             self.request_x_token.emit(mode)
-            if not self._x_token_condition.wait(timeout=40):
-                return None
+            if not self._x_token_condition.wait(timeout=70):
+                return
         
         return self._goto_x_token if mode == 'goto' else self._autotel_x_token
         
@@ -154,12 +154,6 @@ class WebAutomationWorker(QThread):
             self._location_response = data
             self._location_condition.notify()
 
-    async def establish_connection(self, page: Page, cta: str):
-        while 'login' in page.url:
-            self.request_connection.emit(cta)
-            await self.stop_event.wait()
-            self.stop_event.clear()
-            await page.wait_for_load_state('domcontentloaded')
     def stop(self):
         self.running = False
         self.stop_event.set()

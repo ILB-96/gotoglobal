@@ -5,6 +5,8 @@ from playwright.async_api import BrowserContext, Page, Playwright, Download
 from typing import Optional
 from pathlib import Path
 
+import urllib
+
 class AsyncWebAccess:
     """
     Asynchronous Playwright wrapper.
@@ -84,19 +86,29 @@ class AsyncWebAccess:
                 
         return self
     async def block_unwanted_requests(self, context):
-        urls_to_block = {"https://car2govisibility.gototech.co/API/RT/reservationIssues",
-                         'content.powerapps.com/resource/webplayerbus/hashedresources/2jc6enofp9rqe/js/webplayer-authflow.js',
-                         'content.powerapps.com/resource/webplayerbus/hashedresources/2jc6enofp9rqe/js/webplayer-authflow.js',
-                         "chrome-extension://hokifickgkhplphjiodbggjmoafhignh/fonts/fabric-icons.woff",
-                         'autotel.crm4.dynamics.com/%7b000000520173284%7d/webresources/cc_MscrmControls.Grid.PCFGridControl/PCFGridControl.js',
-                         "goto.crm4.dynamics.com/%7b638872608630000206%7d/webresources/cc_MscrmControls.FieldControls.TimerControl/css/TimerIcon.css",
-                         }
+        exact_urls_to_block = {
+            "https://car2govisibility.gototech.co/API/RT/reservationIssues",
+            "https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/BeeProAgency/588880_570515/editor_images/7e2578ba-94b9-42ff-91e7-445b43f53d32.png",
+            "content.powerapps.com/resource/webplayerbus/hashedresources/2jc6enofp9rqe/js/webplayer-authflow.js",
+            "chrome-extension://hokifickgkhplphjiodbggjmoafhignh/fonts/fabric-icons.woff",
+            "autotel.crm4.dynamics.com/{000000520173284}/webresources/cc_MscrmControls.Grid.PCFGridControl/PCFGridControl.js",
+            "goto.crm4.dynamics.com/{638872608630000206}/webresources/cc_MscrmControls.FieldControls.TimerControl/css/TimerIcon.css",
+        }
+
+        substrings_to_block = [
+            "goto.crm4.dynamics.com/apc/100k.gif",
+            "autotel.crm4.dynamics.com/apc/100k.gif",
+            "goto.crm4.dynamics.com/api/data/v9.0/activitypointers/Microsoft.Dynamics.CRM.RetrieveTimelineWallRecords",
+            "apps.powerapps.com/apphost/e/"
+        ]
+
         async def handle_route(route, request):
-            if request.url in urls_to_block or 'goto.crm4.dynamics.com/apc/100k.gif' in request.url or 'goto.crm4.dynamics.com/api/data/v9.0/activitypointers/Microsoft.Dynamics.CRM.RetrieveTimelineWallRecords' in request.url or 'apps.powerapps.com/apphost/e/' in request.url:
+            url = urllib.parse.unquote(request.url)
+            if url in exact_urls_to_block or any(substr in url for substr in substrings_to_block):
                 await route.abort()
             else:
                 await route.continue_()
-        
+
         await context.route("**/*", handle_route)
     async def add_download_event_handler(self):
         """

@@ -70,7 +70,6 @@ def async_retry(retries=3, delay=1, allow_falsy=False):
                         # Optionally log the exception
                         print(f"Last exception: {e}")
                         
-            return "No result"
 
         return async_wrapper
     return decorator

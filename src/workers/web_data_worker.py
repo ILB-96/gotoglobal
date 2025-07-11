@@ -64,17 +64,22 @@ class WebDataWorker(QThread):
                     await self.wait_by(timeout=5)
                 
     async def wait_by(self, timeout=None):
+        """
+        Waits for the stop_event to be set, or until timeout (in seconds).
+        The timeout parameter is in seconds.
+        """
         try:
             await asyncio.wait_for(self.stop_event.wait(), timeout=timeout)
         except asyncio.TimeoutError:
             pass
         self.stop_event.clear()
 
+    @utils.async_retry(allow_falsy=True)
     async def reload_pointer_data(self):
         async with self.pointer_lock:
             await self.web_access.pages["pointer"].reload()
 
-    @utils.retry(allow_falsy=True)
+    @utils.async_retry(allow_falsy=True)
     async def update_page_data(self):
         if 'blank' in self.web_access.pages.keys() and not self.web_access.pages['blank'].is_closed():
             await self.web_access.pages['blank'].reload()
@@ -177,10 +182,10 @@ class WebDataWorker(QThread):
     async def _handle_x_token_request(self, mode: Literal['goto', 'autotel']):
         try:
             if mode == 'goto':
-                request_url = "https://car2gopublicapi.gototech.co/API/SEND"
+                request_url = settings.goto_url
                 request_page = await self.get_goto_bo_page()
             elif mode == 'autotel':
-                request_url = "https://autotelpublicapiprod.gototech.co/API/SEND"
+                request_url = settings.autotel_url
                 request_page = await self.get_autotel_bo_page()
             else:
                 return
@@ -255,8 +260,9 @@ class WebDataWorker(QThread):
                     break
 
 
-    async def get_x_token_from_request(self, page: Page, request_url: str):
+    async def get_x_token_from_request(self, page: Page, main_page_url: str):
         x_token_value = None
+        is_new_page = False
 
         def handle_request(request: Request):
             nonlocal x_token_value
@@ -269,19 +275,27 @@ class WebDataWorker(QThread):
                     self.stop_event.set()
 
         page.on("request", handle_request)
-
-        # await page.goto(settings.goto_url)
         
-        await self.stop_event.wait()
-        self.stop_event.clear()
-        
+        await self.wait_by(timeout=30)
         page.remove_listener("request", handle_request)
-        
+        if not x_token_value:
+            is_new_page = True
+            page = await self.web_access.context.new_page()
+            await page.goto(main_page_url, wait_until='domcontentloaded')
+            page.on("request", handle_request)
+            await self.stop_event.wait()
+            self.stop_event.clear()
+        if is_new_page:
+            page.remove_listener("request", handle_request)
+
+
         return x_token_value
     
     def set_pointer_code(self):
         self.stop_event.set()
-    
+    def trigger_stop_event(self):
+        if self.loop:
+            self.loop.call_soon_threadsafe(self.stop_event.set)
     def stop(self):
         self.running = False
         self.stop_event.set()

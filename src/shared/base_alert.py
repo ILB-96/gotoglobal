@@ -1,3 +1,4 @@
+import json
 from services import AsyncWebAccess
 from src.shared import utils
 
@@ -20,15 +21,35 @@ class BaseAlert:
         """
         raise NotImplementedError("Subclasses must implement this method.")
     
-    @utils.async_retry()
-    async def init_page(self, page_name, url, default_url, timeout=250):
-        page = await self.web_access.create_new_page(page_name, url, 'reuse')
-        if 'login' in page.url:
-            await page.goto(default_url, wait_until="networkidle")
-            if url != default_url:
-                await page.goto(url, wait_until="networkidle")
-        await page.wait_for_timeout(timeout)
-        return page
-    
     def build_ride_url(self, ride, default_url):
         return f'{default_url}/index.html#/orders/{ride}/details'
+    
+    @utils.async_retry()
+    async def get_ride_comment(self, ride_id: str, service_name: str, url: str) -> str:
+        """
+        Fetches the ride comment from the Autotel API.
+        
+        Args:
+            ride_id (str): The ID of the ride.
+            x_token (str): The authentication token for the Autotel API.
+        
+        Returns:
+            str: The ride comment if available, otherwise an empty string.
+        """
+        payload = {
+            'Data': f'/{ride_id}',
+            'Opcode': 'GetReservation',
+            'Username': 'x',
+            'Password': 'x'
+        }
+        try:
+            data = await utils.fetch_data(url, self.x_token, payload)
+            if not data or 'Data' not in data or not data.get('Data'):
+                raise RuntimeError(f"No data received for ride ID: {ride_id}")
+        except Exception:
+            self.x_token = self.x_token_request(service_name)
+            data = await utils.fetch_data(url, self.x_token, payload)
+        if not data or 'Data' not in data or not data.get('Data'):
+            return "No comment"
+        
+        return json.loads(data.get('Data', '{}')).get('comment', 'No comment')

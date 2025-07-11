@@ -38,7 +38,7 @@ def create_web_data_worker(worker: WebDataWorker, web_automation_worker: WebAuto
     worker.request_otp_input.connect(lambda: handle_code_input(worker))
     worker.x_token_send.connect(lambda mode, data: web_automation_worker.set_x_token_data(mode, data))
     worker.pointer_location_send.connect(lambda data: web_automation_worker.set_location_data(data))
-    worker.input_received.connect(worker.stop_event.set)
+    worker.input_received.connect(worker.trigger_stop_event)
     worker.page_loaded.connect(web_automation_worker.trigger_stop_event)
 
 

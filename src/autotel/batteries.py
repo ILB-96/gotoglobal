@@ -11,7 +11,7 @@ class BatteriesAlert(BaseAlert):
             show_toast=show_toast,
             gui_table_row=gui_table_row,
             open_ride=open_ride,
-            x_token_request=x_token_request
+            x_token_request=x_token_request,
         )
         self.pointer = pointer
         
@@ -69,43 +69,14 @@ class BatteriesAlert(BaseAlert):
             battery = str(car.get('lastFuelPercentage', 0)) + '%'
             location = self.pointer(license_plate.replace('-', ''))
             
-            url = f"https://prodautotelbo.gototech.co/index.html#/orders/{ride_id}/details"
+            url = self.build_ride_url(ride_id, settings.autotel_url)
             open_ride_url = partial(self.open_ride.emit, url) if self.open_ride else None
             
-            comment = await self.get_ride_comment(ride_id)
+            comment = await self.get_ride_comment(ride_id, 'autotel', 'https://autotelpublicapiprod.gototech.co/API/SEND')
             row = [(ride_id, open_ride_url), license_plate, battery, location, comment]
             rows.append(row)
             
         
         return rows
     
-    async def get_ride_comment(self, ride_id: str) -> str:
-        """
-        Fetches the ride comment from the Autotel API.
-        
-        Args:
-            ride_id (str): The ID of the ride.
-            x_token (str): The authentication token for the Autotel API.
-        
-        Returns:
-            str: The ride comment if available, otherwise an empty string.
-        """
-        url = 'https://autotelpublicapiprod.gototech.co/API/SEND'
-        payload = {
-            'Data': f'/{ride_id}',
-            'Opcode': 'GetReservation',
-            'Username': 'x',
-            'Password': 'x'
-        }
-        try:
-            data = await utils.fetch_data(url, self.x_token, payload)
-            if not data or 'Data' not in data or not data.get('Data'):
-                raise RuntimeError(f"No data received for ride ID: {ride_id}")
-        except Exception:
-            self.x_token = self.x_token_request('autotel')
-            data = await utils.fetch_data(url, self.x_token, payload)
-        if not data or 'Data' not in data or not data.get('Data'):
-            return "No comment"
-        
-        return json.loads(data.get('Data', '{}')).get('comment', 'No comment')
         
