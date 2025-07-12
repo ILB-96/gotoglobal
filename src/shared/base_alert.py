@@ -12,7 +12,7 @@ class BaseAlert:
         self.gui_table_row = gui_table_row
         self.open_ride = open_ride
         self.x_token_request = x_token_request
-        self.x_token = None
+        self.x_token = ""
 
     async def start_requests(self, x_token: str):
         """

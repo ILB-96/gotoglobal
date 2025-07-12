@@ -41,12 +41,10 @@ async def fetch_data(request_url: str, x_token: str, payload: Dict) -> Dict:
         "Accept": "application/json",
         "X-Token": x_token
     }
-
-    print("Fetching reservation data with payload:", headers, payload, request_url)
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(request_url, json=payload, headers=headers)
-            response.raise_for_status()  # Optional: raises if HTTP status is 4xx or 5xx
+            response.raise_for_status()
             return response.json()
     except Exception as e:
         print(f"Request error: {e}")
