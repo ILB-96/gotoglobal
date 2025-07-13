@@ -2,6 +2,7 @@ from pathlib import Path
 from src.workers import WebDataWorker, WebAutomationWorker
 import settings
 from src.shared import utils
+from src.workers.web_notification_worker import WebNotificationWorker
 
 from .handlers import (
     handle_settings_input,
@@ -22,17 +23,22 @@ def start_app(app):
 
     web_data_worker = WebDataWorker()
     web_automation_worker = WebAutomationWorker()
+    web_notification_worker = WebNotificationWorker()
     
     create_web_data_worker(web_data_worker, web_automation_worker)
 
     create_web_automation_worker(main_win, web_automation_worker, web_data_worker)
+    create_web_notification_worker(web_notification_worker, web_data_worker)
     
     app.aboutToQuit.connect(web_automation_worker.stop)
     app.aboutToQuit.connect(web_data_worker.stop)
 
     main_win.show()
     app.exec()
-
+def create_web_notification_worker(worker: WebNotificationWorker, web_data_worker: WebDataWorker):
+    worker.start()
+    web_data_worker.notification_send.connect(worker.enqueue_notification)
+    
 def create_web_data_worker(worker: WebDataWorker, web_automation_worker: WebAutomationWorker):
     worker.start()
     worker.request_otp_input.connect(lambda: handle_code_input(worker))

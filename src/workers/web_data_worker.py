@@ -1,5 +1,5 @@
 from queue import Queue
-from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
+from PyQt6.QtCore import pyqtSignal
 
 from playwright.async_api import async_playwright, Request, Page
 from services import AsyncWebAccess
@@ -24,6 +24,7 @@ class WebTask:
     
 class WebDataWorker(BaseWorker):
     page_loaded = pyqtSignal()
+    notification_send = pyqtSignal(str, object)
 
     request_otp_input = pyqtSignal()
     pointer_location_send = pyqtSignal(object)
@@ -44,6 +45,7 @@ class WebDataWorker(BaseWorker):
                 await self._init_pages()
                 
                 asyncio.create_task(self._handle_pointer_login()) if cfg.get(cfg.pointer) else self.page_loaded.emit()
+                await self.start_notification_listeners()
                 start_time = 0
                 while self.running:
                     await self._handle_queue()
@@ -163,31 +165,25 @@ class WebDataWorker(BaseWorker):
         try:
             if mode == 'goto':
                 request_url = settings.goto_url
-                request_page = await self.get_goto_bo_page()
+                request_page = await self.find_page("goto_bo", settings.goto_url)
             elif mode == 'autotel':
                 request_url = settings.autotel_url
-                request_page = await self.get_autotel_bo_page()
+                request_page = await self.find_page("autotel_bo", settings.autotel_url)
             else:
                 return
-            print(f"Requesting X-Token for {mode} from URL: {request_url}, Page: {request_page.url}")
             x_token = await self.get_x_token_from_request(request_page, request_url)
-            print(f"X-Token for {mode} is: {x_token}")
             self.x_token_send.emit(mode, x_token)
         except Exception:
             self.x_token_send.emit(mode, None)
 
-    async def get_goto_bo_page(self) -> Page:
+    async def find_page(self, name, url) -> Page:
+        if name in self.web_access.pages and not self.web_access.pages[name].is_closed:
+            return self.web_access.pages[name]
         for page in self.web_access.context.pages:
-            if 'login' not in page.url and settings.goto_url in page.url:
+            if 'login' not in page.url and page.url.startswith(url):
                 return page
-        return await self.web_access.create_new_page('goto_bo', settings.goto_url, open_mode='reuse')
+        return await self.web_access.create_new_page(name, url, open_mode='reuse')
     
-    async def get_autotel_bo_page(self) -> Page:
-        for page in self.web_access.context.pages:
-            if 'login' not in page.url and settings.autotel_url in page.url:
-                return page
-        return await self.web_access.create_new_page('autotel_bo', settings.autotel_url, open_mode='reuse')
-
     async def _handle_pointer_location_request(self, car_license: str):
         async with self.pointer_lock:
             if not self.pointer:
@@ -264,4 +260,32 @@ class WebDataWorker(BaseWorker):
 
 
         return x_token_value
+    
+    async def get_crm_notification(self, page: Page, request_url: str):
 
+        async def handle_request(request: Request):
+            if request.method == "GET" and request.url.startswith(request_url):
+                if resp := await request.response():
+                    data = await resp.json()
+                    notification = data.get("value", [])
+                    print("notification: ", notification)
+                    if notification:
+                        print("Hey, we got a notification!")
+                        self.notification_send.emit('goto' if 'goto' in request.url else 'autotel', notification)
+
+        page.on("request", handle_request)
+    async def start_notification_listeners(self):
+        goto_page = await self.find_page("goto_crm", settings.goto_crm_url)
+        autotel_page = await self.find_page("autotel_crm", settings.autotel_crm_url)
+        await self.get_crm_notification(goto_page, 'https://goto.crm4.dynamics.com/api/data/v9.0/appnotifications')
+        await self.get_crm_notification(autotel_page, 'https://autotel.crm4.dynamics.com/api/data/v9.0/appnotifications')
+    async def get_page(self, name: str, url: str) -> Page:
+        """Get or create a page with the specified name and URL."""
+        if name in self.web_access.pages and not self.web_access.pages[name].is_closed:
+            return self.web_access.pages[name]
+        for page in self.web_access.context.pages:
+            if 'login' not in page.url and page.url.startswith(url):
+                return page
+        return await self.web_access.create_new_page(name, url, open_mode='reuse')
+
+    

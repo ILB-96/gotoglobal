@@ -18,7 +18,6 @@ class WebAutomationWorker(BaseWorker):
     batteries_table_row = pyqtSignal(object)
     long_rides_table_row = pyqtSignal(object)
     request_delete_table = pyqtSignal()
-    request_connection = pyqtSignal(str)
 
     open_url_requested = pyqtSignal(str)
     request_pointer_location = pyqtSignal(str)

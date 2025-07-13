@@ -5,7 +5,7 @@ from playwright.async_api import BrowserContext, Page, Playwright, Download
 from typing import Optional
 from pathlib import Path
 
-import urllib
+import urllib.parse
 
 class AsyncWebAccess:
     """
