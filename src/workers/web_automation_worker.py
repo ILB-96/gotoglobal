@@ -47,10 +47,10 @@ class WebAutomationWorker(BaseWorker):
 
         while self.running:
             now = time.time()
-            if now - last_run >= settings.interval:
+            if now - last_run >= settings.tasks_interval:
                 last_run = now
                 await self._run_alert_requests(late, batteries_alert, long_rides_alert)
-            timeout = max(1, settings.interval - (now - last_run))
+            timeout = max(1, settings.tasks_interval - (now - last_run))
             await self.wait_by(timeout=timeout)
                     
         

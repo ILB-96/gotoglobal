@@ -5,5 +5,6 @@ goto_crm_url = 'https://goto.crm4.dynamics.com'
 autotel_url = 'https://prodautotelbo.gototech.co'
 autotel_crm_url = 'https://autotel.crm4.dynamics.com'
 playwright_headless = False
-interval = 60
+pointer_interval = 60*10
+tasks_interval = 60
 retry_count = 3

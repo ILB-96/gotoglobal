@@ -51,10 +51,10 @@ class WebDataWorker(BaseWorker):
                     await self._handle_queue()
                     asyncio.create_task(self.update_page_data())
                     now = time.time()
-                    if self.pointer and now - start_time >= settings.interval:
+                    if self.pointer and now - start_time >= settings.pointer_interval:
                         start_time = now
                         asyncio.create_task(self.reload_pointer_data())
-                    await self.wait_by(timeout=5)
+                    await self.wait_by(timeout=3)
 
     @utils.async_retry(allow_falsy=True)
     async def reload_pointer_data(self):
@@ -164,14 +164,12 @@ class WebDataWorker(BaseWorker):
     async def _handle_x_token_request(self, mode: Literal['goto', 'autotel']):
         try:
             if mode == 'goto':
-                request_url = settings.goto_url
                 request_page = await self.find_page("goto_bo", settings.goto_url)
             elif mode == 'autotel':
-                request_url = settings.autotel_url
                 request_page = await self.find_page("autotel_bo", settings.autotel_url)
             else:
                 return
-            x_token = await self.get_x_token_from_request(request_page, request_url)
+            x_token = await self.get_x_token_from_request(request_page)
             self.x_token_send.emit(mode, x_token)
         except Exception:
             self.x_token_send.emit(mode, None)
@@ -236,7 +234,7 @@ class WebDataWorker(BaseWorker):
                     break
 
 
-    async def get_x_token_from_request(self, page: Page, main_page_url: str):
+    async def get_x_token_from_request(self, page: Page):
         x_token_value = None
 
         def handle_request(request: Request):
