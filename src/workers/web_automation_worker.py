@@ -1,9 +1,8 @@
 import asyncio
 import threading
 from typing import Literal
-from PyQt6.QtCore import pyqtSignal, pyqtSlot, QThread
+from PyQt6.QtCore import pyqtSignal, pyqtSlot
 
-from playwright.async_api import async_playwright
 import settings
 from src.autotel import BatteriesAlert, LongRides
 from src.goto import LateAlert
@@ -32,7 +31,6 @@ class WebAutomationWorker(BaseWorker):
         self._x_token_condition = threading.Condition()
         self._goto_x_token = None
         self._autotel_x_token = None
-
     
     async def _async_main(self):
         self.request_delete_table.emit()
@@ -119,8 +117,6 @@ class WebAutomationWorker(BaseWorker):
         if tasks:
             await asyncio.gather(*tasks)
     
-    
-    @pyqtSlot(object)
     def set_x_token_data(self, mode, data):
         """Receives location data from WebDataWorker."""
         with self._x_token_condition:
@@ -130,7 +126,6 @@ class WebAutomationWorker(BaseWorker):
                 self._autotel_x_token = data
             self._x_token_condition.notify()
             
-    @pyqtSlot(object)
     def set_location_data(self, data):
         """Receives location data from WebDataWorker."""
         with self._location_condition:

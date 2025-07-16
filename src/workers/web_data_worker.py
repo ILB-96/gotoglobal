@@ -19,8 +19,8 @@ from typing import Literal, Union
 
 @dataclass
 class WebTask:
-    mode: Literal["url", "pointer", "x_token"]
-    payload: Union[str, int]
+    mode: Literal["url", "pointer", "x_token", "cookies"]
+    payload: Union[str, int, Literal['goto', 'autotel']]
     
 class WebDataWorker(BaseWorker):
     page_loaded = pyqtSignal()
@@ -30,6 +30,8 @@ class WebDataWorker(BaseWorker):
     pointer_location_send = pyqtSignal(object)
     x_token_send = pyqtSignal(str, str)
     input_received = pyqtSignal()
+    cookies_send = pyqtSignal(str, str)
+    
     
     def __init__(self, parent=None):
         super(WebDataWorker, self).__init__(parent)
@@ -124,9 +126,27 @@ class WebDataWorker(BaseWorker):
             if task.mode == "url":
                 asyncio.create_task(self._handle_open_url_request(task.payload))
             elif task.mode == "pointer":
-                await self._handle_pointer_location_request(task.payload)
+                await self._handle_pointer_location_request(str(task.payload))
             elif task.mode == "x_token":
-                asyncio.create_task(self._handle_x_token_request(task.payload))
+                if isinstance(task.payload, str) and task.payload in ('goto', 'autotel'):
+                    asyncio.create_task(self._handle_x_token_request(task.payload))
+            elif task.mode == "cookies":
+                if isinstance(task.payload, str) and task.payload in ('goto', 'autotel'):
+                    asyncio.create_task(self.handle_cookies_request(task.payload))
+                    
+            
+    async def handle_cookies_request(self, mode: Literal['goto', 'autotel']):
+        try:
+            if mode == 'goto':
+                page = await self.find_page("goto_crm", settings.goto_crm_url)
+            elif mode == 'autotel':
+                page = await self.find_page("autotel_crm", settings.autotel_crm_url)
+            else:
+                return
+            cookies = await self.get_cookies(page)
+            self.cookies_send.emit(mode, cookies)
+        except Exception as e:
+            print(f"Error getting cookies: {e}")
             
     async def _handle_open_url_request(self, url):
         try:
@@ -204,6 +224,12 @@ class WebDataWorker(BaseWorker):
         task = WebTask(mode="x_token", payload=mode)
         self.task_queue.put(task)
         self.stop_event.set()
+        
+    def enqueue_cookies(self, mode: Literal['goto', 'autotel']):
+        """Enqueue a request to get cookies from the current page."""
+        task = WebTask(mode="cookies", payload=mode)
+        self.task_queue.put(task)
+        self.stop_event.set()
 
     def enqueue_pointer_location(self, car_license: str):
         """Enqueue a pointer location request."""
@@ -272,11 +298,30 @@ class WebDataWorker(BaseWorker):
                         self.notification_send.emit('goto' if 'goto' in request.url else 'autotel', notification)
 
         page.on("request", handle_request)
+        
     async def start_notification_listeners(self):
         goto_page = await self.find_page("goto_crm", settings.goto_crm_url)
         autotel_page = await self.find_page("autotel_crm", settings.autotel_crm_url)
         await self.get_crm_notification(goto_page, 'https://goto.crm4.dynamics.com/api/data/v9.0/appnotifications')
         await self.get_crm_notification(autotel_page, 'https://autotel.crm4.dynamics.com/api/data/v9.0/appnotifications')
+        
+    async def get_cookies(self, page: Page):
+        cookie_data = ""
+        url = page.url
+        cookies = await page.context.cookies([url])
+        print(f"Cookies for {url}: {cookies}")
+        for cookie in cookies:
+            name = cookie.get('name', '')
+            if name == "CrmOwinAuth":
+                val = cookie.get('value')
+                if val:
+                    cookie_data += f"{name}={val};"
+            if name == 'CrmOwinAuthC1':
+                val = cookie.get('value')
+                cookie_data += f"{name}={val};"
+        return cookie_data
+        
+        
     async def get_page(self, name: str, url: str) -> Page:
         """Get or create a page with the specified name and URL."""
         if name in self.web_access.pages and not self.web_access.pages[name].is_closed:

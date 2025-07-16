@@ -119,7 +119,10 @@ class AsyncWebAccess:
             return
 
         async def handle_download(download: Download):
-            await download.save_as(Path.home() / "Downloads" / download.suggested_filename)
+            path = await download.path()
+            if path:
+                destination = Path.home() / "Downloads" / download.suggested_filename
+                await download.save_as(destination)
 
         def attach_listener(page):
             page.on("download", handle_download)
