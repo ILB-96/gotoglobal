@@ -1,3 +1,4 @@
+import json
 from queue import Queue
 from PyQt6.QtCore import pyqtSignal
 
@@ -49,9 +50,12 @@ class WebDataWorker(BaseWorker):
                 asyncio.create_task(self._handle_pointer_login()) if cfg.get(cfg.pointer) else self.page_loaded.emit()
                 await self.start_notification_listeners()
                 start_time = 0
+                reload_blank_page = None
                 while self.running:
                     await self._handle_queue()
-                    asyncio.create_task(self.update_page_data())
+                    if reload_blank_page:
+                        await reload_blank_page
+                    reload_blank_page = asyncio.create_task(self.update_page_data())
                     now = time.time()
                     if self.pointer and now - start_time >= settings.pointer_interval:
                         start_time = now
@@ -72,7 +76,7 @@ class WebDataWorker(BaseWorker):
                     
     async def _init_pages(self):
         pages_to_create = {}
-        pointer_url = 'https://fleet.pointer4u.co.il/iservices/fleet2015/login'
+        pointer_url = 'https://fleet.pointer4u.co.il/iservices/fleet2015'
         autotel_crm_url = 'https://autotel.crm4.dynamics.com'
         goto_crm_url = 'https://goto.crm4.dynamics.com'
         whatsapp_url = 'https://web.whatsapp.com'
@@ -86,16 +90,20 @@ class WebDataWorker(BaseWorker):
                 }
         
         for page in list(self.web_access.context.pages):
-            if targets['pointer'] and page.url == targets['pointer']:
+            if targets['pointer'] and page.url == f"{targets['pointer']}/login":
                 if await page.locator('textarea.realInput').is_visible():
                     await page.close()
                 else:
                     self.web_access.pages['pointer'] = page
                     targets['pointer'] = None
+            elif targets['pointer'] and targets['pointer'] in page.url:
+                await page.reload()
+                self.web_access.pages['pointer'] = page
+                targets['pointer'] = None
             elif targets['blank'] and page.url == targets['blank']:
                 self.web_access.pages['blank'] = page
                 targets['blank'] = None
-            elif 'login' in page.url or 'about:blank' in page.url or 'pointer4u' in page.url:
+            elif 'login' in page.url or 'about:blank' in page.url:
                 await page.close()
             elif targets['goto_bo'] and targets['goto_bo'] in page.url:
                 self.web_access.pages['goto_bo'] = page
@@ -121,19 +129,32 @@ class WebDataWorker(BaseWorker):
             await self.web_access.pages['pointer'].bring_to_front()
         
     async def _handle_queue(self):
-        while not self.task_queue.empty() and self.running:
-            task: WebTask = self.task_queue.get_nowait()
-            if task.mode == "url":
-                asyncio.create_task(self._handle_open_url_request(task.payload))
-            elif task.mode == "pointer":
-                await self._handle_pointer_location_request(str(task.payload))
-            elif task.mode == "x_token":
-                if isinstance(task.payload, str) and task.payload in ('goto', 'autotel'):
-                    asyncio.create_task(self._handle_x_token_request(task.payload))
-            elif task.mode == "cookies":
-                if isinstance(task.payload, str) and task.payload in ('goto', 'autotel'):
-                    asyncio.create_task(self.handle_cookies_request(task.payload))
-                    
+        tasks = []
+        try:
+            while not self.task_queue.empty() and self.running:
+                task: WebTask = self.task_queue.get_nowait()
+                if task.mode == "url":
+                    tasks.append(asyncio.create_task(self._handle_open_url_request(task.payload)))
+                elif task.mode == "pointer":
+                    tasks.append(asyncio.create_task(self._handle_pointer_location_request(str(task.payload))))
+                elif task.mode == "x_token":
+                    if isinstance(task.payload, str) and task.payload in ('goto', 'autotel'):
+                        tasks.append(asyncio.create_task(self._handle_x_token_request(task.payload)))
+                elif task.mode == "cookies":
+                    if isinstance(task.payload, str) and task.payload in ('goto', 'autotel'):
+                        tasks.append(asyncio.create_task(self.handle_cookies_request(task.payload)))
+
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception):
+                    print(f"Error handling task: {result}")
+
+        finally:
+            for item in tasks:
+                if not item.done():
+                    item.cancel()
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
             
     async def handle_cookies_request(self, mode: Literal['goto', 'autotel']):
         try:
@@ -240,48 +261,30 @@ class WebDataWorker(BaseWorker):
     async def _handle_pointer_login(self):
         async with self.pointer_lock:
             self.pointer = PointerLocation(self.web_access)
-            await self.pointer.login(cfg.get(cfg.pointer_user), cfg.get(cfg.phone))
+            if 'login' in self.web_access.pages['pointer'].url:
+                await self.pointer.login(cfg.get(cfg.pointer_user), cfg.get(cfg.phone))
             while self.running:
                 try:
                     await self.web_access.pages["pointer"].wait_for_selector('textarea.realInput', timeout=7000)
                     if await self.web_access.pages["pointer"].locator('.confirm').is_visible():
                         await self.web_access.pages["pointer"].locator('.confirm').click()
                     self.request_otp_input.emit()
-                    await self.stop_event.wait()
-                    self.stop_event.clear()
-                    # if not self.code:
-                    #     raise Exception("No code provided")
-                    # await self.pointer.fill_otp(self.code)
-                    # await asyncio.sleep(2)
+                    await self.event_wait()
                 except Exception:
-                    # del self.code
-                    print("Pointer logged in successfully")
                     self.page_loaded.emit()
                     break
 
 
     async def get_x_token_from_request(self, page: Page):
-        x_token_value = None
-
-        def handle_request(request: Request):
-            nonlocal x_token_value
-            if x_token_value is None and request.method == "POST":
-                token = request.headers.get("X-Token", request.headers.get("x-token"))
-                print("x-token found:", token)
-                if token:
-                    x_token_value = token
-                    self.stop_event.set()
-
-        page.on("request", handle_request)
         
-        await self.wait_by(timeout=30)
-        if not x_token_value:
-            await page.reload()
-            await self.stop_event.wait()
-            self.stop_event.clear()
-            
-            page.remove_listener("request", handle_request)
-
+        credentials = await page.evaluate("""
+            () => sessionStorage.getItem('ngStorage-credentials')
+        """)
+        
+        if not credentials:
+            return None
+        credentials = json.loads(credentials) 
+        x_token_value = credentials.get('token', None)
 
         return x_token_value
     
@@ -291,11 +294,11 @@ class WebDataWorker(BaseWorker):
             if request.method == "GET" and request.url.startswith(request_url):
                 if resp := await request.response():
                     data = await resp.json()
-                    notification = data.get("value", [])
-                    print("notification: ", notification)
-                    if notification:
-                        print("Hey, we got a notification!")
-                        self.notification_send.emit('goto' if 'goto' in request.url else 'autotel', notification)
+                    notifications = data.get("value", [])
+                    mode = 'goto' if 'goto' in request.url else 'autotel'
+                    print("notification: ", notifications)
+                    for item in notifications:
+                        self.notification_send.emit(mode, item)
 
         page.on("request", handle_request)
         
@@ -309,15 +312,13 @@ class WebDataWorker(BaseWorker):
         cookie_data = ""
         url = page.url
         cookies = await page.context.cookies([url])
-        print(f"Cookies for {url}: {cookies}")
         for cookie in cookies:
-            name = cookie.get('name', '')
+            name, val = cookie.get('name', ''), cookie.get('value')
             if name == "CrmOwinAuth":
-                val = cookie.get('value')
-                if val:
-                    cookie_data += f"{name}={val};"
+                cookie_data += f"{name}={val};"
             if name == 'CrmOwinAuthC1':
-                val = cookie.get('value')
+                cookie_data += f"{name}={val};"
+            if name == 'CrmOwinAuthC2':
                 cookie_data += f"{name}={val};"
         return cookie_data
         

@@ -22,9 +22,11 @@ def start_app(app):
     web_automation_worker = WebAutomationWorker()
     web_notification_worker = WebNotificationWorker()
     
-    create_web_data_worker(web_data_worker, web_automation_worker, web_notification_worker)
-    create_web_automation_worker(main_win, web_automation_worker, web_data_worker)
     create_web_notification_worker(web_notification_worker, web_data_worker)
+    create_web_automation_worker(main_win, web_automation_worker, web_data_worker)
+    create_web_data_worker(web_data_worker, web_automation_worker, web_notification_worker)
+
+    
     
     app.aboutToQuit.connect(web_automation_worker.stop)
     app.aboutToQuit.connect(web_data_worker.stop)

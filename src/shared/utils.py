@@ -20,6 +20,7 @@ import asyncio
 import time
 from functools import wraps
 import httpx
+import traceback
 def parse_time(time_str: str, dt_format: str = "%Y-%m-%dT%H:%M:%S.%f") -> dt | None:
     try:
         if "." in time_str:
@@ -43,11 +44,11 @@ async def fetch_data(request_url: str, x_token: str, payload: Dict) -> Dict:
     }
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(request_url, json=payload, headers=headers)
+            response = await client.post(request_url, json=payload, headers=headers, timeout=15)
             response.raise_for_status()
             return response.json()
     except Exception as e:
-        print(f"Request error: {e}")
+        print(f"Request error: {type(e).__name__}: {e}, request_url: {request_url}, x_token: {x_token}, payload: {payload},")
         return {}
 
 def async_retry(retries=3, delay=1, allow_falsy=False):

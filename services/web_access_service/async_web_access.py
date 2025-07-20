@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 import subprocess
 from time import sleep
@@ -98,7 +99,6 @@ class AsyncWebAccess:
         substrings_to_block = [
             "goto.crm4.dynamics.com/apc/100k.gif",
             "autotel.crm4.dynamics.com/apc/100k.gif",
-            "goto.crm4.dynamics.com/api/data/v9.0/activitypointers/Microsoft.Dynamics.CRM.RetrieveTimelineWallRecords",
             "apps.powerapps.com/apphost/e/"
         ]
 
@@ -121,6 +121,7 @@ class AsyncWebAccess:
         async def handle_download(download: Download):
             path = await download.path()
             if path:
+                await asyncio.sleep(2)
                 destination = Path.home() / "Downloads" / download.suggested_filename
                 await download.save_as(destination)
 
