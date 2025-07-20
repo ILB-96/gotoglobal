@@ -1,4 +1,5 @@
 from queue import Queue
+import re
 import threading
 from typing import Dict, List, Literal
 import uuid
@@ -43,6 +44,17 @@ class WebNotificationWorker(BaseWorker):
         msg = await self.fetch_batch_data('goto', cookies, notification_id)
         title = data.get('title', 'No Title')
         created_on = data.get('createdon', 'Unknown Date')
+        
+        license_plate_match = re.search(r'\b\d{3}-\d{2}-\d{3}\b', msg or "")
+        license_plate = license_plate_match.group() if license_plate_match else None
+        
+
+        # Find the first car ID after the specific pattern
+        car_id_match = re.search(r'<u>carId:</u></b>\s*(\d+)', msg or "")
+        car_id = car_id_match.group(1) if car_id_match else None
+
+        print("First Car ID:", car_id)
+        print("First License Plate:", license_plate)
         print('msg: ', msg, 'title:', title, 'created_on:', created_on)
 
     async def handle_autotel_notification(self, data: Dict):
