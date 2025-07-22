@@ -25,7 +25,7 @@ class WebNotificationWorker(BaseWorker):
     async def _async_main(self):
         while self.running:
             while not self.queue.empty():
-                print("Processing queued notifications...")
+                
                 mode, data = self.queue.get_nowait()
                 if mode == 'goto':
                     await self.handle_goto_notification(data)
@@ -47,15 +47,10 @@ class WebNotificationWorker(BaseWorker):
         
         license_plate_match = re.search(r'\b\d{3}-\d{2}-\d{3}\b', msg or "")
         license_plate = license_plate_match.group() if license_plate_match else None
-        
 
-        # Find the first car ID after the specific pattern
-        car_id_match = re.search(r'<u>carId:</u></b>\s*(\d+)', msg or "")
-        car_id = car_id_match.group(1) if car_id_match else None
-
-        print("First Car ID:", car_id)
         print("First License Plate:", license_plate)
         print('msg: ', msg, 'title:', title, 'created_on:', created_on)
+        
 
     async def handle_autotel_notification(self, data: Dict):
         """Handle Autotel notifications."""

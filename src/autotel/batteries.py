@@ -46,6 +46,13 @@ class BatteriesAlert(BaseAlert):
                 
     @utils.async_retry(allow_falsy=True)
     async def get_batteries_data(self):
+        data = await self.fetch_all_cars()
+        if not data or 'Data' not in data or not data.get('Data') or data.get('Data') == '[]':
+            return
+        data = json.loads(data.get('Data') or '[]')
+        return await self.process_batteries_data(data)
+
+    async def fetch_all_cars(self):
         url = 'https://autotelpublicapiprod.gototech.co/API/SEND/GetAllCars'
         payload = {
             'Data': 'null/null/1/false',
@@ -63,10 +70,7 @@ class BatteriesAlert(BaseAlert):
         except Exception:
             self.x_token = self.x_token_request('autotel')
             data = await utils.fetch_data(url, self.x_token, payload)
-        if not data or 'Data' not in data or not data.get('Data') or data.get('Data') == '[]':
-            return
-        data = json.loads(data.get('Data') or '[]')
-        return await self.process_batteries_data(data)
+        return data
     
     async def process_batteries_data(self, data):
         tasks = [asyncio.create_task(self.generate_battery_report(car)) for car in data if self.is_active_ride_and_electric(car)]
