@@ -1,11 +1,9 @@
 import asyncio
 from pathlib import Path
 import subprocess
-from time import sleep
 from playwright.async_api import BrowserContext, Page, Playwright, Download
-from typing import Optional
+from typing import Optional, Literal
 from pathlib import Path
-
 import urllib.parse
 
 class AsyncWebAccess:
@@ -40,7 +38,7 @@ class AsyncWebAccess:
                 subprocess.call([
                     'start', 'msedge', '--remote-debugging-port=9222', '--no-first-run'
                 ], shell=True)
-                sleep(5)
+                await asyncio.sleep(5)
                 self.browser = await self._playwright.chromium.connect_over_cdp('http://127.0.0.1:9222')
                 self.context = self.browser.contexts[0] if self.browser.contexts else await self.browser.new_context()
 
@@ -172,8 +170,6 @@ class AsyncWebAccess:
                 print(f"[ERROR] Failed to create page '{name}': {e}")
 
         # self.pages['blank'] = await self.create_new_page('blank', 'about:blank', open_mode='reuse')
-
-    from typing import Literal
 
     async def create_new_page(
         self,
