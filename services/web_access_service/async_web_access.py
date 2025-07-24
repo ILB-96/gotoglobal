@@ -159,12 +159,17 @@ class AsyncWebAccess:
     async def create_pages(self, pages: dict[str, str]):
         if not self.context:
             raise RuntimeError("Context not initialized")
-        
-        for name, url in pages.items():
+        tasks  = [asyncio.create_task(self.initialize_web_page(name, url)) for name, url in pages.items()]
+        await asyncio.gather(*tasks)
+
+    async def initialize_web_page(self, name, url):
+        try:
+            await self.create_new_page(name, url, wait_until="domcontentloaded")
+        except Exception:
             try:
-                await self.create_new_page(name, url, wait_until="domcontentloaded")
-            except Exception:
                 self.pages[name] = await self.context.new_page()
+            except Exception as e:
+                print(f"[ERROR] Failed to create page '{name}': {e}")
 
         # self.pages['blank'] = await self.create_new_page('blank', 'about:blank', open_mode='reuse')
 
