@@ -5,6 +5,8 @@ from typing import Dict, List, Literal
 import uuid
 
 import httpx
+import settings
+from src.shared import utils
 from src.workers.base_worker import BaseWorker
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 import traceback
@@ -12,6 +14,7 @@ import traceback
 
 class WebNotificationWorker(BaseWorker):
     """Worker for handling web notifications."""
+    toast_signal = pyqtSignal(str, str, str)
     request_cookies = pyqtSignal(str)
     def __init__(self, parent=None):
         super(WebNotificationWorker, self).__init__(parent)
@@ -49,7 +52,14 @@ class WebNotificationWorker(BaseWorker):
         license_plate = license_plate_match.group() if license_plate_match else None
 
         print("First License Plate:", license_plate)
-        print('msg: ', msg, 'title:', title, 'created_on:', created_on)
+        print('msg: ', msg, 'title:', title, 'license_plate:', license_plate, 'created_on:', created_on)
+
+        self.toast_signal.emit(
+            title,
+            f"{created_on}\nLicense Plate: {license_plate or 'N/A'}",
+            utils.resource_path(settings.app_icon)
+        )
+        
         
 
     async def handle_autotel_notification(self, data: Dict):
@@ -65,15 +75,15 @@ class WebNotificationWorker(BaseWorker):
         created_on = data.get('createdon', 'Unknown Date')
         license_plate_match = re.search(r'\b\d{3}-\d{2}-\d{3}\b', msg or "")
         license_plate = license_plate_match.group() if license_plate_match else None
-        
 
-        # Find the first car ID after the specific pattern
-        car_id_match = re.search(r'<u>carId:</u></b>\s*(\d+)', msg or "")
-        car_id = car_id_match.group(1) if car_id_match else None
-
-        print("First Car ID:", car_id)
         print("First License Plate:", license_plate)
-        print('msg: ', msg, 'title: ', title, 'created_on: ', created_on)
+        print('msg: ', msg, 'title:', title, 'license_plate:', license_plate, 'created_on:', created_on)
+
+        self.toast_signal.emit(
+            title,
+            f"{created_on}\nLicense Plate: {license_plate or 'N/A'}",
+            utils.resource_path(settings.autotel_icon)
+        )
 
     def enqueue_notification(self, mode: str, data: List):
         """Handle notifications based on the mode (goto or autotel)."""

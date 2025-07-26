@@ -81,24 +81,24 @@ class WebAutomationWorker(BaseWorker):
         long_rides_alert = None
         if cfg.get(cfg.late_rides):
             late = LateAlert(
-                show_toast=lambda title, message, icon: self.toast_signal.emit(title, message, icon),
-                gui_table_row=lambda row: self.late_table_row.emit(row),
+                show_toast=self.toast_signal.emit,
+                gui_table_row=self.late_table_row.emit,
                 open_ride=self.open_url_requested,
                 x_token_request=self.request_x_token_sync,
             )
     
         if cfg.get(cfg.batteries):
             batteries_alert = BatteriesAlert(
-                show_toast=lambda title, message, icon: self.toast_signal.emit(title, message, icon),
-                gui_table_row=lambda row: self.batteries_table_row.emit(row),
+                show_toast=self.toast_signal.emit,
+                gui_table_row=self.batteries_table_row.emit,
                 pointer=self.request_pointer_location_sync,
                 open_ride=self.open_url_requested,
                 x_token_request=self.request_x_token_sync
             )
         if cfg.get(cfg.long_rides):
             long_rides_alert = LongRides(
-                show_toast=lambda title, message, icon: self.toast_signal.emit(title, message, icon),
-                gui_table_row=lambda row: self.long_rides_table_row.emit(row),
+                show_toast=self.toast_signal.emit,
+                gui_table_row=self.long_rides_table_row.emit,
                 pointer=self.request_pointer_location_sync,
                 open_ride=self.open_url_requested,
                 x_token_request=self.request_x_token_sync

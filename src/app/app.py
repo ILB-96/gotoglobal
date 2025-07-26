@@ -22,7 +22,7 @@ def start_app(app):
     web_automation_worker = WebAutomationWorker()
     web_notification_worker = WebNotificationWorker()
     
-    create_web_notification_worker(web_notification_worker, web_data_worker)
+    create_web_notification_worker(main_win, web_notification_worker, web_data_worker)
     create_web_automation_worker(main_win, web_automation_worker, web_data_worker)
     create_web_data_worker(web_data_worker, web_automation_worker, web_notification_worker)
 
@@ -34,10 +34,11 @@ def start_app(app):
     main_win.show()
     app.exec()
     
-def create_web_notification_worker(worker: WebNotificationWorker, web_data_worker: WebDataWorker):
+def create_web_notification_worker(main_win, worker: WebNotificationWorker, web_data_worker: WebDataWorker):
     worker.start()
     web_data_worker.notification_send.connect(worker.enqueue_notification)
     worker.request_cookies.connect(web_data_worker.enqueue_cookies)
+    worker.toast_signal.connect(main_win.show_toast)
     
 def create_web_data_worker(worker: WebDataWorker, web_automation_worker: WebAutomationWorker, 
                            web_notification_worker: WebNotificationWorker):

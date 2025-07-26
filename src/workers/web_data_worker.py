@@ -2,7 +2,7 @@ import json
 from queue import Queue
 from PyQt6.QtCore import pyqtSignal
 
-from playwright.async_api import async_playwright, Request, Page
+from playwright.async_api import Request, Page
 from services import AsyncWebAccess
 import settings
 from src.shared import PointerLocation, utils
@@ -42,25 +42,23 @@ class WebDataWorker(BaseWorker):
 
  
     async def _async_main(self):
-        async with async_playwright() as playwright:
-            async with AsyncWebAccess(playwright, False, 'edge', 'Port') as self.web_access:
-                
-                await self._init_pages()
-                
-                asyncio.create_task(self._handle_pointer_login()) if cfg.get(cfg.pointer) else self.page_loaded.emit()
-                await self.start_notification_listeners()
-                start_time = 0
-                reload_blank_page = None
-                while self.running:
-                    await self._handle_queue()
-                    if reload_blank_page:
-                        await reload_blank_page
-                    reload_blank_page = asyncio.create_task(self.update_page_data())
-                    now = time.time()
-                    if self.pointer and now - start_time >= settings.pointer_interval:
-                        start_time = now
-                        asyncio.create_task(self.reload_pointer_data())
-                    await self.wait_by(timeout=3)
+        async with AsyncWebAccess(False, 'edge', 'Port') as self.web_access:
+            await self._init_pages()
+            
+            asyncio.create_task(self._handle_pointer_login()) if cfg.get(cfg.pointer) else self.page_loaded.emit()
+            await self.start_notification_listeners()
+            start_time = 0
+            reload_blank_page = None
+            while self.running:
+                await self._handle_queue()
+                if reload_blank_page:
+                    await reload_blank_page
+                reload_blank_page = asyncio.create_task(self.update_page_data())
+                now = time.time()
+                if self.pointer and now - start_time >= settings.pointer_interval:
+                    start_time = now
+                    asyncio.create_task(self.reload_pointer_data())
+                await self.wait_by(timeout=3)
 
     @utils.async_retry(allow_falsy=True)
     async def reload_pointer_data(self):
@@ -69,10 +67,7 @@ class WebDataWorker(BaseWorker):
 
     @utils.async_retry(allow_falsy=True)
     async def update_page_data(self):
-        if 'blank' in self.web_access.pages.keys() and not self.web_access.pages['blank'].is_closed():
-            await self.web_access.pages['blank'].reload()
-        else:
-            await self.web_access.create_new_page('blank','about:blank', 'reuse')
+        await self.web_access.create_new_page('blank','about:blank', 'reuse')
                     
     async def _init_pages(self):
         pages_to_create = {}

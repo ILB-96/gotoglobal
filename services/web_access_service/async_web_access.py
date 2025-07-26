@@ -1,7 +1,7 @@
 import asyncio
 from pathlib import Path
 import subprocess
-from playwright.async_api import BrowserContext, Page, Playwright, Download
+from playwright.async_api import async_playwright, BrowserContext, Page, Playwright, Download, Error
 from typing import Optional, Literal
 from pathlib import Path
 import urllib.parse
@@ -17,18 +17,31 @@ class AsyncWebAccess:
 
     def __init__(
         self,
-        playwright: Playwright,
         headless: bool = True,
         browser_name: str = 'edge',
         profile: str = "Default",
     ):
-        self._playwright = playwright
         self._headless = headless
         self._browser_name = browser_name
         self._profile = profile or None
         self.pages: dict[str, Page] = {}
         
     async def __aenter__(self):
+        self._playwright = await async_playwright().start()
+        return await self.create_connection()
+
+    async def relaunch_browser(self):
+        """
+        Relaunch the browser, useful if the browser has been closed or crashed.
+        """
+        await self.cleanup()
+        self.browser = None
+        self.context = None
+        self._playwright = await async_playwright().start()
+        return await self.create_connection()
+        
+    
+    async def create_connection(self):
         if self._profile == "Port":
             try:
                 self.browser = await self._playwright.chromium.connect_over_cdp('http://127.0.0.1:9222', timeout=10000)
@@ -84,6 +97,7 @@ class AsyncWebAccess:
         await self.block_unwanted_requests(self.context)
                 
         return self
+    
     async def block_unwanted_requests(self, context):
         exact_urls_to_block = {
             "https://car2govisibility.gototech.co/API/RT/reservationIssues",
@@ -133,17 +147,7 @@ class AsyncWebAccess:
 
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        try:
-            if self.context:
-                await self.context.close()
-        except Exception as e:
-            print(f"[WARN] Failed to close context: {e}")
-
-        try:
-            if self.browser:
-                await self.browser.close()
-        except Exception as e:
-            print(f"[WARN] Failed to close browser: {e}")
+        await self.cleanup()
 
         # Do not suppress exceptions from the `with` block
         return False
@@ -179,10 +183,18 @@ class AsyncWebAccess:
         timeout: int = 45_000,
         wait_until: Literal['commit', 'domcontentloaded', 'load', 'networkidle'] = "networkidle",
     ) -> Page:
+        try:
+            return await self.create_or_navigate_page(page_name, url, open_mode, timeout, wait_until)
+        except Error as e:
+            print(f"[ERROR] Failed to create or navigate page '{page_name}': {e}")
+            if "has been closed" in str(e):
+                await self.relaunch_browser()
+            return await self.create_or_navigate_page(page_name, url, open_mode, timeout, wait_until)
+
+
+    async def create_or_navigate_page(self, page_name, url, open_mode, timeout, wait_until):
         if open_mode == "close" and page_name in self.pages and not self.pages[page_name].is_closed():
-            old = self.pages[page_name]
-            if not old.is_closed():
-                await old.close()
+            await self.pages[page_name].close()
 
         if page_name not in self.pages or self.pages[page_name].is_closed():
             page = await self.context.new_page()
@@ -192,7 +204,6 @@ class AsyncWebAccess:
 
         await page.goto(url, timeout=timeout, wait_until=wait_until)
         return page
-
     def get_page(self, page_name: str) -> Optional[Page]:
         """
         Get a page by its name.
@@ -213,8 +224,22 @@ class AsyncWebAccess:
         if not page.is_closed():
             await page.close()
         del self.pages[page_name]
-
-
+        
     async def cleanup(self):
-        if self.context:
-            await self.context.close()
+        try:
+            if self.context:
+                await self.context.close()
+        except Exception as e:
+            print(f"[WARN] Failed to close context: {e}")
+
+        try:
+            if self.browser:
+                await self.browser.close()
+        except Exception as e:
+            print(f"[WARN] Failed to close browser: {e}")
+
+        try:
+            if self._playwright:
+                await self._playwright.stop()
+        except Exception as e:
+            print(f"[WARN] Failed to close Playwright: {e}")

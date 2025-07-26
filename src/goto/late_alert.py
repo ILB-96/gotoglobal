@@ -48,7 +48,7 @@ class LateAlert(BaseAlert):
             self.show_toast(
                 'Goto ~ Late Alert!',
                 f"Ride {ride_id} ended at {row[1]}. Next ride at {row[3]}",
-                icon=utils.resource_path(settings.app_icon)
+                utils.resource_path(settings.app_icon)
             )
             
     @utils.async_retry(allow_falsy=True)

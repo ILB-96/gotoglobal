@@ -34,7 +34,7 @@ class BatteriesAlert(BaseAlert):
         self.show_toast(
                     'Autotel - Battery Alert!',
                     f"Low battery for ride {row[0][0]}: {row[2]}",
-                    icon=utils.resource_path(settings.autotel_icon)
+                    utils.resource_path(settings.autotel_icon)
                 )
 
     def should_notify_user_of_low_battery(self, row):
