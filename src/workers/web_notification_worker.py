@@ -10,7 +10,7 @@ from src.shared import utils
 from src.workers.base_worker import BaseWorker
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 import traceback
-
+from datetime import datetime as dt, timedelta
 
 class WebNotificationWorker(BaseWorker):
     """Worker for handling web notifications."""
@@ -26,6 +26,7 @@ class WebNotificationWorker(BaseWorker):
         self._autotel_cookies = None
     
     async def _async_main(self):
+        await self.event_wait()
         while self.running:
             while not self.queue.empty():
                 
@@ -42,6 +43,10 @@ class WebNotificationWorker(BaseWorker):
     async def handle_goto_notification(self, data: Dict):
         """Handle Goto notifications."""
         # Process Goto notifications
+        notified_on = data.get('modifiedon@OData.Community.Display.V1.FormattedValue')
+        
+        if self.is_notification_expired(notified_on):
+            return
         cookies = self.request_cookies_sync('goto')
         notification_id = data.get('body', 'id=1').split('id=')[-1].strip(')')
         msg = await self.fetch_batch_data('goto', cookies, notification_id)
@@ -59,20 +64,24 @@ class WebNotificationWorker(BaseWorker):
             f"{created_on}\nLicense Plate: {license_plate or 'N/A'}",
             utils.resource_path(settings.app_icon)
         )
-        
-        
+
+    def is_notification_expired(self, notified_on):
+        return not notified_on or dt.strptime(notified_on, '%d/%m/%Y %H:%M') < dt.now() - timedelta(minutes=2)
 
     async def handle_autotel_notification(self, data: Dict):
         """Handle Autotel notifications."""
         # Process Autotel notifications
-        if 'סוללה' in data.get('title', ''):
-            return print(f"Skipping Autotel notification: {data.get('title', '')}")
+        notified_on = data.get('modifiedon@OData.Community.Display.V1.FormattedValue')
+        is_battery_notification = 'סוללה' in data.get('title', '')
+        if self.is_notification_expired(notified_on) or is_battery_notification:
+            return
         cookies = self.request_cookies_sync('autotel')
         notification_id = data.get('body', 'id=1').split('id=')[-1].strip(')')
         msg = await self.fetch_batch_data('autotel', cookies, notification_id)
         
         title = data.get('title', 'No Title')
-        created_on = data.get('createdon', 'Unknown Date')
+        created_on = data.get('createdon@OData.Community.Display.V1.FormattedValue', 'Unknown Date')
+        
         license_plate_match = re.search(r'\b\d{3}-\d{2}-\d{3}\b', msg or "")
         license_plate = license_plate_match.group() if license_plate_match else None
 
@@ -81,7 +90,7 @@ class WebNotificationWorker(BaseWorker):
 
         self.toast_signal.emit(
             title,
-            f"{created_on}\nLicense Plate: {license_plate or 'N/A'}",
+            f"{notified_on}\nLicense Plate: {license_plate or 'N/A'}",
             utils.resource_path(settings.autotel_icon)
         )
 

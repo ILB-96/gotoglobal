@@ -34,7 +34,7 @@ def start_app(app):
     main_win.show()
     app.exec()
     
-def create_web_notification_worker(main_win, worker: WebNotificationWorker, web_data_worker: WebDataWorker):
+def create_web_notification_worker(main_win, worker: WebNotificationWorker, web_data_worker: WebDataWorker, ):
     worker.start()
     web_data_worker.notification_send.connect(worker.enqueue_notification)
     worker.request_cookies.connect(web_data_worker.enqueue_cookies)
@@ -47,6 +47,7 @@ def create_web_data_worker(worker: WebDataWorker, web_automation_worker: WebAuto
     worker.x_token_send.connect(web_automation_worker.set_x_token_data)
     worker.pointer_location_send.connect(web_automation_worker.set_location_data)
     worker.input_received.connect(worker.trigger_stop_event)
+    worker.page_loaded.connect(web_notification_worker.trigger_stop_event)
     worker.page_loaded.connect(web_automation_worker.trigger_stop_event)
     worker.cookies_send.connect(web_notification_worker.set_cookies_data)
 
@@ -59,7 +60,6 @@ def create_web_automation_worker(main_win, worker: WebAutomationWorker, web_data
     worker.batteries_table_row.connect(main_win.autotelInterface.batteries_table.setRows)
     worker.long_rides_table_row.connect(main_win.autotelInterface.long_rides_table.setRows)
     worker.request_delete_table.connect(main_win.removeWidgets)
-    # worker.request_delete_tab.connect(lambda tab: main_win.delete_tab(tab))
     worker.request_x_token.connect(web_data_worker.enqueue_x_token)
     worker.request_pointer_location.connect(web_data_worker.enqueue_pointer_location)
     worker.open_url_requested.connect(web_data_worker.enqueue_url)

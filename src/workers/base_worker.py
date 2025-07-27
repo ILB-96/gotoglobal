@@ -33,6 +33,7 @@ class BaseWorker(QThread):
         except asyncio.TimeoutError:
             pass
         self.stop_event.clear()
+
     async def event_wait(self):
         """Waits indefinitely until the stop_event is set."""
         await self.stop_event.wait()

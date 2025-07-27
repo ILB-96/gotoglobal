@@ -34,8 +34,7 @@ class WebAutomationWorker(BaseWorker):
     
     async def _async_main(self):
         self.request_delete_table.emit()
-        await self.stop_event.wait()
-        self.stop_event.clear()
+        await self.event_wait()
 
         if not self.running:
             return

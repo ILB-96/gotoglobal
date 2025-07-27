@@ -89,8 +89,8 @@ class AsyncWebAccess:
         else:
             self.browser = await self._playwright.chromium.launch(
                 headless=self._headless)
-            self.context: BrowserContext = await self.browser.new_context()
-        
+            self.context: BrowserContext | None = await self.browser.new_context()
+
         await self.add_download_event_handler()
             
         self.pages: dict[str, Page] = {}
@@ -187,8 +187,10 @@ class AsyncWebAccess:
             return await self.create_or_navigate_page(page_name, url, open_mode, timeout, wait_until)
         except Error as e:
             print(f"[ERROR] Failed to create or navigate page '{page_name}': {e}")
-            if "has been closed" in str(e):
-                await self.relaunch_browser()
+            if "has been closed" not in str(e):
+                raise e
+            
+            await self.relaunch_browser()
             return await self.create_or_navigate_page(page_name, url, open_mode, timeout, wait_until)
 
 
