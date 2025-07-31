@@ -136,23 +136,25 @@ class AsyncWebAccess:
         #         await asyncio.sleep(2)
         #         destination = Path.home() / "Downloads" / download.suggested_filename
         #         await download.save_as(destination)
+        download_path = str(Path.home() / "Downloads")
 
         async def attach_listener(page: Page):
-            # page.on("download", handle_download)
-            client = await page.context.new_cdp_session(page)
-            # Send download behavior settings
-            await client.send(
-                "Page.setDownloadBehavior",
-                {
-                    "behavior": "allow",
-                    "downloadPath": Path.home() / "Downloads"
-                }
-            )
+                try:
+                    client = await page.context.new_cdp_session(page)
+                    await client.send(
+                        "Page.setDownloadBehavior",
+                        {
+                            "behavior": "allow",
+                            "downloadPath": download_path
+                        }
+                    )
+                except Exception as e:
+                    print(f"[DownloadHandler] Failed to attach to page: {e}")
 
-        for page in self.context.pages:
-            await attach_listener(page)
+        tasks = [asyncio.create_task(attach_listener(page)) for page in self.context.pages]
+        await asyncio.gather(*tasks)
 
-        self.context.on("page", attach_listener)
+        self.context.on("page", lambda page: asyncio.create_task(attach_listener(page)))
 
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
