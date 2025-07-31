@@ -130,18 +130,27 @@ class AsyncWebAccess:
         if not self.context:
             return
 
-        async def handle_download(download: Download):
-            path = await download.path()
-            if path:
-                await asyncio.sleep(2)
-                destination = Path.home() / "Downloads" / download.suggested_filename
-                await download.save_as(destination)
+        # async def handle_download(download: Download):
+        #     path = await download.path()
+        #     if path:
+        #         await asyncio.sleep(2)
+        #         destination = Path.home() / "Downloads" / download.suggested_filename
+        #         await download.save_as(destination)
 
-        def attach_listener(page):
-            page.on("download", handle_download)
+        async def attach_listener(page: Page):
+            # page.on("download", handle_download)
+            client = await page.context.new_cdp_session(page)
+            # Send download behavior settings
+            await client.send(
+                "Page.setDownloadBehavior",
+                {
+                    "behavior": "allow",
+                    "downloadPath": Path.home() / "Downloads"
+                }
+            )
 
         for page in self.context.pages:
-            attach_listener(page)
+            await attach_listener(page)
 
         self.context.on("page", attach_listener)
 
