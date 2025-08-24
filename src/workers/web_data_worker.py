@@ -176,7 +176,7 @@ class WebDataWorker(BaseWorker):
             await page.goto(url, wait_until='domcontentloaded')
             await page.bring_to_front()
             await page.wait_for_function('document.title.length > 0')
-            if page.url != 'url':
+            if page.url != url:
                 await page.goto(url)
         except Exception:
             pass
