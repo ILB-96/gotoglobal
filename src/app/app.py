@@ -20,9 +20,10 @@ def start_app(app):
 
     web_data_worker = WebDataWorker()
     web_automation_worker = WebAutomationWorker()
-    web_notification_worker = WebNotificationWorker()
+    # web_notification_worker = WebNotificationWorker()
+    web_notification_worker = None
     
-    create_web_notification_worker(main_win, web_notification_worker, web_data_worker)
+    # create_web_notification_worker(main_win, web_notification_worker, web_data_worker)
     create_web_automation_worker(main_win, web_automation_worker, web_data_worker)
     create_web_data_worker(web_data_worker, web_automation_worker, web_notification_worker)
 
@@ -41,15 +42,15 @@ def create_web_notification_worker(main_win, worker: WebNotificationWorker, web_
     worker.toast_signal.connect(main_win.show_toast)
     
 def create_web_data_worker(worker: WebDataWorker, web_automation_worker: WebAutomationWorker, 
-                           web_notification_worker: WebNotificationWorker):
+                           web_notification_worker: WebNotificationWorker | None):
     worker.start()
     worker.request_otp_input.connect(lambda: handle_code_input(worker))
     worker.x_token_send.connect(web_automation_worker.set_x_token_data)
     worker.pointer_location_send.connect(web_automation_worker.set_location_data)
     worker.input_received.connect(worker.trigger_stop_event)
-    worker.page_loaded.connect(web_notification_worker.trigger_stop_event)
+    # worker.page_loaded.connect(web_notification_worker.trigger_stop_event)
     worker.page_loaded.connect(web_automation_worker.trigger_stop_event)
-    worker.cookies_send.connect(web_notification_worker.set_cookies_data)
+    # worker.cookies_send.connect(web_notification_worker.set_cookies_data)
 
 
 

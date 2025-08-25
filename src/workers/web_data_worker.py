@@ -46,7 +46,7 @@ class WebDataWorker(BaseWorker):
             await self._init_pages()
             
             asyncio.create_task(self._handle_pointer_login()) if cfg.get(cfg.pointer) else self.page_loaded.emit()
-            await self.start_notification_listeners()
+            # await self.start_notification_listeners()
             start_time = 0
             reload_blank_page = None
             while self.running:
